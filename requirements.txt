@@ -1,0 +1,13 @@
+# SBF-Net project-level requirements
+#
+# Pointcept is a required upstream dependency and is not included here.
+# Install Pointcept first, then use this file only for the minimal SBF-Net side
+# dependencies or for environment documentation.
+
+torch
+numpy
+
+# Notes:
+# - Additional dependencies required by PTv3 / Pointcept should follow the
+#   Pointcept installation guide.
+# - SBF-Net currently does not require a separate visualization or test stack.
