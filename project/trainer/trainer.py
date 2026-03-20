@@ -64,10 +64,8 @@ class SemanticBoundaryTrainer:
         self.val_log_freq = int(self.runtime_cfg.get("val_log_freq", 10))
         self.save_freq = self.runtime_cfg.get("save_freq")
         self.grad_accum_steps = int(self.runtime_cfg.get("grad_accum_steps", 1))
-        self.train_batch_size = int(
-            self.data_cfg.get("train_batch_size", self.trainer_cfg["batch_size"])
-        )
-        self.val_batch_size = int(self.data_cfg.get("val_batch_size", 1))
+        self.train_batch_size = int(self.data_cfg["train_batch_size"])
+        self.val_batch_size = int(self.data_cfg["val_batch_size"])
         self.model_dir = os.path.join(self.work_dir, "model")
 
         os.makedirs(self.work_dir, exist_ok=True)
@@ -269,6 +267,12 @@ class SemanticBoundaryTrainer:
         return result
 
     @staticmethod
+    def _loss_log_keys(loss_dict: dict[str, torch.Tensor] | dict[str, float]) -> list[str]:
+        if "loss_mask" in loss_dict:
+            return ["loss", "loss_semantic", "loss_mask", "loss_vec", "loss_strength"]
+        return ["loss", "loss_semantic"]
+
+    @staticmethod
     def _build_loss_inputs(output: dict, batch: dict) -> dict:
         kwargs = dict(seg_logits=output["seg_logits"], segment=batch["segment"])
         if "edge_pred" in output and "edge" in batch:
@@ -417,7 +421,7 @@ class SemanticBoundaryTrainer:
                         f"Batch {batch_time_meter.val:.3f} ({batch_time_meter.avg:.3f}) "
                         f"Remain {self._format_seconds(remain_time)} "
                     )
-                    for key in loss_meters.keys():
+                    for key in self._loss_log_keys(loss_meters):
                         info += f"{key}: {loss_meters[key].val:.4f} "
                     info += (
                         f"Accum {accum_counter if accum_counter > 0 else self.grad_accum_steps}/"
@@ -598,13 +602,6 @@ class SemanticBoundaryTrainer:
                     "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
                     "loss_mask={loss_mask:.4f} loss_vec={loss_vec:.4f} "
                     "loss_strength={loss_strength:.4f} optimizer_steps={optimizer_steps}".format(
-                        **train_metrics
-                    )
-                )
-            elif "loss_lovasz" in train_metrics:
-                self.logger.info(
-                    "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
-                    "loss_lovasz={loss_lovasz:.4f} optimizer_steps={optimizer_steps}".format(
                         **train_metrics
                     )
                 )

@@ -15,19 +15,23 @@ model = runpy.run_path(
 data = runpy.run_path(
     str(repo_root / "configs" / "bf" / "semseg-pt-v3m1-0-base-bf.py")
 )["data"]
+data["train_batch_size"] = 2
+data["val_batch_size"] = 1
 
 loss = dict(type="SemanticBoundaryLoss")
 evaluator = dict(type="SemanticBoundaryEvaluator")
 
 optimizer = dict(
-    type="Adam",
-    lr=1e-3,
-    weight_decay=0.0,
+    type="AdamW",
+    lr=0.006,
+    weight_decay=0.05,
 )
+
+param_dicts = [dict(keyword="block", lr=0.0006)]
 
 scheduler = dict(
     type="OneCycleLR",
-    max_lr=1e-3,
+    max_lr=[0.006, 0.0006],
     pct_start=0.05,
     anneal_strategy="cos",
     div_factor=10.0,
@@ -48,7 +52,6 @@ runtime = dict(
 trainer = dict(
     total_epoch=3000,
     eval_epoch=100,
-    batch_size=2,
     num_workers=8,
     max_train_batches=None,
     max_val_batches=None,

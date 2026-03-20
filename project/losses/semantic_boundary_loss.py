@@ -6,11 +6,18 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from pointcept.models.losses.lovasz import LovaszLoss
+
 
 class SemanticBoundaryLoss(nn.Module):
     def __init__(self):
         super().__init__()
-        self.semantic_loss = nn.CrossEntropyLoss()
+        self.semantic_loss = nn.CrossEntropyLoss(ignore_index=-1)
+        self.lovasz_loss = LovaszLoss(
+            mode="multiclass",
+            ignore_index=-1,
+            loss_weight=1.0,
+        )
         self.mask_loss = nn.BCEWithLogitsLoss()
 
     @staticmethod
@@ -36,7 +43,9 @@ class SemanticBoundaryLoss(nn.Module):
         mask_pred = edge_pred[:, 4]
         mask_gt = edge[:, 4].float()
 
-        loss_semantic = self.semantic_loss(seg_logits, segment)
+        loss_ce = self.semantic_loss(seg_logits, segment)
+        loss_lovasz = self.lovasz_loss(seg_logits, segment)
+        loss_semantic = loss_ce + loss_lovasz
         loss_mask = self.mask_loss(mask_pred, mask_gt)
 
         positive_mask = mask_gt > 0.5

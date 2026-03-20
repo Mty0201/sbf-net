@@ -53,7 +53,6 @@ runtime = dict(
 trainer = dict(
     total_epoch=2,
     eval_epoch=1,
-    batch_size=1,
     num_workers=0,
     max_train_batches=1,
     max_val_batches=1,

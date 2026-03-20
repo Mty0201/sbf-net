@@ -129,11 +129,13 @@ Current full dual-task and semantic-only training both use:
 - `total_epoch`
 - `eval_epoch`
 - derived `train_loop`
+- `data.train_batch_size`
+- `data.val_batch_size`
 
 The effective batch size is:
 
 ```text
-effective batch size = batch_size * grad_accum_steps
+effective batch size = data.train_batch_size * grad_accum_steps
 ```
 
 The trainer prints iteration-level logs by default. Typical train logs look like:
@@ -161,6 +163,18 @@ Train:
 - `loss_mask`
 - `loss_vec`
 - `loss_strength`
+
+The semantic branch is now aligned between `semantic-only` and `dual-task`:
+
+- semantic loss = `CrossEntropy + Lovasz`
+- optimizer = `AdamW`
+- block parameters use a lower LR group
+
+Current train logs intentionally keep semantic loss aggregated as:
+
+- `loss_semantic`
+
+They do not separately print `loss_ce` or `loss_lovasz`.
 
 Validation:
 
