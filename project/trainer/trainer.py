@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import os
-from collections import defaultdict
+import time
+import math
 from functools import partial
 
 import torch
@@ -18,6 +19,7 @@ from pointcept.datasets.utils import point_collate_fn
 from pointcept.models import build_model
 from project.evaluator import SemanticBoundaryEvaluator
 from project.losses import SemanticBoundaryLoss
+from project.utils import AverageMeter, create_logger
 
 
 class IdentityPointBackbone(nn.Module):
@@ -38,22 +40,67 @@ class SemanticBoundaryTrainer:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.trainer_cfg = cfg["trainer"]
         self.optimizer_cfg = cfg["optimizer"]
-        self.best_val_miou = float("-inf")
         self.smoke_mode = "actual_backbone_cuda"
+        self.resume = bool(cfg.get("resume", False))
+        self.weight = cfg.get("weight")
+        self.work_dir = cfg["work_dir"]
+        self.runtime_cfg = cfg.get("runtime", {})
+        self.scheduler_cfg = cfg.get("scheduler")
+        self.best_val_miou = float("-inf")
+        self.start_epoch = 1
+        self.total_epoch = int(
+            self.trainer_cfg.get("total_epoch", self.trainer_cfg.get("epochs", 1))
+        )
+        self.max_epoch = int(self.trainer_cfg.get("eval_epoch", self.total_epoch))
+        if self.total_epoch % self.max_epoch != 0:
+            raise ValueError("total_epoch must be divisible by eval_epoch.")
+        self.train_loop = self.total_epoch // self.max_epoch
+        self.log_freq = int(self.runtime_cfg.get("log_freq", 1))
+        self.val_log_freq = int(self.runtime_cfg.get("val_log_freq", 10))
+        self.save_freq = self.runtime_cfg.get("save_freq")
+        self.grad_accum_steps = int(self.runtime_cfg.get("grad_accum_steps", 1))
+        self.model_dir = os.path.join(self.work_dir, "model")
 
-        self.work_dir = self.trainer_cfg["work_dir"]
         os.makedirs(self.work_dir, exist_ok=True)
+        os.makedirs(self.model_dir, exist_ok=True)
+        self.logger = create_logger(
+            "sbf_net.trainer", os.path.join(self.work_dir, "train.log")
+        )
+        self.logger.info("=> Loading config ...")
+        self.logger.info(f"Save path: {self.work_dir}")
+        self.logger.info(f"Device: {self.device}")
+        self.logger.info(f"Resume: {self.resume}")
+        self.logger.info(f"Weight: {self.weight}")
+        self.logger.info(f"Grad accumulation steps: {self.grad_accum_steps}")
+        self.logger.info(
+            f"Effective batch size: {self.trainer_cfg['batch_size'] * self.grad_accum_steps}"
+        )
 
+        self.logger.info("=> Building train dataset & dataloader ...")
         self.train_dataset = build_dataset(cfg["data"]["train"])
-        self.val_dataset = build_dataset(cfg["data"]["val"])
         self.train_loader = self._build_dataloader(self.train_dataset, training=True)
+        self.logger.info("=> Building val dataset & dataloader ...")
+        self.val_dataset = build_dataset(cfg["data"]["val"])
         self.val_loader = self._build_dataloader(self.val_dataset, training=False)
+        self.base_steps_per_epoch = self._compute_steps_per_epoch()
+        self.steps_per_epoch = self.base_steps_per_epoch * self.train_loop
+        self.optimizer_steps_per_epoch = math.ceil(
+            self.steps_per_epoch / self.grad_accum_steps
+        )
+        self.total_train_iters = self.max_epoch * self.steps_per_epoch
 
+        self.logger.info("=> Building model ...")
         self.model = build_model(cfg["model"]).to(self.device)
+        self.logger.info("=> Building loss / evaluator ...")
         self.loss_fn = SemanticBoundaryLoss().to(self.device)
         self.evaluator = SemanticBoundaryEvaluator()
+        self.logger.info("=> Building optimizer / scheduler ...")
         self.optimizer = self._build_optimizer()
+        self.scheduler = self._build_scheduler()
         self._cpu_backbone_ready = False
+        self._prepare_cpu_backbone_for_runtime()
+        self.logger.info("=> Loading checkpoint / weight if needed ...")
+        self._load_checkpoint_or_weight()
 
     def _build_dataloader(self, dataset, training: bool) -> DataLoader:
         return DataLoader(
@@ -67,6 +114,11 @@ class SemanticBoundaryTrainer:
             persistent_workers=self.trainer_cfg["num_workers"] > 0,
         )
 
+    def _compute_steps_per_epoch(self) -> int:
+        if self.trainer_cfg.get("max_train_batches") is not None:
+            return min(len(self.train_loader), int(self.trainer_cfg["max_train_batches"]))
+        return len(self.train_loader)
+
     def _build_optimizer(self):
         optimizer_type = self.optimizer_cfg["type"]
         kwargs = {
@@ -77,6 +129,19 @@ class SemanticBoundaryTrainer:
         if optimizer_type == "SGD":
             return torch.optim.SGD(self.model.parameters(), **kwargs)
         raise ValueError(f"Unsupported optimizer type: {optimizer_type}")
+
+    def _build_scheduler(self):
+        if self.scheduler_cfg is None:
+            return None
+        scheduler_type = self.scheduler_cfg["type"]
+        kwargs = {
+            key: value for key, value in self.scheduler_cfg.items() if key != "type"
+        }
+        if scheduler_type == "OneCycleLR":
+            kwargs.setdefault("max_lr", self.optimizer_cfg["lr"])
+            kwargs["total_steps"] = self.max_epoch * self.optimizer_steps_per_epoch
+            return torch.optim.lr_scheduler.OneCycleLR(self.optimizer, **kwargs)
+        raise ValueError(f"Unsupported scheduler type: {scheduler_type}")
 
     def _move_batch_to_device(self, batch: dict) -> dict:
         moved = {}
@@ -101,6 +166,23 @@ class SemanticBoundaryTrainer:
         ).to(self.device)
         self._cpu_backbone_ready = True
         self.smoke_mode = "shell_only_no_cuda"
+        self.logger.info("Using CPU shell backbone fallback for this run.")
+
+    def _prepare_cpu_backbone_for_runtime(self):
+        if torch.cuda.is_available():
+            return
+        if not self.trainer_cfg.get("cpu_fallback_shell_backbone", False):
+            return
+        if self._cpu_backbone_ready:
+            return
+        in_channels = int(self.cfg["model"]["backbone"]["in_channels"])
+        self.model.backbone = IdentityPointBackbone(
+            in_channels=in_channels,
+            out_channels=self.model.semantic_head.proj.in_features,
+        ).to(self.device)
+        self._cpu_backbone_ready = True
+        self.smoke_mode = "shell_only_no_cuda"
+        self.logger.info("Prepared CPU shell backbone before checkpoint loading.")
 
     @staticmethod
     def _forward_input_from_batch(batch: dict) -> dict:
@@ -120,45 +202,178 @@ class SemanticBoundaryTrainer:
         return result
 
     @staticmethod
-    def _average_logs(logs: list[dict[str, float]]) -> dict[str, float]:
-        accum = defaultdict(float)
-        for item in logs:
-            for key, value in item.items():
-                accum[key] += value
-        return {key: value / max(len(logs), 1) for key, value in accum.items()}
+    def _format_seconds(seconds: float) -> str:
+        seconds = max(int(seconds), 0)
+        hours, remainder = divmod(seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+    @staticmethod
+    def _extract_model_state_dict(checkpoint: dict) -> dict:
+        if "model_state_dict" in checkpoint:
+            return checkpoint["model_state_dict"]
+        if "state_dict" in checkpoint:
+            state_dict = checkpoint["state_dict"]
+            normalized = {}
+            for key, value in state_dict.items():
+                normalized[key[7:] if key.startswith("module.") else key] = value
+            return normalized
+        raise KeyError("No model weights found in checkpoint.")
+
+    def _load_checkpoint_or_weight(self):
+        weight_path = self.weight
+        if self.resume and weight_path is None:
+            candidate = os.path.join(self.model_dir, "model_last.pth")
+            if os.path.isfile(candidate):
+                weight_path = candidate
+        if weight_path is None:
+            self.logger.info("No checkpoint or weight provided.")
+            self.logger.info(f"Start epoch: {self.start_epoch}")
+            return
+        if not os.path.isfile(weight_path):
+            raise FileNotFoundError(f"Checkpoint/weight not found: {weight_path}")
+
+        checkpoint = torch.load(weight_path, map_location=self.device, weights_only=False)
+        self.model.load_state_dict(self._extract_model_state_dict(checkpoint), strict=True)
+
+        if self.resume:
+            self.logger.info(f"Resuming from checkpoint: {weight_path}")
+            if "optimizer_state_dict" in checkpoint:
+                self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+            elif "optimizer" in checkpoint:
+                self.optimizer.load_state_dict(checkpoint["optimizer"])
+            if self.scheduler is not None:
+                if "scheduler_state_dict" in checkpoint and checkpoint["scheduler_state_dict"] is not None:
+                    self.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+                elif "scheduler" in checkpoint and checkpoint["scheduler"] is not None:
+                    self.scheduler.load_state_dict(checkpoint["scheduler"])
+            self.best_val_miou = float(checkpoint.get("best_val_miou", checkpoint.get("best_metric_value", float("-inf"))))
+            self.start_epoch = int(checkpoint.get("epoch", 0)) + 1
+            self.logger.info(f"Loaded optimizer/scheduler state. Start epoch: {self.start_epoch}")
+            self.logger.info(f"Loaded best_val_mIoU: {self.best_val_miou:.6f}")
+        else:
+            self.logger.info(f"Loaded weight only: {weight_path}")
+            self.logger.info(f"Start epoch: {self.start_epoch}")
+
+    def _current_lr(self) -> float:
+        return float(self.optimizer.param_groups[0]["lr"])
 
     def train_one_epoch(self, epoch: int) -> dict[str, float]:
         self.model.train()
-        train_logs = []
+        loss_meters = {
+            key: AverageMeter()
+            for key in [
+                "loss",
+                "loss_semantic",
+                "loss_mask",
+                "loss_vec",
+                "loss_strength",
+            ]
+        }
+        data_time_meter = AverageMeter()
+        batch_time_meter = AverageMeter()
         max_batches = self.trainer_cfg.get("max_train_batches")
+        iter_start = time.perf_counter()
+        accum_counter = 0
+        optimizer_steps = 0
+        self.optimizer.zero_grad(set_to_none=True)
+        processed_iter = 0
+        global_batch_time_meter = AverageMeter()
+        for loop_idx in range(self.train_loop):
+            for batch_idx, batch in enumerate(self.train_loader):
+                if max_batches is not None and batch_idx >= max_batches:
+                    break
+                data_time = time.perf_counter() - iter_start
+                data_time_meter.update(data_time)
+                batch = self._move_batch_to_device(batch)
+                self._ensure_cpu_backbone(batch)
 
-        for batch_idx, batch in enumerate(self.train_loader):
-            if max_batches is not None and batch_idx >= max_batches:
-                break
-            batch = self._move_batch_to_device(batch)
-            self._ensure_cpu_backbone(batch)
+                output = self.model(self._forward_input_from_batch(batch))
+                loss_dict = self.loss_fn(
+                    seg_logits=output["seg_logits"],
+                    edge_pred=output["edge_pred"],
+                    segment=batch["segment"],
+                    edge=batch["edge"],
+                )
+                detached = self._detach_scalar_dict(loss_dict)
+                scaled_loss = loss_dict["loss"] / self.grad_accum_steps
+                scaled_loss.backward()
+                accum_counter += 1
+                processed_iter += 1
+                should_step = (
+                    accum_counter >= self.grad_accum_steps
+                    or processed_iter >= self.steps_per_epoch
+                )
+                if should_step:
+                    self.optimizer.step()
+                    if self.scheduler is not None:
+                        self.scheduler.step()
+                    self.optimizer.zero_grad(set_to_none=True)
+                    accum_counter = 0
+                    optimizer_steps += 1
 
-            self.optimizer.zero_grad(set_to_none=True)
-            output = self.model(self._forward_input_from_batch(batch))
-            loss_dict = self.loss_fn(
-                seg_logits=output["seg_logits"],
-                edge_pred=output["edge_pred"],
-                segment=batch["segment"],
-                edge=batch["edge"],
-            )
-            loss_dict["loss"].backward()
-            self.optimizer.step()
-            train_logs.append(self._detach_scalar_dict(loss_dict))
+                for key, value in detached.items():
+                    if key in loss_meters:
+                        loss_meters[key].update(value)
 
-        if not train_logs:
+                batch_time = time.perf_counter() - iter_start
+                batch_time_meter.update(batch_time)
+                global_batch_time_meter.update(batch_time)
+                global_iter = (epoch - 1) * self.steps_per_epoch + processed_iter
+                global_remain_iter = max(self.total_train_iters - global_iter, 0)
+                remain_time = global_remain_iter * global_batch_time_meter.avg
+                if (
+                    processed_iter % self.log_freq == 0
+                    or processed_iter == self.steps_per_epoch
+                ):
+                    info = (
+                        f"Train: [{epoch}/{self.max_epoch}]"
+                        f"[{processed_iter}/{self.steps_per_epoch}] "
+                        f"Data {data_time_meter.val:.3f} ({data_time_meter.avg:.3f}) "
+                        f"Batch {batch_time_meter.val:.3f} ({batch_time_meter.avg:.3f}) "
+                        f"Remain {self._format_seconds(remain_time)} "
+                    )
+                    for key in [
+                        "loss",
+                        "loss_semantic",
+                        "loss_mask",
+                        "loss_vec",
+                        "loss_strength",
+                    ]:
+                        info += f"{key}: {loss_meters[key].val:.4f} "
+                    info += (
+                        f"Accum {accum_counter if accum_counter > 0 else self.grad_accum_steps}/"
+                        f"{self.grad_accum_steps} "
+                    )
+                    info += f"Lr: {self._current_lr():.6f}"
+                    self.logger.info(info)
+                iter_start = time.perf_counter()
+
+        if loss_meters["loss"].count == 0:
             raise RuntimeError("No training batches were processed.")
-        return self._average_logs(train_logs)
+        result = {key: meter.avg for key, meter in loss_meters.items()}
+        result["optimizer_steps"] = optimizer_steps
+        return result
 
     def validate(self) -> dict[str, float]:
         self.model.eval()
-        val_logs = []
+        metrics = [
+            "val_mIoU",
+            "val_mAcc",
+            "val_allAcc",
+            "val_loss_mask",
+            "val_loss_vec",
+            "val_loss_strength",
+            "mask_precision",
+            "mask_recall",
+            "mask_f1",
+            "vec_error_masked",
+            "strength_error_masked",
+        ]
+        metric_meters = {key: AverageMeter() for key in metrics}
         max_batches = self.trainer_cfg.get("max_val_batches")
 
+        self.logger.info(">>>>>>>>>>>>>>>> Start Validation >>>>>>>>>>>>>>>>")
         with torch.no_grad():
             for batch_idx, batch in enumerate(self.val_loader):
                 if max_batches is not None and batch_idx >= max_batches:
@@ -172,79 +387,104 @@ class SemanticBoundaryTrainer:
                     segment=batch["segment"],
                     edge=batch["edge"],
                 )
-                val_logs.append(self._detach_scalar_dict(metric_dict))
+                detached = self._detach_scalar_dict(metric_dict)
+                for key in metrics:
+                    metric_meters[key].update(detached[key])
+                processed_iter = batch_idx + 1
+                if processed_iter % self.val_log_freq == 0 or processed_iter == (
+                    min(len(self.val_loader), max_batches) if max_batches is not None else len(self.val_loader)
+                ):
+                    self.logger.info(
+                        "Val: [{iter}/{max_iter}] val_loss_mask: {loss_mask:.4f} "
+                        "val_loss_vec: {loss_vec:.4f} val_loss_strength: {loss_strength:.4f} "
+                        "mIoU: {miou:.4f} mAcc: {macc:.4f} allAcc: {allacc:.4f}".format(
+                            iter=processed_iter,
+                            max_iter=min(len(self.val_loader), max_batches) if max_batches is not None else len(self.val_loader),
+                            loss_mask=metric_meters["val_loss_mask"].val,
+                            loss_vec=metric_meters["val_loss_vec"].val,
+                            loss_strength=metric_meters["val_loss_strength"].val,
+                            miou=metric_meters["val_mIoU"].val,
+                            macc=metric_meters["val_mAcc"].val,
+                            allacc=metric_meters["val_allAcc"].val,
+                        )
+                    )
 
-        if not val_logs:
+        if metric_meters["val_mIoU"].count == 0:
             raise RuntimeError("No validation batches were processed.")
-        return self._average_logs(val_logs)
+        summary = {key: meter.avg for key, meter in metric_meters.items()}
+        self.logger.info(
+            "Val result: mIoU/mAcc/allAcc {miou:.4f}/{macc:.4f}/{allacc:.4f}.".format(
+                miou=summary["val_mIoU"],
+                macc=summary["val_mAcc"],
+                allacc=summary["val_allAcc"],
+            )
+        )
+        self.logger.info("<<<<<<<<<<<<<<<<< End Validation <<<<<<<<<<<<<<<<<")
+        return summary
 
     def save_checkpoint(self, filename: str, epoch: int, val_metrics: dict[str, float]):
+        filename = os.path.join(self.model_dir, filename)
         checkpoint = dict(
             epoch=epoch,
             model_state_dict=self.model.state_dict(),
             optimizer_state_dict=self.optimizer.state_dict(),
+            scheduler_state_dict=(
+                self.scheduler.state_dict() if self.scheduler is not None else None
+            ),
             best_val_miou=self.best_val_miou,
             val_metrics=val_metrics,
         )
-        torch.save(checkpoint, os.path.join(self.work_dir, filename))
-
-    @staticmethod
-    def _format_log(prefix: str, metrics: dict[str, float], keys: list[str]) -> str:
-        values = [f"{key}={metrics[key]:.6f}" for key in keys]
-        return f"{prefix}: " + ", ".join(values)
+        self.logger.info(f"Saving checkpoint to: {filename}")
+        torch.save(checkpoint, filename + ".tmp")
+        os.replace(filename + ".tmp", filename)
+        return filename
 
     def run(self):
-        num_epochs = self.trainer_cfg["epochs"]
-        for epoch in range(1, num_epochs + 1):
+        self.logger.info(">>>>>>>>>>>>>>>> Start Training >>>>>>>>>>>>>>>>")
+        self.logger.info(f"Smoke mode: {self.smoke_mode}")
+        self.logger.info(
+            f"Total epoch: {self.total_epoch}, Eval epoch: {self.max_epoch}, Train loop: {self.train_loop}"
+        )
+        self.logger.info(
+            f"Base train steps per loop: {self.base_steps_per_epoch}, Train steps per displayed epoch: {self.steps_per_epoch}"
+        )
+        self.logger.info(f"Optimizer steps per epoch: {self.optimizer_steps_per_epoch}")
+        self.logger.info(f"Total train iterations: {self.total_train_iters}")
+        if self.start_epoch > self.max_epoch:
+            self.logger.info(
+                f"Start epoch {self.start_epoch} is already beyond max epoch {self.max_epoch}. Nothing to run."
+            )
+            return
+        for epoch in range(self.start_epoch, self.max_epoch + 1):
             train_metrics = self.train_one_epoch(epoch)
             val_metrics = self.validate()
 
             current_miou = val_metrics["val_mIoU"]
-            self.save_checkpoint("model_last.pth", epoch, val_metrics)
-            if current_miou > self.best_val_miou:
+            is_best = current_miou > self.best_val_miou
+            if is_best:
                 self.best_val_miou = current_miou
-                self.save_checkpoint("model_best.pth", epoch, val_metrics)
+                self.logger.info(
+                    "Best validation mIoU updated to: {:.4f}".format(
+                        self.best_val_miou
+                    )
+                )
+            last_path = self.save_checkpoint("model_last.pth", epoch, val_metrics)
+            if is_best:
+                best_path = self.save_checkpoint("model_best.pth", epoch, val_metrics)
+            else:
+                best_path = os.path.join(self.model_dir, "model_best.pth")
 
-            print(f"epoch: {epoch}/{num_epochs}")
-            print(f"device: {self.device}")
-            print(f"smoke_mode: {self.smoke_mode}")
-            print(
-                self._format_log(
-                    "train",
-                    train_metrics,
-                    [
-                        "loss",
-                        "loss_semantic",
-                        "loss_mask",
-                        "loss_vec",
-                        "loss_strength",
-                    ],
+            if self.save_freq and epoch % int(self.save_freq) == 0:
+                self.save_checkpoint(f"epoch_{epoch}.pth", epoch, val_metrics)
+
+            self.logger.info(
+                "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
+                "loss_mask={loss_mask:.4f} loss_vec={loss_vec:.4f} "
+                "loss_strength={loss_strength:.4f} optimizer_steps={optimizer_steps}".format(
+                    **train_metrics
                 )
             )
-            print(
-                self._format_log(
-                    "val",
-                    val_metrics,
-                    [
-                        "val_mIoU",
-                        "val_mAcc",
-                        "val_allAcc",
-                        "val_loss_mask",
-                        "val_loss_vec",
-                        "val_loss_strength",
-                        "mask_precision",
-                        "mask_recall",
-                        "mask_f1",
-                        "vec_error_masked",
-                        "strength_error_masked",
-                    ],
-                )
-            )
-            print(f"current_val_mIoU: {current_miou:.6f}")
-            print(f"best_val_mIoU: {self.best_val_miou:.6f}")
-            print(
-                f"checkpoint_last: {os.path.join(self.work_dir, 'model_last.pth')}"
-            )
-            print(
-                f"checkpoint_best: {os.path.join(self.work_dir, 'model_best.pth')}"
-            )
+            self.logger.info(f"Current val_mIoU: {current_miou:.4f}")
+            self.logger.info(f"Current best_val_mIoU: {self.best_val_miou:.4f}")
+            self.logger.info(f"Checkpoint last: {last_path}")
+            self.logger.info(f"Checkpoint best: {best_path}")

@@ -39,6 +39,16 @@ def parse_args(repo_root: Path):
         help="Path to the Pointcept repository root. "
         "If omitted, use POINTCEPT_ROOT or the parent directory of this repo.",
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume training from the checkpoint path in config or model_last.pth in work_dir.",
+    )
+    parser.add_argument(
+        "--weight",
+        default=None,
+        help="Load model weight or checkpoint path explicitly.",
+    )
     return parser.parse_args()
 
 
@@ -51,9 +61,14 @@ def main():
     from project.trainer import SemanticBoundaryTrainer
 
     cfg = runpy.run_path(args.config)
+    cfg["resume"] = bool(args.resume or cfg.get("resume", False))
+    if args.weight is not None:
+        cfg["weight"] = args.weight
     print("env: ptv3")
     print(f"config: {args.config}")
     print(f"pointcept_root: {pointcept_root}")
+    print(f"resume: {cfg.get('resume')}")
+    print(f"weight: {cfg.get('weight')}")
 
     trainer = SemanticBoundaryTrainer(cfg)
     trainer.run()

@@ -22,12 +22,32 @@ optimizer = dict(
     weight_decay=0.0,
 )
 
+scheduler = dict(
+    type="OneCycleLR",
+    max_lr=1e-3,
+    pct_start=0.05,
+    anneal_strategy="cos",
+    div_factor=10.0,
+    final_div_factor=1000.0,
+)
+
+weight = None
+resume = False
+work_dir = str(repo_root / "outputs" / "semantic_boundary_train")
+
+runtime = dict(
+    log_freq=1,
+    val_log_freq=4,
+    save_freq=100,
+    grad_accum_steps=6,
+)
+
 trainer = dict(
-    epochs=300,
-    batch_size=1,
-    num_workers=4,
+    total_epoch=3000,
+    eval_epoch=100,
+    batch_size=2,
+    num_workers=8,
     max_train_batches=None,
     max_val_batches=None,
     cpu_fallback_shell_backbone=False,
-    work_dir=str(repo_root / "outputs" / "semantic_boundary_train"),
 )

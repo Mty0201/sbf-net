@@ -1,60 +1,87 @@
 # SBF-Net
+## Semantic Boundary Field Network for Edge-Aware LiDAR Semantic Segmentation
 
-**Semantic Boundary Field Network for Edge-Aware LiDAR Semantic Segmentation**
+## 1. Introduction / 项目简介
 
-SBF-Net is a lightweight research project built on top of Pointcept for LiDAR point cloud semantic segmentation with semantic boundary field supervision. It keeps the semantic segmentation baseline while adding an edge-aware boundary field branch for point-wise boundary learning.
+SBF-Net is a research-oriented project for LiDAR point cloud semantic segmentation with semantic boundary field supervision.  
+SBF-Net 是一个面向研究的 LiDAR 点云语义分割项目，核心是引入语义边界场监督。
 
-## Highlights
+It extends a Pointcept PTv3 semantic segmentation baseline with an additional boundary-aware branch while keeping backbone reuse non-intrusive and maintainable.  
+它在 Pointcept 的 PTv3 语义分割基线上增加了边界感知分支，同时保持对 backbone 复用方式的非侵入性与可维护性。
 
-- Shared PTv3 backbone for joint feature extraction
-- Semantic segmentation and boundary field dual-task design
-- Boundary field supervision with mask-gated edge regression
-- Non-intrusive integration with Pointcept as an upstream dependency
+The project is designed as an independent repository on top of Pointcept rather than a fork that copies and rewrites the upstream training stack.  
+本项目被设计为构建在 Pointcept 之上的独立仓库，而不是复制并重写上游训练体系的私有分叉。
 
-## Dependency on Pointcept
+## 2. Key Features / 项目特点
 
-SBF-Net depends on Pointcept.
+- Dual-task learning with semantic segmentation and boundary field prediction.  
+  双任务学习，同时进行语义分割与边界场预测。
 
-- This repository does **not** include the PTv3 implementation
-- This repository does **not** vendor Pointcept source code
-- You must prepare Pointcept first, then run SBF-Net with Pointcept as the upstream dependency
+- Edge-aware supervision driven by semantic boundary field labels.  
+  使用语义边界场标签进行边界感知监督。
 
-## Quick Start
+- Built on top of Pointcept and PTv3 without modifying Pointcept source code.  
+  构建在 Pointcept 和 PTv3 之上，且不修改 Pointcept 源码。
 
-1. Clone Pointcept and prepare its environment.
-2. Activate the `ptv3` environment.
-3. Clone SBF-Net.
-4. Set:
-   - `POINTCEPT_ROOT`
-   - `SBF_DATA_ROOT`
-5. Run training.
+- Minimal intrusive integration for maintainable research iteration.  
+  采用最小侵入式集成，便于后续持续迭代和维护。
 
-Example:
+## 3. Framework Overview / 方法概述
+
+The current framework uses a shared PTv3 backbone for point feature extraction.  
+当前框架使用共享的 PTv3 backbone 进行点特征提取。
+
+On top of the shared backbone, SBF-Net keeps a semantic segmentation head and adds a boundary field head.  
+在共享 backbone 之上，SBF-Net 保留语义分割 head，并新增边界场 head。
+
+The current boundary field head predicts vector, strength, and mask components in a unified output tensor.  
+当前边界场 head 在统一输出张量中预测向量、强度和 mask 三部分。
+
+The current public release focuses on a trainable and reproducible first-stage system rather than a fully expanded task formulation.  
+当前公开版本聚焦于一个可训练、可复现的第一阶段系统，而不是一次性展开完整任务设计。
+
+## 4. Installation / 安装
+
+SBF-Net depends on Pointcept and does not include PTv3 or Pointcept internals.  
+SBF-Net 依赖 Pointcept，本仓库不包含 PTv3 或 Pointcept 内部实现。
+
+You should prepare Pointcept first, then run SBF-Net in the same environment.  
+你应先准备好 Pointcept，再在同一环境中运行 SBF-Net。
+
+Recommended environment name: `ptv3`.  
+推荐使用的环境名称为 `ptv3`。
+
+Recommended quick-start workflow:  
+推荐的快速开始流程如下：
 
 ```bash
-git clone <pointcept_repo_url> Pointcept
-git clone <sbf_net_repo_url> SBF-Net
-
-cd SBF-Net
+git clone <your-pointcept-repo> Pointcept
+git clone <your-sbf-net-repo> SBF-Net
 conda activate ptv3
-
 export POINTCEPT_ROOT=/path/to/Pointcept
 export SBF_DATA_ROOT=/path/to/BF_edge_chunk_npy
-
-python scripts/train/train.py \
-  --config configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py \
-  --pointcept-root "$POINTCEPT_ROOT"
 ```
 
-Detailed setup and training instructions:
+Required environment variables:  
+需要设置的环境变量如下：
 
-- [Install Guide](docs/install.md)
-- [Training Guide](docs/train.md)
-- [Project Structure](docs/project_structure.md)
+```bash
+export POINTCEPT_ROOT=/path/to/Pointcept
+export SBF_DATA_ROOT=/path/to/BF_edge_chunk_npy
+```
 
-## Training Commands
+Please refer to the detailed installation guide for environment checks and layout suggestions.  
+有关环境检查和仓库摆放建议，请参考详细安装文档。
 
-Smoke training:
+- [docs/install.md](docs/install.md)
+
+## 5. Training / 训练
+
+SBF-Net currently provides both smoke training and full training configs.  
+SBF-Net 当前同时提供 smoke 训练配置和正式训练配置。
+
+Smoke test command:  
+Smoke 测试命令：
 
 ```bash
 conda run --no-capture-output -n ptv3 python scripts/train/train.py \
@@ -62,7 +89,8 @@ conda run --no-capture-output -n ptv3 python scripts/train/train.py \
   --pointcept-root "$POINTCEPT_ROOT"
 ```
 
-Full training:
+Full training command:  
+正式训练命令：
 
 ```bash
 conda run --no-capture-output -n ptv3 python scripts/train/train.py \
@@ -70,49 +98,84 @@ conda run --no-capture-output -n ptv3 python scripts/train/train.py \
   --pointcept-root "$POINTCEPT_ROOT"
 ```
 
-## Project Structure
+The current trainer supports scheduler, gradient accumulation, total_epoch/eval_epoch style organization, resume, and weight loading.  
+当前 trainer 已支持 scheduler、梯度累积、`total_epoch/eval_epoch` 风格训练组织、resume 与 weight 加载。
 
-Short version:
+The best checkpoint is still selected strictly by validation semantic mIoU.  
+当前 best checkpoint 仍然严格按验证集语义分支的 mIoU 进行选择。
 
-- `configs/`: smoke and full training configs
-- `project/`: project-local datasets, models, losses, evaluator, trainer
-- `scripts/`: runnable training and checking scripts
-- `docs/`: project documentation
+Checkpoint outputs are stored under `outputs/.../model/`.  
+Checkpoint 输出位于 `outputs/.../model/` 目录下。
 
-Detailed structure notes are in [project_structure.md](docs/project_structure.md).
+The full training config currently uses scheduler, `grad_accum_steps`, `total_epoch`, and `eval_epoch` as the main runtime knobs.  
+当前正式训练配置使用 scheduler、`grad_accum_steps`、`total_epoch` 和 `eval_epoch` 作为主要运行控制项。
 
-## Current Status
+Please refer to the training guide for runtime details.  
+运行细节请参考训练文档。
 
-Current status: **stage-1 trainable skeleton**
+- [docs/train.md](docs/train.md)
 
-Implemented:
+## 6. Project Structure / 项目结构
 
-- BF base-field data path
-- external edge synchronization path
-- shared-backbone dual-head model shell
-- minimal loss
-- minimal evaluator
-- project-local trainer
-- validation metrics
-- smoke and full training configs
+The repository keeps all project-specific code inside the SBF-Net workspace and treats Pointcept as an external upstream dependency.  
+仓库将所有项目特有代码保留在 SBF-Net 工作区内部，并将 Pointcept 视为外部上游依赖。
 
-Not implemented yet:
+- `project/`: project-local datasets, transforms, models, losses, evaluator, and trainer.  
+  `project/`：项目内的数据集、变换、模型、损失、评估器与训练器实现。
 
-- test pipeline
-- prediction export
-- visualization export
-- advanced hook system
+- `configs/`: BF dataset configs, smoke configs, and full training configs.  
+  `configs/`：BF 数据配置、smoke 配置与正式训练配置。
 
-## Roadmap
+- `scripts/`: runnable training and smoke-check scripts.  
+  `scripts/`：可直接运行的训练脚本与 smoke 检查脚本。
 
-- Stabilize stage-1 full training on real GPU runs
-- Add project-local validation integration refinement
-- Design and implement test pipeline
-- Refine edge-specific evaluation and reporting
-- Prepare paper-style benchmark and ablation outputs
+- `docs/`: project documents, design notes, and release-facing instructions.  
+  `docs/`：项目文档、设计说明和面向发布的使用说明。
 
-## Citation
+Detailed directory notes are available here.  
+更详细的目录说明见：
 
-Under preparation.
+- [docs/project_structure.md](docs/project_structure.md)
 
-If you use SBF-Net in academic work before the citation entry is released, please cite the upstream Pointcept project and mention this repository in your implementation details.
+## 7. Current Status / 当前状态
+
+Current status: the first public trainable release is available, and the project-local runtime has already moved beyond a one-off smoke-only stage.  
+当前状态：第一版可公开训练的版本已经具备，项目内运行时系统也已经超出仅限 smoke 的最小原型阶段。
+
+Implemented: training, validation, project-local trainer, checkpointing, scheduler, gradient accumulation, and Pointcept-style runtime organization in single-card mode.  
+已完成：训练、验证、项目内 trainer、checkpoint、scheduler、梯度累积，以及单卡场景下更接近 Pointcept 的运行组织。
+
+Not implemented yet: test pipeline, result export, visualization export, and distributed training support.  
+尚未完成：test pipeline、结果导出、可视化导出，以及分布式训练支持。
+
+## 8. Roadmap / 未来计划
+
+- Introduce soft-mask or refined boundary supervision variants.  
+  引入 soft mask 或更细化的边界监督变体。
+
+- Improve edge-side loss design and evaluation.  
+  继续完善边界分支的 loss 设计与评估方式。
+
+- Build a project-local test pipeline.  
+  构建项目内的 test pipeline。
+
+- Add result export and visualization utilities.  
+  增加结果导出与可视化工具。
+
+## 9. Citation / 引用
+
+Coming soon.  
+引用信息准备中。
+
+If you use SBF-Net before the citation entry is finalized, please cite the upstream Pointcept project and mention this repository in your implementation details.  
+如果你在正式引用条目发布前使用了 SBF-Net，请先引用 Pointcept，并在实现细节中说明本仓库。
+
+## 10. License / 许可证
+
+SBF-Net is released under the MIT License.  
+SBF-Net 采用 MIT License 开源。
+
+See the license file for details.  
+详情请参见许可证文件。
+
+- [LICENSE](LICENSE)
