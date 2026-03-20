@@ -1,4 +1,4 @@
-"""Shared-backbone semantic and edge prediction model."""
+"""Shared-backbone semantic segmentation + boundary support/offset model."""
 
 import torch
 import torch.nn as nn
@@ -12,11 +12,13 @@ from .heads import EdgeHead, SemanticHead
 
 @MODELS.register_module()
 class SharedBackboneSemanticBoundaryModel(nn.Module):
+    """Edge output follows edge.npy semantics: vec(3) + support(1)."""
+
     def __init__(
         self,
         num_classes,
         backbone_out_channels,
-        edge_out_channels=5,
+        edge_out_channels=4,
         backbone=None,
     ):
         super().__init__()
@@ -44,9 +46,18 @@ class SharedBackboneSemanticBoundaryModel(nn.Module):
         point, feat = self._extract_feat(backbone_output)
 
         seg_logits = self.semantic_head(feat)
-        edge_pred = self.edge_head(feat)
+        edge_output = self.edge_head(feat)
+        support_pred = edge_output["support_pred"]
+        vec_pred = edge_output["vec_pred"]
+        # Keep the compact tensor for the unchanged trainer/loss entrypoints.
+        edge_pred = torch.cat([vec_pred, support_pred], dim=1)
 
-        output = dict(seg_logits=seg_logits, edge_pred=edge_pred)
+        output = dict(
+            seg_logits=seg_logits,
+            edge_pred=edge_pred,
+            support_pred=support_pred,
+            vec_pred=vec_pred,
+        )
         if return_point:
             output["point"] = point
         return output

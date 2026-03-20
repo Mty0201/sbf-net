@@ -3,6 +3,15 @@
 This document describes the current project-local training behavior of SBF-Net.  
 本文档描述当前 SBF-Net 项目内训练系统的运行方式。
 
+Current edge supervision uses:
+当前 edge 监督使用：
+
+- `edge.npy[:, 0:3]` -> `edge_vec`
+- `edge.npy[:, 3]` -> `edge_support`
+- `edge.npy[:, 4]` -> `edge_valid`
+
+`edge_valid` is only a supervision validity domain. It is not a predicted mask target. Legacy names `edge_strength` and `edge_mask` are kept only as dataset-side compatibility aliases.
+
 ## 1. Training Entry
 
 Current project-local training entry:
@@ -160,9 +169,11 @@ Train:
 
 - `loss`
 - `loss_semantic`
-- `loss_mask`
+- `loss_support`
 - `loss_vec`
-- `loss_strength`
+- `loss_support_reg`
+
+Current trainer output still prints the compatibility aliases `loss_mask` and `loss_strength`, which now map to support-related values rather than a predicted mask branch.
 
 The semantic branch is now aligned between `semantic-only` and `dual-task`:
 
@@ -181,14 +192,14 @@ Validation:
 - `val_mIoU`
 - `val_mAcc`
 - `val_allAcc`
-- `val_loss_mask`
+- `val_loss_support`
 - `val_loss_vec`
-- `val_loss_strength`
-- `mask_precision`
-- `mask_recall`
-- `mask_f1`
+- `val_loss_support_reg`
+- `support_overlap`
+- `support_error`
 - `vec_error_masked`
-- `strength_error_masked`
+
+Current trainer output still prints compatibility aliases such as `val_loss_mask`, `val_loss_strength`, `mask_f1`, and `strength_error_masked`. They are legacy log keys only.
 
 Runtime-related fields currently used by the trainer:
 
@@ -274,6 +285,14 @@ Current task split:
 
 semantic-only should be used for trainer/runtime calibration, not as the final target task.
 
+Current dual-task edge semantics:
+
+- model predicts `support + vec`
+- `support` is the primary continuous boundary support supervision
+- `vec` is the offset from a point to its nearest boundary support projection point
+- `valid` only clips supervision to numerically meaningful points
+- current trainer still prints several legacy field names for compatibility, but they should be interpreted as support-related aliases rather than mask-task outputs
+
 When comparing SBF-Net semantic-only against the original Pointcept PTv3 semantic segmentation path, do not rely only on absolute final numbers. At the current stage, you should compare:
 
 - convergence trend
@@ -299,6 +318,12 @@ Each displayed epoch currently prints:
 - current `val_mIoU`
 - best `val_mIoU`
 - checkpoint output paths
+
+Compatibility note:
+
+- current trainer log strings still contain legacy names such as `loss_mask`, `loss_strength`, `val_loss_mask`, `mask_f1`, and `strength_error_masked`
+- these are compatibility aliases kept to avoid changing the trainer loop
+- they currently correspond to support-related values, not to a predicted mask branch
 
 Current stage does not include:
 

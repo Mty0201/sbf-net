@@ -34,8 +34,14 @@ The current framework uses a shared PTv3 backbone for point feature extraction.
 On top of the shared backbone, SBF-Net keeps a semantic segmentation head and adds a boundary field head.  
 在共享 backbone 之上，SBF-Net 保留语义分割 head，并新增边界场 head。
 
-The current boundary field head predicts vector, strength, and mask components in a unified output tensor.  
-当前边界场 head 在统一输出张量中预测向量、强度和 mask 三部分。
+The current boundary field head predicts boundary offset vectors and boundary support scores from a lightweight shared stem.  
+当前边界场 head 通过轻量共享 stem 预测边界偏移向量与边界支撑分数。
+
+The current compact training label `edge.npy` uses the fixed layout `[vec_x, vec_y, vec_z, edge_support, edge_valid]`.  
+当前紧凑训练标签 `edge.npy` 使用固定列语义 `[vec_x, vec_y, vec_z, edge_support, edge_valid]`。
+
+`edge_valid` is only a numeric validity domain for supervision, not a predicted mask target. Legacy names `edge_strength` and `edge_mask` are compatibility aliases for `edge_support` and `edge_valid`.  
+`edge_valid` 只是监督数值有效域，不是要预测的 mask 目标。旧名称 `edge_strength` 和 `edge_mask` 仅分别作为 `edge_support` 与 `edge_valid` 的兼容别名。
 
 The current public release focuses on a trainable and reproducible first-stage system rather than a fully expanded task formulation.  
 当前公开版本聚焦于一个可训练、可复现的第一阶段系统，而不是一次性展开完整任务设计。
@@ -79,6 +85,14 @@ Please refer to the detailed installation guide for environment checks and layou
 
 SBF-Net currently provides both dual-task training configs and semantic-only calibration configs.  
 SBF-Net 当前同时提供双任务训练配置和 semantic-only 校准配置。
+
+Current edge-task semantics:
+当前 edge 任务语义：
+
+- model output: `vec + support`
+- training target: `edge.npy = [vec_x, vec_y, vec_z, edge_support, edge_valid]`
+- `edge_valid` is only used as a supervision validity domain
+- trainer log keys may still show legacy names such as `loss_mask` / `loss_strength` for compatibility, but they no longer mean a predicted mask task
 
 Quick Start for full dual-task training:  
 正式双任务训练的最小快速开始命令如下：
@@ -189,8 +203,8 @@ Not implemented yet: test pipeline, result export, visualization export, and dis
 
 ## 8. Roadmap / 未来计划
 
-- Introduce soft-mask or refined boundary supervision variants.  
-  引入 soft mask 或更细化的边界监督变体。
+- Introduce refined support-field supervision variants.  
+  引入更细化的 support-field 监督变体。
 
 - Improve edge-side loss design and evaluation.  
   继续完善边界分支的 loss 设计与评估方式。
