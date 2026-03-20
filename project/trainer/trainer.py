@@ -5,8 +5,10 @@ from __future__ import annotations
 import os
 import time
 import math
+import random
 from functools import partial
 
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -39,13 +41,16 @@ class SemanticBoundaryTrainer:
         self.cfg = cfg
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.trainer_cfg = cfg["trainer"]
+        self.data_cfg = cfg["data"]
         self.optimizer_cfg = cfg["optimizer"]
         self.smoke_mode = "actual_backbone_cuda"
         self.resume = bool(cfg.get("resume", False))
         self.weight = cfg.get("weight")
+        self.seed = cfg.get("seed")
         self.work_dir = cfg["work_dir"]
         self.runtime_cfg = cfg.get("runtime", {})
         self.scheduler_cfg = cfg.get("scheduler")
+        self.param_dicts = cfg.get("param_dicts")
         self.best_val_miou = float("-inf")
         self.start_epoch = 1
         self.total_epoch = int(
@@ -59,21 +64,29 @@ class SemanticBoundaryTrainer:
         self.val_log_freq = int(self.runtime_cfg.get("val_log_freq", 10))
         self.save_freq = self.runtime_cfg.get("save_freq")
         self.grad_accum_steps = int(self.runtime_cfg.get("grad_accum_steps", 1))
+        self.train_batch_size = int(
+            self.data_cfg.get("train_batch_size", self.trainer_cfg["batch_size"])
+        )
+        self.val_batch_size = int(self.data_cfg.get("val_batch_size", 1))
         self.model_dir = os.path.join(self.work_dir, "model")
 
         os.makedirs(self.work_dir, exist_ok=True)
         os.makedirs(self.model_dir, exist_ok=True)
+        self._set_seed()
         self.logger = create_logger(
             "sbf_net.trainer", os.path.join(self.work_dir, "train.log")
         )
         self.logger.info("=> Loading config ...")
         self.logger.info(f"Save path: {self.work_dir}")
         self.logger.info(f"Device: {self.device}")
+        self.logger.info(f"Seed: {self.seed}")
         self.logger.info(f"Resume: {self.resume}")
         self.logger.info(f"Weight: {self.weight}")
+        self.logger.info(f"Train batch size: {self.train_batch_size}")
+        self.logger.info(f"Val batch size: {self.val_batch_size}")
         self.logger.info(f"Grad accumulation steps: {self.grad_accum_steps}")
         self.logger.info(
-            f"Effective batch size: {self.trainer_cfg['batch_size'] * self.grad_accum_steps}"
+            f"Effective batch size: {self.train_batch_size * self.grad_accum_steps}"
         )
 
         self.logger.info("=> Building train dataset & dataloader ...")
@@ -97,22 +110,46 @@ class SemanticBoundaryTrainer:
         self.class_names = cfg["data"].get("names")
         self.logger.info("=> Building optimizer / scheduler ...")
         self.optimizer = self._build_optimizer()
+        self.logger.info(f"Optimizer: {self.optimizer.__class__.__name__}")
+        for idx, group in enumerate(self.optimizer.param_groups):
+            self.logger.info(f"LR groups: group_{idx} lr: {group['lr']}")
         self.scheduler = self._build_scheduler()
         self._cpu_backbone_ready = False
         self._prepare_cpu_backbone_for_runtime()
         self.logger.info("=> Loading checkpoint / weight if needed ...")
         self._load_checkpoint_or_weight()
 
+    def _set_seed(self):
+        if self.seed is None:
+            return
+        random.seed(self.seed)
+        np.random.seed(self.seed)
+        torch.manual_seed(self.seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed(self.seed)
+            torch.cuda.manual_seed_all(self.seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+    def _worker_init_fn(self, worker_id: int):
+        if self.seed is None:
+            return
+        worker_seed = self.seed + worker_id
+        random.seed(worker_seed)
+        np.random.seed(worker_seed)
+        torch.manual_seed(worker_seed)
+
     def _build_dataloader(self, dataset, training: bool) -> DataLoader:
         return DataLoader(
             dataset,
-            batch_size=self.trainer_cfg["batch_size"],
+            batch_size=self.train_batch_size if training else self.val_batch_size,
             shuffle=training,
             num_workers=self.trainer_cfg["num_workers"],
             collate_fn=partial(point_collate_fn, mix_prob=0),
             pin_memory=torch.cuda.is_available(),
             drop_last=training,
             persistent_workers=self.trainer_cfg["num_workers"] > 0,
+            worker_init_fn=self._worker_init_fn if self.seed is not None else None,
         )
 
     def _compute_steps_per_epoch(self) -> int:
@@ -123,12 +160,41 @@ class SemanticBoundaryTrainer:
     def _build_optimizer(self):
         optimizer_type = self.optimizer_cfg["type"]
         kwargs = {
-            key: value for key, value in self.optimizer_cfg.items() if key != "type"
+            key: value
+            for key, value in self.optimizer_cfg.items()
+            if key not in {"type", "param_dicts"}
         }
+        params = self.model.parameters()
+        if self.param_dicts:
+            base_lr = kwargs["lr"]
+            params = [dict(params=[], lr=base_lr)]
+            for group_cfg in self.param_dicts:
+                params.append(
+                    dict(
+                        params=[],
+                        lr=group_cfg["lr"],
+                    )
+                )
+            for name, param in self.model.named_parameters():
+                if not param.requires_grad:
+                    continue
+                matched = False
+                for idx, group_cfg in enumerate(self.param_dicts):
+                    if group_cfg["keyword"] in name:
+                        params[idx + 1]["params"].append(param)
+                        matched = True
+                        break
+                if not matched:
+                    params[0]["params"].append(param)
+            kwargs["params"] = params
+        else:
+            kwargs["params"] = params
         if optimizer_type == "Adam":
-            return torch.optim.Adam(self.model.parameters(), **kwargs)
+            return torch.optim.Adam(**kwargs)
+        if optimizer_type == "AdamW":
+            return torch.optim.AdamW(**kwargs)
         if optimizer_type == "SGD":
-            return torch.optim.SGD(self.model.parameters(), **kwargs)
+            return torch.optim.SGD(**kwargs)
         raise ValueError(f"Unsupported optimizer type: {optimizer_type}")
 
     def _build_scheduler(self):
@@ -532,6 +598,13 @@ class SemanticBoundaryTrainer:
                     "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
                     "loss_mask={loss_mask:.4f} loss_vec={loss_vec:.4f} "
                     "loss_strength={loss_strength:.4f} optimizer_steps={optimizer_steps}".format(
+                        **train_metrics
+                    )
+                )
+            elif "loss_lovasz" in train_metrics:
+                self.logger.info(
+                    "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
+                    "loss_lovasz={loss_lovasz:.4f} optimizer_steps={optimizer_steps}".format(
                         **train_metrics
                     )
                 )
