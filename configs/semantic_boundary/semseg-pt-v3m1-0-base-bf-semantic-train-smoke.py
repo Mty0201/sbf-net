@@ -1,4 +1,4 @@
-"""Smoke-only training config for semantic boundary stage-1 checks."""
+"""Smoke-only semantic baseline training config for trainer calibration."""
 
 from __future__ import annotations
 
@@ -9,20 +9,15 @@ from pathlib import Path
 repo_root = Path(__file__).resolve().parents[2]
 
 model = runpy.run_path(
-    str(
-        repo_root
-        / "configs"
-        / "semantic_boundary"
-        / "semseg-pt-v3m1-0-base-bf-edge-model.py"
-    )
+    str(repo_root / "configs" / "semantic_boundary" / "semseg-pt-v3m1-0-base-bf-semantic-model.py")
 )["model"]
 
 data = runpy.run_path(
-    str(repo_root / "configs" / "bf" / "semseg-pt-v3m1-0-base-bf.py")
+    str(repo_root / "configs" / "semantic_boundary" / "semseg-pt-v3m1-0-base-bf-semantic-data.py")
 )["data"]
 
-loss = dict(type="SemanticBoundaryLoss")
-evaluator = dict(type="SemanticBoundaryEvaluator")
+loss = dict(type="SemanticOnlyLoss")
+evaluator = dict(type="SemanticEvaluator")
 
 optimizer = dict(
     type="Adam",
@@ -41,7 +36,7 @@ scheduler = dict(
 
 weight = None
 resume = False
-work_dir = str(repo_root / "outputs" / "semantic_boundary_train_smoke")
+work_dir = str(repo_root / "outputs" / "semantic_only_train_smoke")
 
 runtime = dict(
     log_freq=1,

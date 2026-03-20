@@ -21,7 +21,7 @@ class SemanticBoundaryEvaluator:
             return numerator.new_tensor(0.0)
         return numerator / denominator
 
-    def _compute_semantic_metrics(
+    def _compute_semantic_stats(
         self, seg_logits: torch.Tensor, segment: torch.Tensor
     ) -> dict[str, torch.Tensor]:
         segment = segment.reshape(-1).long()
@@ -39,6 +39,19 @@ class SemanticBoundaryEvaluator:
             union[class_id] = (pred_i | gt_i).sum()
             target[class_id] = gt_i.sum()
 
+        return dict(
+            semantic_intersection=intersection,
+            semantic_union=union,
+            semantic_target=target,
+        )
+
+    def _compute_semantic_metrics_from_stats(
+        self,
+        intersection: torch.Tensor,
+        union: torch.Tensor,
+        target: torch.Tensor,
+        reference: torch.Tensor,
+    ) -> dict[str, torch.Tensor]:
         valid_iou = union > 0
         valid_acc = target > 0
 
@@ -50,12 +63,12 @@ class SemanticBoundaryEvaluator:
         val_mIoU = (
             iou_class[valid_iou].mean()
             if valid_iou.any()
-            else self._safe_zero(seg_logits)
+            else self._safe_zero(reference)
         )
         val_mAcc = (
             acc_class[valid_acc].mean()
             if valid_acc.any()
-            else self._safe_zero(seg_logits)
+            else self._safe_zero(reference)
         )
         val_allAcc = self._safe_div(intersection.sum(), target.sum())
 
@@ -63,6 +76,8 @@ class SemanticBoundaryEvaluator:
             val_mIoU=val_mIoU,
             val_mAcc=val_mAcc,
             val_allAcc=val_allAcc,
+            semantic_iou_per_class=iou_class,
+            semantic_acc_per_class=acc_class,
         )
 
     def _compute_edge_metrics(
@@ -119,13 +134,24 @@ class SemanticBoundaryEvaluator:
             segment=segment,
             edge=edge,
         )
-        semantic_metrics = self._compute_semantic_metrics(seg_logits, segment)
+        semantic_stats = self._compute_semantic_stats(seg_logits, segment)
+        semantic_metrics = self._compute_semantic_metrics_from_stats(
+            intersection=semantic_stats["semantic_intersection"],
+            union=semantic_stats["semantic_union"],
+            target=semantic_stats["semantic_target"],
+            reference=seg_logits,
+        )
         edge_metrics = self._compute_edge_metrics(edge_pred, edge)
 
         return dict(
             val_mIoU=semantic_metrics["val_mIoU"],
             val_mAcc=semantic_metrics["val_mAcc"],
             val_allAcc=semantic_metrics["val_allAcc"],
+            semantic_intersection=semantic_stats["semantic_intersection"],
+            semantic_union=semantic_stats["semantic_union"],
+            semantic_target=semantic_stats["semantic_target"],
+            semantic_iou_per_class=semantic_metrics["semantic_iou_per_class"],
+            semantic_acc_per_class=semantic_metrics["semantic_acc_per_class"],
             val_loss_mask=loss_dict["loss_mask"],
             val_loss_vec=loss_dict["loss_vec"],
             val_loss_strength=loss_dict["loss_strength"],

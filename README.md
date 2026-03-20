@@ -73,12 +73,21 @@ export SBF_DATA_ROOT=/path/to/BF_edge_chunk_npy
 Please refer to the detailed installation guide for environment checks and layout suggestions.  
 有关环境检查和仓库摆放建议，请参考详细安装文档。
 
-- [docs/install.md](docs/install.md)
+- [install.md](install.md)
 
 ## 5. Training / 训练
 
-SBF-Net currently provides both smoke training and full training configs.  
-SBF-Net 当前同时提供 smoke 训练配置和正式训练配置。
+SBF-Net currently provides both dual-task training configs and semantic-only calibration configs.  
+SBF-Net 当前同时提供双任务训练配置和 semantic-only 校准配置。
+
+Quick Start for full dual-task training:  
+正式双任务训练的最小快速开始命令如下：
+
+```bash
+conda run --no-capture-output -n ptv3 python scripts/train/train.py \
+  --config configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py \
+  --pointcept-root "$POINTCEPT_ROOT"
+```
 
 Smoke test command:  
 Smoke 测试命令：
@@ -101,6 +110,12 @@ conda run --no-capture-output -n ptv3 python scripts/train/train.py \
 The current trainer supports scheduler, gradient accumulation, total_epoch/eval_epoch style organization, resume, and weight loading.  
 当前 trainer 已支持 scheduler、梯度累积、`total_epoch/eval_epoch` 风格训练组织、resume 与 weight 加载。
 
+The current full training path uses `OneCycleLR`, `grad_accum_steps`, and Pointcept-style displayed epoch organization based on `total_epoch / eval_epoch / train_loop`.  
+当前正式训练路径使用 `OneCycleLR`、`grad_accum_steps`，以及基于 `total_epoch / eval_epoch / train_loop` 的 Pointcept 风格显示 epoch 组织。
+
+The effective batch size is computed as `batch_size * grad_accum_steps`.  
+当前有效 batch size 按 `batch_size * grad_accum_steps` 计算。
+
 The best checkpoint is still selected strictly by validation semantic mIoU.  
 当前 best checkpoint 仍然严格按验证集语义分支的 mIoU 进行选择。
 
@@ -110,10 +125,31 @@ Checkpoint 输出位于 `outputs/.../model/` 目录下。
 The full training config currently uses scheduler, `grad_accum_steps`, `total_epoch`, and `eval_epoch` as the main runtime knobs.  
 当前正式训练配置使用 scheduler、`grad_accum_steps`、`total_epoch` 和 `eval_epoch` 作为主要运行控制项。
 
+SBF-Net also provides a semantic-only baseline for trainer calibration against the original Pointcept PTv3 semantic segmentation path.  
+SBF-Net 还提供了 semantic-only 基线，用于和 Pointcept 原版 PTv3 语义分割训练路径做训练框架校准。
+
+Semantic-only smoke command:  
+semantic-only smoke 命令：
+
+```bash
+conda run --no-capture-output -n ptv3 python scripts/train/train.py \
+  --config configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-semantic-train-smoke.py \
+  --pointcept-root "$POINTCEPT_ROOT"
+```
+
+Semantic-only full command:  
+semantic-only 正式训练命令：
+
+```bash
+conda run --no-capture-output -n ptv3 python scripts/train/train.py \
+  --config configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-semantic-train.py \
+  --pointcept-root "$POINTCEPT_ROOT"
+```
+
 Please refer to the training guide for runtime details.  
 运行细节请参考训练文档。
 
-- [docs/train.md](docs/train.md)
+- [train.md](train.md)
 
 ## 6. Project Structure / 项目结构
 
@@ -129,8 +165,8 @@ The repository keeps all project-specific code inside the SBF-Net workspace and 
 - `scripts/`: runnable training and smoke-check scripts.  
   `scripts/`：可直接运行的训练脚本与 smoke 检查脚本。
 
-- `docs/`: project documents, design notes, and release-facing instructions.  
-  `docs/`：项目文档、设计说明和面向发布的使用说明。
+- `docs/`: internal design notes, boundary documents, and collaboration rules.  
+  `docs/`：内部设计说明、边界文档与协作规则。
 
 Detailed directory notes are available here.  
 更详细的目录说明见：
@@ -144,6 +180,9 @@ Current status: the first public trainable release is available, and the project
 
 Implemented: training, validation, project-local trainer, checkpointing, scheduler, gradient accumulation, and Pointcept-style runtime organization in single-card mode.  
 已完成：训练、验证、项目内 trainer、checkpoint、scheduler、梯度累积，以及单卡场景下更接近 Pointcept 的运行组织。
+
+Implemented baselines now include both the main dual-task path and a semantic-only calibration path under the same project-local trainer.  
+当前已实现的基线同时包括主双任务路径，以及在同一项目内 trainer 下运行的 semantic-only 校准路径。
 
 Not implemented yet: test pipeline, result export, visualization export, and distributed training support.  
 尚未完成：test pipeline、结果导出、可视化导出，以及分布式训练支持。

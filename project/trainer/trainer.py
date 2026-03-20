@@ -17,8 +17,8 @@ import project.transforms  # noqa: F401
 from pointcept.datasets import build_dataset
 from pointcept.datasets.utils import point_collate_fn
 from pointcept.models import build_model
-from project.evaluator import SemanticBoundaryEvaluator
-from project.losses import SemanticBoundaryLoss
+from project.evaluator import build_evaluator
+from project.losses import build_loss
 from project.utils import AverageMeter, create_logger
 
 
@@ -92,8 +92,9 @@ class SemanticBoundaryTrainer:
         self.logger.info("=> Building model ...")
         self.model = build_model(cfg["model"]).to(self.device)
         self.logger.info("=> Building loss / evaluator ...")
-        self.loss_fn = SemanticBoundaryLoss().to(self.device)
-        self.evaluator = SemanticBoundaryEvaluator()
+        self.loss_fn = build_loss(cfg.get("loss")).to(self.device)
+        self.evaluator = build_evaluator(cfg.get("evaluator"))
+        self.class_names = cfg["data"].get("names")
         self.logger.info("=> Building optimizer / scheduler ...")
         self.optimizer = self._build_optimizer()
         self.scheduler = self._build_scheduler()
@@ -197,9 +198,39 @@ class SemanticBoundaryTrainer:
     def _detach_scalar_dict(data: dict[str, torch.Tensor]) -> dict[str, float]:
         result = {}
         for key, value in data.items():
-            if isinstance(value, torch.Tensor):
+            if isinstance(value, torch.Tensor) and value.numel() == 1:
                 result[key] = float(value.detach().cpu())
         return result
+
+    @staticmethod
+    def _build_loss_inputs(output: dict, batch: dict) -> dict:
+        kwargs = dict(seg_logits=output["seg_logits"], segment=batch["segment"])
+        if "edge_pred" in output and "edge" in batch:
+            kwargs["edge_pred"] = output["edge_pred"]
+            kwargs["edge"] = batch["edge"]
+        return kwargs
+
+    @staticmethod
+    def _build_eval_inputs(output: dict, batch: dict) -> dict:
+        kwargs = dict(seg_logits=output["seg_logits"], segment=batch["segment"])
+        if "edge_pred" in output and "edge" in batch:
+            kwargs["edge_pred"] = output["edge_pred"]
+            kwargs["edge"] = batch["edge"]
+        return kwargs
+
+    @staticmethod
+    def _compute_per_class_from_stats(
+        intersection: torch.Tensor,
+        union: torch.Tensor,
+        target: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        valid_iou = union > 0
+        valid_acc = target > 0
+        iou_class = torch.zeros_like(intersection)
+        acc_class = torch.zeros_like(intersection)
+        iou_class[valid_iou] = intersection[valid_iou] / union[valid_iou]
+        acc_class[valid_acc] = intersection[valid_acc] / target[valid_acc]
+        return iou_class, acc_class
 
     @staticmethod
     def _format_seconds(seconds: float) -> str:
@@ -260,16 +291,7 @@ class SemanticBoundaryTrainer:
 
     def train_one_epoch(self, epoch: int) -> dict[str, float]:
         self.model.train()
-        loss_meters = {
-            key: AverageMeter()
-            for key in [
-                "loss",
-                "loss_semantic",
-                "loss_mask",
-                "loss_vec",
-                "loss_strength",
-            ]
-        }
+        loss_meters = None
         data_time_meter = AverageMeter()
         batch_time_meter = AverageMeter()
         max_batches = self.trainer_cfg.get("max_train_batches")
@@ -289,13 +311,10 @@ class SemanticBoundaryTrainer:
                 self._ensure_cpu_backbone(batch)
 
                 output = self.model(self._forward_input_from_batch(batch))
-                loss_dict = self.loss_fn(
-                    seg_logits=output["seg_logits"],
-                    edge_pred=output["edge_pred"],
-                    segment=batch["segment"],
-                    edge=batch["edge"],
-                )
+                loss_dict = self.loss_fn(**self._build_loss_inputs(output, batch))
                 detached = self._detach_scalar_dict(loss_dict)
+                if loss_meters is None:
+                    loss_meters = {key: AverageMeter() for key in detached.keys()}
                 scaled_loss = loss_dict["loss"] / self.grad_accum_steps
                 scaled_loss.backward()
                 accum_counter += 1
@@ -313,8 +332,7 @@ class SemanticBoundaryTrainer:
                     optimizer_steps += 1
 
                 for key, value in detached.items():
-                    if key in loss_meters:
-                        loss_meters[key].update(value)
+                    loss_meters[key].update(value)
 
                 batch_time = time.perf_counter() - iter_start
                 batch_time_meter.update(batch_time)
@@ -333,13 +351,7 @@ class SemanticBoundaryTrainer:
                         f"Batch {batch_time_meter.val:.3f} ({batch_time_meter.avg:.3f}) "
                         f"Remain {self._format_seconds(remain_time)} "
                     )
-                    for key in [
-                        "loss",
-                        "loss_semantic",
-                        "loss_mask",
-                        "loss_vec",
-                        "loss_strength",
-                    ]:
+                    for key in loss_meters.keys():
                         info += f"{key}: {loss_meters[key].val:.4f} "
                     info += (
                         f"Accum {accum_counter if accum_counter > 0 else self.grad_accum_steps}/"
@@ -349,7 +361,7 @@ class SemanticBoundaryTrainer:
                     self.logger.info(info)
                 iter_start = time.perf_counter()
 
-        if loss_meters["loss"].count == 0:
+        if loss_meters is None or loss_meters["loss"].count == 0:
             raise RuntimeError("No training batches were processed.")
         result = {key: meter.avg for key, meter in loss_meters.items()}
         result["optimizer_steps"] = optimizer_steps
@@ -357,21 +369,28 @@ class SemanticBoundaryTrainer:
 
     def validate(self) -> dict[str, float]:
         self.model.eval()
-        metrics = [
-            "val_mIoU",
-            "val_mAcc",
-            "val_allAcc",
-            "val_loss_mask",
-            "val_loss_vec",
-            "val_loss_strength",
-            "mask_precision",
-            "mask_recall",
-            "mask_f1",
-            "vec_error_masked",
-            "strength_error_masked",
-        ]
+        metrics = ["val_mIoU", "val_mAcc", "val_allAcc"]
+        if self.cfg.get("loss", {}).get("type", "SemanticBoundaryLoss") == "SemanticBoundaryLoss":
+            metrics.extend(
+                [
+                    "val_loss_mask",
+                    "val_loss_vec",
+                    "val_loss_strength",
+                    "mask_precision",
+                    "mask_recall",
+                    "mask_f1",
+                    "vec_error_masked",
+                    "strength_error_masked",
+                ]
+            )
+        else:
+            metrics.append("val_loss_semantic")
         metric_meters = {key: AverageMeter() for key in metrics}
         max_batches = self.trainer_cfg.get("max_val_batches")
+        num_classes = int(self.cfg["model"]["num_classes"])
+        semantic_intersection = torch.zeros(num_classes, dtype=torch.float64)
+        semantic_union = torch.zeros(num_classes, dtype=torch.float64)
+        semantic_target = torch.zeros(num_classes, dtype=torch.float64)
 
         self.logger.info(">>>>>>>>>>>>>>>> Start Validation >>>>>>>>>>>>>>>>")
         with torch.no_grad():
@@ -381,37 +400,55 @@ class SemanticBoundaryTrainer:
                 batch = self._move_batch_to_device(batch)
                 self._ensure_cpu_backbone(batch)
                 output = self.model(self._forward_input_from_batch(batch))
-                metric_dict = self.evaluator(
-                    seg_logits=output["seg_logits"],
-                    edge_pred=output["edge_pred"],
-                    segment=batch["segment"],
-                    edge=batch["edge"],
-                )
+                metric_dict = self.evaluator(**self._build_eval_inputs(output, batch))
                 detached = self._detach_scalar_dict(metric_dict)
+                semantic_intersection += metric_dict["semantic_intersection"].detach().cpu().double()
+                semantic_union += metric_dict["semantic_union"].detach().cpu().double()
+                semantic_target += metric_dict["semantic_target"].detach().cpu().double()
                 for key in metrics:
                     metric_meters[key].update(detached[key])
                 processed_iter = batch_idx + 1
                 if processed_iter % self.val_log_freq == 0 or processed_iter == (
                     min(len(self.val_loader), max_batches) if max_batches is not None else len(self.val_loader)
                 ):
-                    self.logger.info(
-                        "Val: [{iter}/{max_iter}] val_loss_mask: {loss_mask:.4f} "
-                        "val_loss_vec: {loss_vec:.4f} val_loss_strength: {loss_strength:.4f} "
-                        "mIoU: {miou:.4f} mAcc: {macc:.4f} allAcc: {allacc:.4f}".format(
-                            iter=processed_iter,
-                            max_iter=min(len(self.val_loader), max_batches) if max_batches is not None else len(self.val_loader),
-                            loss_mask=metric_meters["val_loss_mask"].val,
-                            loss_vec=metric_meters["val_loss_vec"].val,
-                            loss_strength=metric_meters["val_loss_strength"].val,
-                            miou=metric_meters["val_mIoU"].val,
-                            macc=metric_meters["val_mAcc"].val,
-                            allacc=metric_meters["val_allAcc"].val,
+                    if "val_loss_mask" in metric_meters:
+                        self.logger.info(
+                            "Val/Test: [{iter}/{max_iter}] val_loss_mask: {loss_mask:.4f} "
+                            "val_loss_vec: {loss_vec:.4f} val_loss_strength: {loss_strength:.4f} "
+                            "mIoU: {miou:.4f} mAcc: {macc:.4f} allAcc: {allacc:.4f}".format(
+                                iter=processed_iter,
+                                max_iter=min(len(self.val_loader), max_batches) if max_batches is not None else len(self.val_loader),
+                                loss_mask=metric_meters["val_loss_mask"].val,
+                                loss_vec=metric_meters["val_loss_vec"].val,
+                                loss_strength=metric_meters["val_loss_strength"].val,
+                                miou=metric_meters["val_mIoU"].val,
+                                macc=metric_meters["val_mAcc"].val,
+                                allacc=metric_meters["val_allAcc"].val,
+                            )
                         )
-                    )
+                    else:
+                        self.logger.info(
+                            "Val/Test: [{iter}/{max_iter}] val_loss_semantic: {loss_semantic:.4f} "
+                            "mIoU: {miou:.4f} mAcc: {macc:.4f} allAcc: {allacc:.4f}".format(
+                                iter=processed_iter,
+                                max_iter=min(len(self.val_loader), max_batches) if max_batches is not None else len(self.val_loader),
+                                loss_semantic=metric_meters["val_loss_semantic"].val,
+                                miou=metric_meters["val_mIoU"].val,
+                                macc=metric_meters["val_mAcc"].val,
+                                allacc=metric_meters["val_allAcc"].val,
+                            )
+                        )
 
         if metric_meters["val_mIoU"].count == 0:
             raise RuntimeError("No validation batches were processed.")
         summary = {key: meter.avg for key, meter in metric_meters.items()}
+        per_class_iou, per_class_acc = self._compute_per_class_from_stats(
+            semantic_intersection.float(),
+            semantic_union.float(),
+            semantic_target.float(),
+        )
+        summary["semantic_iou_per_class"] = per_class_iou
+        summary["semantic_acc_per_class"] = per_class_acc
         self.logger.info(
             "Val result: mIoU/mAcc/allAcc {miou:.4f}/{macc:.4f}/{allacc:.4f}.".format(
                 miou=summary["val_mIoU"],
@@ -419,6 +456,19 @@ class SemanticBoundaryTrainer:
                 allacc=summary["val_allAcc"],
             )
         )
+        for class_id in range(num_classes):
+            class_name = (
+                self.class_names[class_id]
+                if self.class_names is not None and class_id < len(self.class_names)
+                else f"Class_{class_id}"
+            )
+            self.logger.info(
+                "{name} Result: iou/accuracy {iou:.4f}/{acc:.4f}".format(
+                    name=class_name,
+                    iou=float(per_class_iou[class_id]),
+                    acc=float(per_class_acc[class_id]),
+                )
+            )
         self.logger.info("<<<<<<<<<<<<<<<<< End Validation <<<<<<<<<<<<<<<<<")
         return summary
 
@@ -477,13 +527,19 @@ class SemanticBoundaryTrainer:
             if self.save_freq and epoch % int(self.save_freq) == 0:
                 self.save_checkpoint(f"epoch_{epoch}.pth", epoch, val_metrics)
 
-            self.logger.info(
-                "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
-                "loss_mask={loss_mask:.4f} loss_vec={loss_vec:.4f} "
-                "loss_strength={loss_strength:.4f} optimizer_steps={optimizer_steps}".format(
-                    **train_metrics
+            if "loss_mask" in train_metrics:
+                self.logger.info(
+                    "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
+                    "loss_mask={loss_mask:.4f} loss_vec={loss_vec:.4f} "
+                    "loss_strength={loss_strength:.4f} optimizer_steps={optimizer_steps}".format(
+                        **train_metrics
+                    )
                 )
-            )
+            else:
+                self.logger.info(
+                    "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
+                    "optimizer_steps={optimizer_steps}".format(**train_metrics)
+                )
             self.logger.info(f"Current val_mIoU: {current_miou:.4f}")
             self.logger.info(f"Current best_val_mIoU: {self.best_val_miou:.4f}")
             self.logger.info(f"Checkpoint last: {last_path}")
