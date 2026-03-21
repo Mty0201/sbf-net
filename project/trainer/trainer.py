@@ -11,7 +11,7 @@ from functools import partial
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.cuda.amp import GradScaler, autocast
+from torch.cuda.amp import GradScaler
 from torch.utils.data import DataLoader
 
 import project.datasets  # noqa: F401
@@ -165,6 +165,9 @@ class SemanticBoundaryTrainer:
         if self.trainer_cfg.get("max_train_batches") is not None:
             return min(len(self.train_loader), int(self.trainer_cfg["max_train_batches"]))
         return len(self.train_loader)
+
+    def _autocast_context(self):
+        return torch.amp.autocast(device_type="cuda", enabled=self.use_amp)
 
     def _build_optimizer(self):
         optimizer_type = self.optimizer_cfg["type"]
@@ -401,7 +404,7 @@ class SemanticBoundaryTrainer:
                 batch = self._move_batch_to_device(batch)
                 self._ensure_cpu_backbone(batch)
 
-                with autocast(enabled=self.use_amp):
+                with self._autocast_context():
                     output = self.model(self._forward_input_from_batch(batch))
                     loss_dict = self.loss_fn(**self._build_loss_inputs(output, batch))
                 detached = self._detach_scalar_dict(loss_dict)
@@ -492,9 +495,8 @@ class SemanticBoundaryTrainer:
                     break
                 batch = self._move_batch_to_device(batch)
                 self._ensure_cpu_backbone(batch)
-                with autocast(enabled=self.use_amp):
-                    output = self.model(self._forward_input_from_batch(batch))
-                    metric_dict = self.evaluator(**self._build_eval_inputs(output, batch))
+                output = self.model(self._forward_input_from_batch(batch))
+                metric_dict = self.evaluator(**self._build_eval_inputs(output, batch))
                 detached = self._detach_scalar_dict(metric_dict)
                 semantic_intersection += metric_dict["semantic_intersection"].detach().cpu().double()
                 semantic_union += metric_dict["semantic_union"].detach().cpu().double()
