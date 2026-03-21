@@ -52,6 +52,8 @@ runtime = dict(
     val_log_freq=1,
     save_freq=None,
     grad_accum_steps=2,
+    mix_prob=0.8,
+    enable_amp=False,
 )
 
 trainer = dict(

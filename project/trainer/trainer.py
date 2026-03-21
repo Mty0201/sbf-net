@@ -11,6 +11,7 @@ from functools import partial
 import numpy as np
 import torch
 import torch.nn as nn
+from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
 
 import project.datasets  # noqa: F401
@@ -64,6 +65,9 @@ class SemanticBoundaryTrainer:
         self.val_log_freq = int(self.runtime_cfg.get("val_log_freq", 10))
         self.save_freq = self.runtime_cfg.get("save_freq")
         self.grad_accum_steps = int(self.runtime_cfg.get("grad_accum_steps", 1))
+        self.mix_prob = float(self.runtime_cfg.get("mix_prob", 0.8))
+        self.enable_amp = bool(self.runtime_cfg.get("enable_amp", True))
+        self.use_amp = bool(self.enable_amp and torch.cuda.is_available())
         self.train_batch_size = int(self.data_cfg["train_batch_size"])
         self.val_batch_size = int(self.data_cfg["val_batch_size"])
         self.model_dir = os.path.join(self.work_dir, "model")
@@ -83,6 +87,9 @@ class SemanticBoundaryTrainer:
         self.logger.info(f"Train batch size: {self.train_batch_size}")
         self.logger.info(f"Val batch size: {self.val_batch_size}")
         self.logger.info(f"Grad accumulation steps: {self.grad_accum_steps}")
+        self.logger.info(f"Mix prob: {self.mix_prob}")
+        self.logger.info(f"AMP enabled: {self.enable_amp}")
+        self.logger.info(f"AMP active: {self.use_amp}")
         self.logger.info(
             f"Effective batch size: {self.train_batch_size * self.grad_accum_steps}"
         )
@@ -112,6 +119,7 @@ class SemanticBoundaryTrainer:
         for idx, group in enumerate(self.optimizer.param_groups):
             self.logger.info(f"LR groups: group_{idx} lr: {group['lr']}")
         self.scheduler = self._build_scheduler()
+        self.scaler = GradScaler(enabled=self.use_amp)
         self._cpu_backbone_ready = False
         self._prepare_cpu_backbone_for_runtime()
         self.logger.info("=> Loading checkpoint / weight if needed ...")
@@ -143,7 +151,10 @@ class SemanticBoundaryTrainer:
             batch_size=self.train_batch_size if training else self.val_batch_size,
             shuffle=training,
             num_workers=self.trainer_cfg["num_workers"],
-            collate_fn=partial(point_collate_fn, mix_prob=0),
+            collate_fn=partial(
+                point_collate_fn,
+                mix_prob=self.mix_prob if training else 0,
+            ),
             pin_memory=torch.cuda.is_available(),
             drop_last=training,
             persistent_workers=self.trainer_cfg["num_workers"] > 0,
@@ -268,6 +279,16 @@ class SemanticBoundaryTrainer:
 
     @staticmethod
     def _loss_log_keys(loss_dict: dict[str, torch.Tensor] | dict[str, float]) -> list[str]:
+        if "loss_edge" in loss_dict:
+            return [
+                "loss",
+                "loss_semantic",
+                "loss_edge",
+                "loss_support",
+                "loss_support_reg",
+                "loss_support_overlap",
+                "loss_vec",
+            ]
         if "loss_mask" in loss_dict:
             return ["loss", "loss_semantic", "loss_mask", "loss_vec", "loss_strength"]
         return ["loss", "loss_semantic"]
@@ -380,13 +401,14 @@ class SemanticBoundaryTrainer:
                 batch = self._move_batch_to_device(batch)
                 self._ensure_cpu_backbone(batch)
 
-                output = self.model(self._forward_input_from_batch(batch))
-                loss_dict = self.loss_fn(**self._build_loss_inputs(output, batch))
+                with autocast(enabled=self.use_amp):
+                    output = self.model(self._forward_input_from_batch(batch))
+                    loss_dict = self.loss_fn(**self._build_loss_inputs(output, batch))
                 detached = self._detach_scalar_dict(loss_dict)
                 if loss_meters is None:
                     loss_meters = {key: AverageMeter() for key in detached.keys()}
                 scaled_loss = loss_dict["loss"] / self.grad_accum_steps
-                scaled_loss.backward()
+                self.scaler.scale(scaled_loss).backward()
                 accum_counter += 1
                 processed_iter += 1
                 should_step = (
@@ -394,7 +416,8 @@ class SemanticBoundaryTrainer:
                     or processed_iter >= self.steps_per_epoch
                 )
                 if should_step:
-                    self.optimizer.step()
+                    self.scaler.step(self.optimizer)
+                    self.scaler.update()
                     if self.scheduler is not None:
                         self.scheduler.step()
                     self.optimizer.zero_grad(set_to_none=True)
@@ -443,14 +466,14 @@ class SemanticBoundaryTrainer:
         if self.cfg.get("loss", {}).get("type", "SemanticBoundaryLoss") == "SemanticBoundaryLoss":
             metrics.extend(
                 [
-                    "val_loss_mask",
+                    "val_loss_edge",
+                    "val_loss_support",
                     "val_loss_vec",
-                    "val_loss_strength",
-                    "mask_precision",
-                    "mask_recall",
-                    "mask_f1",
+                    "val_loss_support_reg",
+                    "val_loss_support_overlap",
+                    "support_overlap",
+                    "support_error",
                     "vec_error_masked",
-                    "strength_error_masked",
                 ]
             )
         else:
@@ -469,8 +492,9 @@ class SemanticBoundaryTrainer:
                     break
                 batch = self._move_batch_to_device(batch)
                 self._ensure_cpu_backbone(batch)
-                output = self.model(self._forward_input_from_batch(batch))
-                metric_dict = self.evaluator(**self._build_eval_inputs(output, batch))
+                with autocast(enabled=self.use_amp):
+                    output = self.model(self._forward_input_from_batch(batch))
+                    metric_dict = self.evaluator(**self._build_eval_inputs(output, batch))
                 detached = self._detach_scalar_dict(metric_dict)
                 semantic_intersection += metric_dict["semantic_intersection"].detach().cpu().double()
                 semantic_union += metric_dict["semantic_union"].detach().cpu().double()
@@ -481,16 +505,24 @@ class SemanticBoundaryTrainer:
                 if processed_iter % self.val_log_freq == 0 or processed_iter == (
                     min(len(self.val_loader), max_batches) if max_batches is not None else len(self.val_loader)
                 ):
-                    if "val_loss_mask" in metric_meters:
+                    if "val_loss_edge" in metric_meters:
                         self.logger.info(
-                            "Val/Test: [{iter}/{max_iter}] val_loss_mask: {loss_mask:.4f} "
-                            "val_loss_vec: {loss_vec:.4f} val_loss_strength: {loss_strength:.4f} "
+                            "Val/Test: [{iter}/{max_iter}] val_loss_edge: {loss_edge:.4f} "
+                            "val_loss_support: {loss_support:.4f} "
+                            "val_loss_support_reg: {loss_support_reg:.4f} "
+                            "val_loss_support_overlap: {loss_support_overlap:.4f} "
+                            "val_loss_vec: {loss_vec:.4f} support_overlap: {support_overlap:.4f} "
+                            "support_error: {support_error:.4f} "
                             "mIoU: {miou:.4f} mAcc: {macc:.4f} allAcc: {allacc:.4f}".format(
                                 iter=processed_iter,
                                 max_iter=min(len(self.val_loader), max_batches) if max_batches is not None else len(self.val_loader),
-                                loss_mask=metric_meters["val_loss_mask"].val,
+                                loss_edge=metric_meters["val_loss_edge"].val,
+                                loss_support=metric_meters["val_loss_support"].val,
+                                loss_support_reg=metric_meters["val_loss_support_reg"].val,
+                                loss_support_overlap=metric_meters["val_loss_support_overlap"].val,
                                 loss_vec=metric_meters["val_loss_vec"].val,
-                                loss_strength=metric_meters["val_loss_strength"].val,
+                                support_overlap=metric_meters["support_overlap"].val,
+                                support_error=metric_meters["support_error"].val,
                                 miou=metric_meters["val_mIoU"].val,
                                 macc=metric_meters["val_mAcc"].val,
                                 allacc=metric_meters["val_allAcc"].val,
@@ -597,11 +629,13 @@ class SemanticBoundaryTrainer:
             if self.save_freq and epoch % int(self.save_freq) == 0:
                 self.save_checkpoint(f"epoch_{epoch}.pth", epoch, val_metrics)
 
-            if "loss_mask" in train_metrics:
+            if "loss_edge" in train_metrics:
                 self.logger.info(
                     "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
-                    "loss_mask={loss_mask:.4f} loss_vec={loss_vec:.4f} "
-                    "loss_strength={loss_strength:.4f} optimizer_steps={optimizer_steps}".format(
+                    "loss_edge={loss_edge:.4f} loss_support={loss_support:.4f} "
+                    "loss_support_reg={loss_support_reg:.4f} "
+                    "loss_support_overlap={loss_support_overlap:.4f} "
+                    "loss_vec={loss_vec:.4f} optimizer_steps={optimizer_steps}".format(
                         **train_metrics
                     )
                 )

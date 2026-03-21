@@ -124,6 +124,9 @@ conda run --no-capture-output -n ptv3 python scripts/train/train.py \
 The current trainer supports scheduler, gradient accumulation, total_epoch/eval_epoch style organization, resume, and weight loading.  
 当前 trainer 已支持 scheduler、梯度累积、`total_epoch/eval_epoch` 风格训练组织、resume 与 weight 加载。
 
+The current project-local trainer now aligns its training mix and CUDA AMP behavior with the Pointcept PTv3 baseline through `mix_prob` and `enable_amp` runtime settings.  
+当前项目内 trainer 现在通过 `mix_prob` 和 `enable_amp` 运行项，对齐 Pointcept PTv3 基线的混合增强与 CUDA AMP 行为。
+
 The current full training path uses `OneCycleLR`, `grad_accum_steps`, and Pointcept-style displayed epoch organization based on `total_epoch / eval_epoch / train_loop`.  
 当前正式训练路径使用 `OneCycleLR`、`grad_accum_steps`，以及基于 `total_epoch / eval_epoch / train_loop` 的 Pointcept 风格显示 epoch 组织。
 

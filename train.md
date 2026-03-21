@@ -135,6 +135,8 @@ Current full dual-task and semantic-only training both use:
 
 - `OneCycleLR`
 - `grad_accum_steps`
+- `mix_prob`
+- AMP on CUDA full runs
 - `total_epoch`
 - `eval_epoch`
 - derived `train_loop`
@@ -169,11 +171,13 @@ Train:
 
 - `loss`
 - `loss_semantic`
+- `loss_edge`
 - `loss_support`
+- `loss_support_overlap`
 - `loss_vec`
 - `loss_support_reg`
 
-Current trainer output still prints the compatibility aliases `loss_mask` and `loss_strength`, which now map to support-related values rather than a predicted mask branch.
+Legacy aliases `loss_mask` and `loss_strength` may still be returned internally for compatibility, but they are no longer the main printed keys.
 
 The semantic branch is now aligned between `semantic-only` and `dual-task`:
 
@@ -192,18 +196,22 @@ Validation:
 - `val_mIoU`
 - `val_mAcc`
 - `val_allAcc`
+- `val_loss_edge`
 - `val_loss_support`
 - `val_loss_vec`
 - `val_loss_support_reg`
+- `val_loss_support_overlap`
 - `support_overlap`
 - `support_error`
 - `vec_error_masked`
 
-Current trainer output still prints compatibility aliases such as `val_loss_mask`, `val_loss_strength`, `mask_f1`, and `strength_error_masked`. They are legacy log keys only.
+Legacy aliases such as `val_loss_mask`, `val_loss_strength`, `mask_f1`, and `strength_error_masked` are retained only as compatibility keys.
 
 Runtime-related fields currently used by the trainer:
 
 - `grad_accum_steps`
+- `mix_prob`
+- `enable_amp`
 - `total_epoch`
 - `eval_epoch`
 - derived `train_loop`

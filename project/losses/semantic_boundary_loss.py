@@ -77,11 +77,13 @@ class SemanticBoundaryLoss(nn.Module):
         loss_vec = self._weighted_mean(vec_error, support_target)
 
         loss_support = loss_support_reg + loss_support_overlap
-        total_loss = loss_semantic + loss_support + loss_vec
+        loss_edge = loss_support + loss_vec
+        total_loss = loss_semantic + loss_edge
 
         return dict(
             loss=total_loss,
             loss_semantic=loss_semantic,
+            loss_edge=loss_edge,
             loss_support=loss_support,
             loss_support_reg=loss_support_reg,
             loss_support_overlap=loss_support_overlap,
