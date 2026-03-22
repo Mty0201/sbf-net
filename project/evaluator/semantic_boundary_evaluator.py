@@ -1,4 +1,8 @@
-"""Minimal validation evaluator aligned with direction/dist/support/valid edge targets."""
+"""Minimal validation evaluator aligned with direction/dist/support/valid edge targets.
+
+The evaluator keeps ``dist_error`` in the original physical distance unit even though
+training uses a linearly rescaled distance target for ``loss_dist``.
+"""
 
 from __future__ import annotations
 
@@ -13,6 +17,7 @@ class SemanticBoundaryEvaluator:
     def __init__(
         self,
         tau_dir: float = 1e-3,
+        dist_scale: float = 0.08,
         support_weight: float = 1.0,
         support_cover_weight: float = 1.0,
         support_reg_weight: float = 0.25,
@@ -23,6 +28,7 @@ class SemanticBoundaryEvaluator:
     ):
         self.loss_fn = SemanticBoundaryLoss(
             tau_dir=tau_dir,
+            dist_scale=dist_scale,
             support_weight=support_weight,
             support_cover_weight=support_cover_weight,
             support_reg_weight=support_reg_weight,
@@ -147,12 +153,18 @@ class SemanticBoundaryEvaluator:
             dist_valid_mask,
             edge_pred,
         )
+        dist_error_scaled = self._masked_mean(
+            torch.abs((dist_pred / self.loss_fn.dist_scale) - (dist_gt / self.loss_fn.dist_scale)),
+            dist_valid_mask,
+            edge_pred,
+        )
 
         return dict(
             support_cover=support_cover,
             support_error=support_error,
             dir_cosine=dir_cosine,
             dist_error=dist_error,
+            dist_error_scaled=dist_error_scaled,
         )
 
     def __call__(
@@ -201,6 +213,7 @@ class SemanticBoundaryEvaluator:
             support_error=edge_metrics["support_error"],
             dir_cosine=edge_metrics["dir_cosine"],
             dist_error=edge_metrics["dist_error"],
+            dist_error_scaled=edge_metrics["dist_error_scaled"],
             # Legacy metric names are preserved only for compatibility readers.
             val_loss_mask=loss_dict["loss_support"],
             val_loss_strength=loss_dict["loss_support_reg"],

@@ -93,6 +93,8 @@ Current edge-task semantics:
 - training target: `edge.npy = [dir_x, dir_y, dir_z, edge_dist, edge_support, edge_valid]`
 - `edge_valid` is only used as a supervision validity domain
 - `direction` is supervised only on points that are valid and sufficiently far from zero-distance ambiguity
+- `distance` is still a physical step-length target, but training now applies a linear rescaling by `dist_scale` (default `0.08`) before computing `loss_dist`
+- `dist_error` remains reported in the original physical distance unit, so training uses scaled supervision while evaluation stays physically interpretable
 - `support` is treated as a coarse boundary-neighborhood proposal rather than an exact boundary shape field
 - support loss is now coverage-first with recall-biased region supervision, while continuous support regression is only an auxiliary smoothing term
 - trainer log keys may still show legacy names such as `loss_mask` / `loss_strength` for compatibility, but the main printed keys are now `loss_support / loss_support_cover / loss_support_reg / loss_dir / loss_dist`

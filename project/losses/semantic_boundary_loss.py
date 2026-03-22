@@ -1,4 +1,8 @@
-"""Minimal semantic + boundary direction/distance/support loss aligned with edge.npy."""
+"""Minimal semantic + boundary direction/distance/support loss aligned with edge.npy.
+
+Distance supervision is linearly rescaled by ``dist_scale`` for optimization, while
+reported ``dist_error`` stays in the original physical unit.
+"""
 
 from __future__ import annotations
 
@@ -17,6 +21,7 @@ class SemanticBoundaryLoss(nn.Module):
     def __init__(
         self,
         tau_dir: float = 1e-3,
+        dist_scale: float = 0.08,
         support_weight: float = 1.0,
         support_cover_weight: float = 1.0,
         support_reg_weight: float = 0.25,
@@ -27,6 +32,9 @@ class SemanticBoundaryLoss(nn.Module):
     ):
         super().__init__()
         self.tau_dir = float(tau_dir)
+        self.dist_scale = float(dist_scale)
+        if self.dist_scale <= 0:
+            raise ValueError("dist_scale must be positive.")
         self.support_weight = float(support_weight)
         self.support_cover_weight = float(support_cover_weight)
         self.support_reg_weight = float(support_reg_weight)
@@ -107,6 +115,8 @@ class SemanticBoundaryLoss(nn.Module):
         valid_gt = edge[:, 5].float().clamp(0.0, 1.0)
 
         support_pred = torch.sigmoid(support_logit)
+        dist_pred_scaled = dist_pred / self.dist_scale
+        dist_gt_scaled = dist_gt / self.dist_scale
         support_target = support_gt * valid_gt
         support_region_gt = (valid_gt > 0.5).float()
         support_positive_mask = support_gt > self.SUPPORT_POSITIVE_EPS
@@ -132,7 +142,9 @@ class SemanticBoundaryLoss(nn.Module):
             + self.support_reg_weight * loss_support_reg
         )
 
-        dist_error = self.dist_regression_loss(dist_pred, dist_gt)
+        # Keep the model prediction in physical distance units and only normalize inside
+        # the supervision space so evaluator metrics can stay directly interpretable.
+        dist_error = self.dist_regression_loss(dist_pred_scaled, dist_gt_scaled)
         loss_dist = self._weighted_mean(dist_error, valid_gt)
 
         dir_pred_unit = self._normalize_direction(dir_pred_raw)
@@ -158,6 +170,11 @@ class SemanticBoundaryLoss(nn.Module):
             dist_valid_mask,
             edge_pred,
         )
+        dist_error_scaled_valid = self._masked_mean(
+            torch.abs(dist_pred_scaled - dist_gt_scaled),
+            dist_valid_mask,
+            edge_pred,
+        )
 
         return dict(
             loss=total_loss,
@@ -174,6 +191,7 @@ class SemanticBoundaryLoss(nn.Module):
             dist_gt_valid_mean=dist_gt_valid_mean,
             dir_cosine=dir_cosine,
             dist_error=dist_error_valid,
+            dist_error_scaled=dist_error_scaled_valid,
             support_cover=1.0 - loss_support_cover,
             # Legacy aliases kept only because some unchanged utilities may still read them.
             loss_support_overlap=loss_support_cover,

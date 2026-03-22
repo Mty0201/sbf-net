@@ -191,6 +191,8 @@ Train:
 - `dir_cosine`
 - `dist_error`
 
+`loss_dist` is optimized in a linearly rescaled distance space using `dist_scale` (default `0.08`), while `dist_error` remains the mean absolute error in the original physical distance unit.
+
 Legacy aliases `loss_mask` and `loss_strength` may still be returned internally for compatibility, but they are no longer the main printed keys.
 
 The semantic branch is now aligned between `semantic-only` and `dual-task`:
@@ -224,6 +226,8 @@ Validation:
 - `dist_error`
 - `support_cover`
 - `support_error`
+
+`dist_error` in validation is also kept in the original physical distance unit. If you inspect raw evaluator outputs directly, an auxiliary `dist_error_scaled` key is also available for debugging the normalized supervision space.
 
 Legacy aliases such as `val_loss_mask`, `val_loss_strength`, `mask_f1`, and `strength_error_masked` are retained only as compatibility keys.
 
