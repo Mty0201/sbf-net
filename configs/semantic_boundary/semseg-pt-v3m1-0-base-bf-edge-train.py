@@ -18,8 +18,20 @@ data = runpy.run_path(
 data["train_batch_size"] = 2
 data["val_batch_size"] = 1
 
-loss = dict(type="SemanticBoundaryLoss")
-evaluator = dict(type="SemanticBoundaryEvaluator")
+loss = dict(
+    type="SemanticBoundaryLoss",
+    tau_dir=1e-3,
+    support_weight=1.0,
+    dir_weight=1.0,
+    dist_weight=1.0,
+)
+evaluator = dict(
+    type="SemanticBoundaryEvaluator",
+    tau_dir=1e-3,
+    support_weight=1.0,
+    dir_weight=1.0,
+    dist_weight=1.0,
+)
 
 optimizer = dict(
     type="AdamW",

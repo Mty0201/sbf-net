@@ -1,4 +1,4 @@
-"""Minimal validation evaluator aligned with support/vec/valid edge targets."""
+"""Minimal validation evaluator aligned with direction/dist/support/valid edge targets."""
 
 from __future__ import annotations
 
@@ -8,10 +8,21 @@ from project.losses import SemanticBoundaryLoss
 
 
 class SemanticBoundaryEvaluator:
-    """Keep trainer-facing legacy keys while evaluating support/vec semantics."""
+    """Keep trainer-facing evaluation simple while exposing new edge semantics."""
 
-    def __init__(self):
-        self.loss_fn = SemanticBoundaryLoss()
+    def __init__(
+        self,
+        tau_dir: float = 1e-3,
+        support_weight: float = 1.0,
+        dir_weight: float = 1.0,
+        dist_weight: float = 1.0,
+    ):
+        self.loss_fn = SemanticBoundaryLoss(
+            tau_dir=tau_dir,
+            support_weight=support_weight,
+            dir_weight=dir_weight,
+            dist_weight=dist_weight,
+        )
 
     @staticmethod
     def _safe_zero(reference: torch.Tensor) -> torch.Tensor:
@@ -22,6 +33,14 @@ class SemanticBoundaryEvaluator:
         if denominator.item() == 0:
             return numerator.new_tensor(0.0)
         return numerator / denominator
+
+    @staticmethod
+    def _masked_mean(
+        value: torch.Tensor, mask: torch.Tensor, reference: torch.Tensor
+    ) -> torch.Tensor:
+        if not mask.any():
+            return reference.sum() * 0.0
+        return value[mask].mean()
 
     def _compute_semantic_stats(
         self, seg_logits: torch.Tensor, segment: torch.Tensor
@@ -86,35 +105,43 @@ class SemanticBoundaryEvaluator:
         self, edge_pred: torch.Tensor, edge: torch.Tensor
     ) -> dict[str, torch.Tensor]:
         edge = edge.float()
-        support_gt = edge[:, 3].float().clamp(0.0, 1.0)
-        valid_gt = edge[:, 4].float().clamp(0.0, 1.0)
+        dir_gt = edge[:, 0:3]
+        dist_gt = edge[:, 3].float().clamp_min(0.0)
+        support_gt = edge[:, 4].float().clamp(0.0, 1.0)
+        valid_gt = edge[:, 5].float().clamp(0.0, 1.0)
+
+        dir_pred_raw = edge_pred[:, 0:3]
+        dist_pred = edge_pred[:, 3]
+        support_pred = torch.sigmoid(edge_pred[:, 4])
+
         support_target = support_gt * valid_gt
-        support_pred = torch.sigmoid(edge_pred[:, 3])
-        support_region_gt = support_target > 0
+        dir_valid_mask = (valid_gt > 0.5) & (dist_gt > self.loss_fn.tau_dir)
+        dist_valid_mask = valid_gt > 0.5
 
         support_overlap = 1.0 - self.loss_fn._soft_dice_loss(
             support_pred * valid_gt,
             support_target,
         )
-        if valid_gt.any():
-            support_error = self.loss_fn._weighted_mean(
-                (support_pred - support_target) ** 2,
-                valid_gt,
-            )
-        else:
-            support_error = self._safe_zero(edge_pred)
+        support_error = self.loss_fn._weighted_mean(
+            (support_pred - support_target) ** 2,
+            valid_gt,
+        )
 
-        if support_region_gt.any():
-            vec_error_masked = torch.mean(
-                ((edge_pred[:, 0:3] - edge[:, 0:3]) ** 2)[support_region_gt]
-            )
-        else:
-            vec_error_masked = self._safe_zero(edge_pred)
+        dir_pred_unit = self.loss_fn._normalize_direction(dir_pred_raw)
+        dir_gt_unit = self.loss_fn._normalize_direction(dir_gt)
+        dir_cosine_all = torch.sum(dir_pred_unit * dir_gt_unit, dim=1).clamp(-1.0, 1.0)
+        dir_cosine = self._masked_mean(dir_cosine_all, dir_valid_mask, edge_pred)
+        dist_error = self._masked_mean(
+            torch.abs(dist_pred - dist_gt),
+            dist_valid_mask,
+            edge_pred,
+        )
 
         return dict(
             support_overlap=support_overlap,
             support_error=support_error,
-            vec_error_masked=vec_error_masked,
+            dir_cosine=dir_cosine,
+            dist_error=dist_error,
         )
 
     def __call__(
@@ -150,23 +177,23 @@ class SemanticBoundaryEvaluator:
             semantic_acc_per_class=semantic_metrics["semantic_acc_per_class"],
             val_loss_edge=loss_dict["loss_edge"],
             val_loss_support=loss_dict["loss_support"],
-            # Legacy metric names are preserved only for trainer compatibility.
-            val_loss_mask=loss_dict["loss_support"],
-            val_loss_vec=loss_dict["loss_vec"],
+            val_loss_dir=loss_dict["loss_dir"],
+            val_loss_dist=loss_dict["loss_dist"],
             val_loss_support_reg=loss_dict["loss_support_reg"],
             val_loss_support_overlap=loss_dict["loss_support_overlap"],
             valid_ratio=loss_dict["valid_ratio"],
             support_positive_ratio=loss_dict["support_positive_ratio"],
-            active_vec_ratio=loss_dict["active_vec_ratio"],
-            vec_gt_norm_active_mean=loss_dict["vec_gt_norm_active_mean"],
-            vec_error_unweighted_active=loss_dict["vec_error_unweighted_active"],
-            vec_error_weighted_active=loss_dict["vec_error_weighted_active"],
-            val_loss_strength=loss_dict["loss_support_reg"],
+            dir_valid_ratio=loss_dict["dir_valid_ratio"],
+            dist_gt_valid_mean=loss_dict["dist_gt_valid_mean"],
             support_overlap=edge_metrics["support_overlap"],
             support_error=edge_metrics["support_error"],
+            dir_cosine=edge_metrics["dir_cosine"],
+            dist_error=edge_metrics["dist_error"],
+            # Legacy metric names are preserved only for compatibility readers.
+            val_loss_mask=loss_dict["loss_support"],
+            val_loss_strength=loss_dict["loss_support_reg"],
             mask_precision=edge_metrics["support_overlap"],
             mask_recall=edge_metrics["support_overlap"],
             mask_f1=edge_metrics["support_overlap"],
-            vec_error_masked=edge_metrics["vec_error_masked"],
             strength_error_masked=edge_metrics["support_error"],
         )

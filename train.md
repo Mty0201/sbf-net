@@ -6,11 +6,12 @@ This document describes the current project-local training behavior of SBF-Net.
 Current edge supervision uses:
 当前 edge 监督使用：
 
-- `edge.npy[:, 0:3]` -> `edge_vec`
-- `edge.npy[:, 3]` -> `edge_support`
-- `edge.npy[:, 4]` -> `edge_valid`
+- `edge.npy[:, 0:3]` -> `edge_dir`
+- `edge.npy[:, 3]` -> `edge_dist`
+- `edge.npy[:, 4]` -> `edge_support`
+- `edge.npy[:, 5]` -> `edge_valid`
 
-`edge_valid` is only a supervision validity domain. It is not a predicted mask target. Legacy names `edge_strength` and `edge_mask` are kept only as dataset-side compatibility aliases.
+`edge_valid` is only a supervision validity domain. It is not a predicted mask target. `edge_dir` is the core geometric supervision, `edge_dist` is the explicit snapping step length, and `edge_support` no longer acts as a distance substitute. Legacy names `edge_strength` and `edge_mask` are kept only as dataset-side compatibility aliases.
 
 ## 1. Training Entry
 
@@ -174,8 +175,15 @@ Train:
 - `loss_edge`
 - `loss_support`
 - `loss_support_overlap`
-- `loss_vec`
 - `loss_support_reg`
+- `loss_dir`
+- `loss_dist`
+- `valid_ratio`
+- `support_positive_ratio`
+- `dir_valid_ratio`
+- `dist_gt_valid_mean`
+- `dir_cosine`
+- `dist_error`
 
 Legacy aliases `loss_mask` and `loss_strength` may still be returned internally for compatibility, but they are no longer the main printed keys.
 
@@ -198,12 +206,18 @@ Validation:
 - `val_allAcc`
 - `val_loss_edge`
 - `val_loss_support`
-- `val_loss_vec`
+- `val_loss_dir`
+- `val_loss_dist`
 - `val_loss_support_reg`
 - `val_loss_support_overlap`
+- `valid_ratio`
+- `support_positive_ratio`
+- `dir_valid_ratio`
+- `dist_gt_valid_mean`
+- `dir_cosine`
+- `dist_error`
 - `support_overlap`
 - `support_error`
-- `vec_error_masked`
 
 Legacy aliases such as `val_loss_mask`, `val_loss_strength`, `mask_f1`, and `strength_error_masked` are retained only as compatibility keys.
 

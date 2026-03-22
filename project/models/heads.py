@@ -1,4 +1,4 @@
-"""Minimal task heads for semantic segmentation and boundary support/offset."""
+"""Minimal task heads for semantic segmentation and boundary field supervision."""
 
 import torch.nn as nn
 
@@ -15,24 +15,26 @@ class SemanticHead(nn.Module):
 
 
 class EdgeHead(nn.Module):
-    """Predict boundary support and boundary offset from shared backbone features."""
+    """Predict boundary direction, distance, and support from shared features."""
 
-    def __init__(self, in_channels, out_channels=4):
+    def __init__(self, in_channels, out_channels=5):
         super().__init__()
-        if out_channels != 4:
+        if out_channels != 5:
             raise ValueError(
-                "EdgeHead expects 4 output channels arranged as vec(3) + support(1)."
+                "EdgeHead expects 5 output channels arranged as dir(3) + dist(1) + support(1)."
             )
         self.stem = nn.Sequential(
             nn.Linear(in_channels, in_channels),
             nn.ReLU(inplace=True),
         )
         self.support_head = nn.Linear(in_channels, 1)
-        self.vec_head = nn.Linear(in_channels, 3)
+        self.dist_head = nn.Linear(in_channels, 1)
+        self.dir_head = nn.Linear(in_channels, 3)
 
     def forward(self, feat):
         feat = self.stem(feat)
         return dict(
             support_pred=self.support_head(feat),
-            vec_pred=self.vec_head(feat),
+            dist_pred=self.dist_head(feat),
+            dir_pred=self.dir_head(feat),
         )

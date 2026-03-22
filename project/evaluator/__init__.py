@@ -7,7 +7,8 @@ def build_evaluator(cfg: dict | None):
         return SemanticBoundaryEvaluator()
     evaluator_type = cfg.get("type", "SemanticBoundaryEvaluator")
     if evaluator_type == "SemanticBoundaryEvaluator":
-        return SemanticBoundaryEvaluator()
+        kwargs = {key: value for key, value in cfg.items() if key != "type"}
+        return SemanticBoundaryEvaluator(**kwargs)
     if evaluator_type == "SemanticEvaluator":
         return SemanticEvaluator()
     raise ValueError(f"Unsupported evaluator type: {evaluator_type}")

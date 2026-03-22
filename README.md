@@ -34,14 +34,14 @@ The current framework uses a shared PTv3 backbone for point feature extraction.
 On top of the shared backbone, SBF-Net keeps a semantic segmentation head and adds a boundary field head.  
 在共享 backbone 之上，SBF-Net 保留语义分割 head，并新增边界场 head。
 
-The current boundary field head predicts boundary offset vectors and boundary support scores from a lightweight shared stem.  
-当前边界场 head 通过轻量共享 stem 预测边界偏移向量与边界支撑分数。
+The current boundary field head predicts boundary direction, snapping distance, and support scores from a lightweight shared stem.  
+当前边界场 head 通过轻量共享 stem 预测边界方向、吸附距离和边界支撑分数。
 
-The current compact training label `edge.npy` uses the fixed layout `[vec_x, vec_y, vec_z, edge_support, edge_valid]`.  
-当前紧凑训练标签 `edge.npy` 使用固定列语义 `[vec_x, vec_y, vec_z, edge_support, edge_valid]`。
+The current compact training label `edge.npy` uses the fixed layout `[dir_x, dir_y, dir_z, edge_dist, edge_support, edge_valid]`.  
+当前紧凑训练标签 `edge.npy` 使用固定列语义 `[dir_x, dir_y, dir_z, edge_dist, edge_support, edge_valid]`。
 
-`edge_valid` is only a numeric validity domain for supervision, not a predicted mask target. Legacy names `edge_strength` and `edge_mask` are compatibility aliases for `edge_support` and `edge_valid`.  
-`edge_valid` 只是监督数值有效域，不是要预测的 mask 目标。旧名称 `edge_strength` 和 `edge_mask` 仅分别作为 `edge_support` 与 `edge_valid` 的兼容别名。
+`edge_valid` is only a numeric validity domain for supervision, not a predicted mask target. `edge_dir` is the core geometry target, `edge_dist` provides explicit snapping step supervision, and `edge_support` no longer serves as a distance substitute. Legacy names `edge_strength` and `edge_mask` remain compatibility aliases for `edge_support` and `edge_valid`.  
+`edge_valid` 只是监督数值有效域，不是要预测的 mask 目标。`edge_dir` 是核心几何目标，`edge_dist` 提供显式吸附步长监督，`edge_support` 不再承担距离替代角色。旧名称 `edge_strength` 和 `edge_mask` 仍分别作为 `edge_support` 与 `edge_valid` 的兼容别名。
 
 The current public release focuses on a trainable and reproducible first-stage system rather than a fully expanded task formulation.  
 当前公开版本聚焦于一个可训练、可复现的第一阶段系统，而不是一次性展开完整任务设计。
@@ -89,10 +89,11 @@ SBF-Net 当前同时提供双任务训练配置和 semantic-only 校准配置。
 Current edge-task semantics:
 当前 edge 任务语义：
 
-- model output: `vec + support`
-- training target: `edge.npy = [vec_x, vec_y, vec_z, edge_support, edge_valid]`
+- model output: `direction + distance + support`
+- training target: `edge.npy = [dir_x, dir_y, dir_z, edge_dist, edge_support, edge_valid]`
 - `edge_valid` is only used as a supervision validity domain
-- trainer log keys may still show legacy names such as `loss_mask` / `loss_strength` for compatibility, but they no longer mean a predicted mask task
+- `direction` is supervised only on points that are valid and sufficiently far from zero-distance ambiguity
+- trainer log keys may still show legacy names such as `loss_mask` / `loss_strength` for compatibility, but the main printed keys are now `loss_support / loss_dir / loss_dist`
 
 Quick Start for full dual-task training:  
 正式双任务训练的最小快速开始命令如下：

@@ -1,20 +1,32 @@
-"""Minimal semantic + boundary support/offset loss aligned with edge.npy."""
+"""Minimal semantic + boundary direction/distance/support loss aligned with edge.npy."""
 
 from __future__ import annotations
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from pointcept.models.losses.lovasz import LovaszLoss
 
 
 class SemanticBoundaryLoss(nn.Module):
-    """Use edge.npy as [vec_x, vec_y, vec_z, edge_support, edge_valid]."""
+    """Use edge.npy as [dir_x, dir_y, dir_z, edge_dist, edge_support, edge_valid]."""
 
     SUPPORT_POSITIVE_EPS = 1e-3
 
-    def __init__(self):
+    def __init__(
+        self,
+        tau_dir: float = 1e-3,
+        support_weight: float = 1.0,
+        dir_weight: float = 1.0,
+        dist_weight: float = 1.0,
+    ):
         super().__init__()
+        self.tau_dir = float(tau_dir)
+        self.support_weight = float(support_weight)
+        self.dir_weight = float(dir_weight)
+        self.dist_weight = float(dist_weight)
+
         self.semantic_loss = nn.CrossEntropyLoss(ignore_index=-1)
         self.lovasz_loss = LovaszLoss(
             mode="multiclass",
@@ -22,7 +34,7 @@ class SemanticBoundaryLoss(nn.Module):
             loss_weight=1.0,
         )
         self.support_regression_loss = nn.SmoothL1Loss(reduction="none")
-        self.vec_regression_loss = nn.SmoothL1Loss(reduction="none")
+        self.dist_regression_loss = nn.SmoothL1Loss(reduction="none")
 
     @staticmethod
     def _weighted_mean(
@@ -42,10 +54,6 @@ class SemanticBoundaryLoss(nn.Module):
         return 1.0 - (2.0 * intersection + eps) / (denominator + eps)
 
     @staticmethod
-    def _zero_like(reference: torch.Tensor) -> torch.Tensor:
-        return reference.sum() * 0.0
-
-    @staticmethod
     def _safe_mean(mask: torch.Tensor, reference: torch.Tensor) -> torch.Tensor:
         if mask.numel() == 0:
             return reference.sum() * 0.0
@@ -59,6 +67,10 @@ class SemanticBoundaryLoss(nn.Module):
             return reference.sum() * 0.0
         return value[mask].mean()
 
+    @staticmethod
+    def _normalize_direction(direction: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
+        return F.normalize(direction, dim=1, eps=eps)
+
     def forward(
         self,
         seg_logits: torch.Tensor,
@@ -69,19 +81,25 @@ class SemanticBoundaryLoss(nn.Module):
         segment = segment.reshape(-1).long()
         edge = edge.float()
 
-        vec_pred = edge_pred[:, 0:3]
-        vec_gt = edge[:, 0:3]
-        support_logit = edge_pred[:, 3]
+        dir_pred_raw = edge_pred[:, 0:3]
+        dist_pred = edge_pred[:, 3]
+        support_logit = edge_pred[:, 4]
+
+        dir_gt = edge[:, 0:3]
+        dist_gt = edge[:, 3].float().clamp_min(0.0)
+        support_gt = edge[:, 4].float().clamp(0.0, 1.0)
+        valid_gt = edge[:, 5].float().clamp(0.0, 1.0)
+
         support_pred = torch.sigmoid(support_logit)
-        support_gt = edge[:, 3].float().clamp(0.0, 1.0)
-        valid_gt = edge[:, 4].float().clamp(0.0, 1.0)
         support_target = support_gt * valid_gt
         support_positive_mask = support_gt > self.SUPPORT_POSITIVE_EPS
-        active_vec_mask = support_target > self.SUPPORT_POSITIVE_EPS
+        dir_valid_mask = (valid_gt > 0.5) & (dist_gt > self.tau_dir)
+        dist_valid_mask = valid_gt > 0.5
 
         loss_ce = self.semantic_loss(seg_logits, segment)
         loss_lovasz = self.lovasz_loss(seg_logits, segment)
         loss_semantic = loss_ce + loss_lovasz
+
         loss_support_reg = self._weighted_mean(
             self.support_regression_loss(support_pred, support_target),
             valid_gt,
@@ -90,28 +108,34 @@ class SemanticBoundaryLoss(nn.Module):
             support_pred * valid_gt,
             support_target,
         )
+        loss_support = loss_support_reg + loss_support_overlap
 
-        vec_error = self.vec_regression_loss(vec_pred, vec_gt).mean(dim=1)
-        loss_vec = self._weighted_mean(vec_error, support_target)
+        dist_error = self.dist_regression_loss(dist_pred, dist_gt)
+        loss_dist = self._weighted_mean(dist_error, valid_gt)
+
+        dir_pred_unit = self._normalize_direction(dir_pred_raw)
+        dir_gt_unit = self._normalize_direction(dir_gt)
+        dir_cosine_all = torch.sum(dir_pred_unit * dir_gt_unit, dim=1).clamp(-1.0, 1.0)
+        dir_error = 1.0 - dir_cosine_all
+        loss_dir = self._masked_mean(dir_error, dir_valid_mask, edge_pred)
+
+        loss_edge = (
+            self.support_weight * loss_support
+            + self.dir_weight * loss_dir
+            + self.dist_weight * loss_dist
+        )
+        total_loss = loss_semantic + loss_edge
+
         valid_ratio = valid_gt.mean()
         support_positive_ratio = self._safe_mean(support_positive_mask, edge_pred)
-        active_vec_ratio = self._safe_mean(active_vec_mask, edge_pred)
-        vec_gt_norm = torch.norm(vec_gt, dim=1)
-        vec_gt_norm_active_mean = self._masked_mean(
-            vec_gt_norm, active_vec_mask, edge_pred
-        )
-        vec_error_unweighted_active = self._masked_mean(
-            vec_error, active_vec_mask, edge_pred
-        )
-        vec_error_weighted_active = self._masked_mean(
-            vec_error * support_target,
-            active_vec_mask,
+        dir_valid_ratio = self._safe_mean(dir_valid_mask, edge_pred)
+        dist_gt_valid_mean = self._masked_mean(dist_gt, dist_valid_mask, edge_pred)
+        dir_cosine = self._masked_mean(dir_cosine_all, dir_valid_mask, edge_pred)
+        dist_error_valid = self._masked_mean(
+            torch.abs(dist_pred - dist_gt),
+            dist_valid_mask,
             edge_pred,
         )
-
-        loss_support = loss_support_reg + loss_support_overlap
-        loss_edge = loss_support + loss_vec
-        total_loss = loss_semantic + loss_edge
 
         return dict(
             loss=total_loss,
@@ -120,14 +144,15 @@ class SemanticBoundaryLoss(nn.Module):
             loss_support=loss_support,
             loss_support_reg=loss_support_reg,
             loss_support_overlap=loss_support_overlap,
-            loss_vec=loss_vec,
+            loss_dir=loss_dir,
+            loss_dist=loss_dist,
             valid_ratio=valid_ratio,
             support_positive_ratio=support_positive_ratio,
-            active_vec_ratio=active_vec_ratio,
-            vec_gt_norm_active_mean=vec_gt_norm_active_mean,
-            vec_error_unweighted_active=vec_error_unweighted_active,
-            vec_error_weighted_active=vec_error_weighted_active,
-            # Legacy aliases kept only because the unchanged trainer still logs them.
+            dir_valid_ratio=dir_valid_ratio,
+            dist_gt_valid_mean=dist_gt_valid_mean,
+            dir_cosine=dir_cosine,
+            dist_error=dist_error_valid,
+            # Legacy aliases kept only because some unchanged utilities may still read them.
             loss_mask=loss_support,
             loss_strength=loss_support_reg,
         )

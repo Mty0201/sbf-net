@@ -290,16 +290,17 @@ class SemanticBoundaryTrainer:
                 "loss_support",
                 "loss_support_reg",
                 "loss_support_overlap",
-                "loss_vec",
+                "loss_dir",
+                "loss_dist",
                 "valid_ratio",
                 "support_positive_ratio",
-                "active_vec_ratio",
-                "vec_gt_norm_active_mean",
-                "vec_error_unweighted_active",
-                "vec_error_weighted_active",
+                "dir_valid_ratio",
+                "dist_gt_valid_mean",
+                "dir_cosine",
+                "dist_error",
             ]
         if "loss_mask" in loss_dict:
-            return ["loss", "loss_semantic", "loss_mask", "loss_vec", "loss_strength"]
+            return ["loss", "loss_semantic", "loss_mask", "loss_strength"]
         return ["loss", "loss_semantic"]
 
     @staticmethod
@@ -477,18 +478,18 @@ class SemanticBoundaryTrainer:
                 [
                     "val_loss_edge",
                     "val_loss_support",
-                    "val_loss_vec",
+                    "val_loss_dir",
+                    "val_loss_dist",
                     "val_loss_support_reg",
                     "val_loss_support_overlap",
                     "valid_ratio",
                     "support_positive_ratio",
-                    "active_vec_ratio",
-                    "vec_gt_norm_active_mean",
-                    "vec_error_unweighted_active",
-                    "vec_error_weighted_active",
+                    "dir_valid_ratio",
+                    "dist_gt_valid_mean",
                     "support_overlap",
                     "support_error",
-                    "vec_error_masked",
+                    "dir_cosine",
+                    "dist_error",
                 ]
             )
         else:
@@ -525,13 +526,15 @@ class SemanticBoundaryTrainer:
                             "val_loss_support: {loss_support:.4f} "
                             "val_loss_support_reg: {loss_support_reg:.4f} "
                             "val_loss_support_overlap: {loss_support_overlap:.4f} "
-                            "val_loss_vec: {loss_vec:.4f} support_overlap: {support_overlap:.4f} "
+                            "val_loss_dir: {loss_dir:.4f} "
+                            "val_loss_dist: {loss_dist:.4f} "
+                            "support_overlap: {support_overlap:.4f} "
                             "valid_ratio: {valid_ratio:.4f} "
                             "support_positive_ratio: {support_positive_ratio:.4f} "
-                            "active_vec_ratio: {active_vec_ratio:.4f} "
-                            "vec_gt_norm_active_mean: {vec_gt_norm_active_mean:.4f} "
-                            "vec_error_unweighted_active: {vec_error_unweighted_active:.4f} "
-                            "vec_error_weighted_active: {vec_error_weighted_active:.4f} "
+                            "dir_valid_ratio: {dir_valid_ratio:.4f} "
+                            "dist_gt_valid_mean: {dist_gt_valid_mean:.4f} "
+                            "dir_cosine: {dir_cosine:.4f} "
+                            "dist_error: {dist_error:.4f} "
                             "support_error: {support_error:.4f} "
                             "mIoU: {miou:.4f} mAcc: {macc:.4f} allAcc: {allacc:.4f}".format(
                                 iter=processed_iter,
@@ -540,14 +543,15 @@ class SemanticBoundaryTrainer:
                                 loss_support=metric_meters["val_loss_support"].val,
                                 loss_support_reg=metric_meters["val_loss_support_reg"].val,
                                 loss_support_overlap=metric_meters["val_loss_support_overlap"].val,
-                                loss_vec=metric_meters["val_loss_vec"].val,
+                                loss_dir=metric_meters["val_loss_dir"].val,
+                                loss_dist=metric_meters["val_loss_dist"].val,
                                 support_overlap=metric_meters["support_overlap"].val,
                                 valid_ratio=metric_meters["valid_ratio"].val,
                                 support_positive_ratio=metric_meters["support_positive_ratio"].val,
-                                active_vec_ratio=metric_meters["active_vec_ratio"].val,
-                                vec_gt_norm_active_mean=metric_meters["vec_gt_norm_active_mean"].val,
-                                vec_error_unweighted_active=metric_meters["vec_error_unweighted_active"].val,
-                                vec_error_weighted_active=metric_meters["vec_error_weighted_active"].val,
+                                dir_valid_ratio=metric_meters["dir_valid_ratio"].val,
+                                dist_gt_valid_mean=metric_meters["dist_gt_valid_mean"].val,
+                                dir_cosine=metric_meters["dir_cosine"].val,
+                                dist_error=metric_meters["dist_error"].val,
                                 support_error=metric_meters["support_error"].val,
                                 miou=metric_meters["val_mIoU"].val,
                                 macc=metric_meters["val_mAcc"].val,
@@ -661,7 +665,8 @@ class SemanticBoundaryTrainer:
                     "loss_edge={loss_edge:.4f} loss_support={loss_support:.4f} "
                     "loss_support_reg={loss_support_reg:.4f} "
                     "loss_support_overlap={loss_support_overlap:.4f} "
-                    "loss_vec={loss_vec:.4f} optimizer_steps={optimizer_steps}".format(
+                    "loss_dir={loss_dir:.4f} loss_dist={loss_dist:.4f} "
+                    "optimizer_steps={optimizer_steps}".format(
                         **train_metrics
                     )
                 )

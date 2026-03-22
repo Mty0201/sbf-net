@@ -1,7 +1,7 @@
 """
-Minimal model-only config for shared PTv3 backbone with semantic and support/vec heads.
+Minimal model-only config for shared PTv3 backbone with semantic and dir/dist/support heads.
 
-The edge output follows edge.npy = [vec_x, vec_y, vec_z, edge_support, edge_valid].
+The edge output follows edge.npy = [dir_x, dir_y, dir_z, edge_dist, edge_support, edge_valid].
 This config is intended for forward smoke testing only.
 """
 
@@ -9,7 +9,7 @@ model = dict(
     type="SharedBackboneSemanticBoundaryModel",
     num_classes=8,
     backbone_out_channels=64,
-    edge_out_channels=4,
+    edge_out_channels=5,
     backbone=dict(
         type="PT-v3m1",
         in_channels=6,

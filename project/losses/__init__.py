@@ -7,7 +7,8 @@ def build_loss(cfg: dict | None):
         return SemanticBoundaryLoss()
     loss_type = cfg.get("type", "SemanticBoundaryLoss")
     if loss_type == "SemanticBoundaryLoss":
-        return SemanticBoundaryLoss()
+        kwargs = {key: value for key, value in cfg.items() if key != "type"}
+        return SemanticBoundaryLoss(**kwargs)
     if loss_type == "SemanticOnlyLoss":
         return SemanticOnlyLoss()
     raise ValueError(f"Unsupported loss type: {loss_type}")
