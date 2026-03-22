@@ -93,7 +93,9 @@ Current edge-task semantics:
 - training target: `edge.npy = [dir_x, dir_y, dir_z, edge_dist, edge_support, edge_valid]`
 - `edge_valid` is only used as a supervision validity domain
 - `direction` is supervised only on points that are valid and sufficiently far from zero-distance ambiguity
-- trainer log keys may still show legacy names such as `loss_mask` / `loss_strength` for compatibility, but the main printed keys are now `loss_support / loss_dir / loss_dist`
+- `support` is treated as a coarse boundary-neighborhood proposal rather than an exact boundary shape field
+- support loss is now coverage-first with recall-biased region supervision, while continuous support regression is only an auxiliary smoothing term
+- trainer log keys may still show legacy names such as `loss_mask` / `loss_strength` for compatibility, but the main printed keys are now `loss_support / loss_support_cover / loss_support_reg / loss_dir / loss_dist`
 
 Quick Start for full dual-task training:  
 正式双任务训练的最小快速开始命令如下：

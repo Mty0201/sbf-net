@@ -18,12 +18,20 @@ class SemanticBoundaryLoss(nn.Module):
         self,
         tau_dir: float = 1e-3,
         support_weight: float = 1.0,
+        support_cover_weight: float = 1.0,
+        support_reg_weight: float = 0.25,
+        support_tversky_alpha: float = 0.3,
+        support_tversky_beta: float = 0.7,
         dir_weight: float = 1.0,
         dist_weight: float = 1.0,
     ):
         super().__init__()
         self.tau_dir = float(tau_dir)
         self.support_weight = float(support_weight)
+        self.support_cover_weight = float(support_cover_weight)
+        self.support_reg_weight = float(support_reg_weight)
+        self.support_tversky_alpha = float(support_tversky_alpha)
+        self.support_tversky_beta = float(support_tversky_beta)
         self.dir_weight = float(dir_weight)
         self.dist_weight = float(dist_weight)
 
@@ -46,12 +54,20 @@ class SemanticBoundaryLoss(nn.Module):
         return (value * weight).sum() / (weight_sum + eps)
 
     @staticmethod
-    def _soft_dice_loss(
-        pred: torch.Tensor, target: torch.Tensor, eps: float = 1e-6
+    def _tversky_loss(
+        pred: torch.Tensor,
+        target: torch.Tensor,
+        alpha: float,
+        beta: float,
+        eps: float = 1e-6,
     ) -> torch.Tensor:
-        intersection = torch.sum(pred * target)
-        denominator = torch.sum(pred) + torch.sum(target)
-        return 1.0 - (2.0 * intersection + eps) / (denominator + eps)
+        target = target.float()
+        true_positive = torch.sum(pred * target)
+        false_positive = torch.sum(pred * (1.0 - target))
+        false_negative = torch.sum((1.0 - pred) * target)
+        return 1.0 - (true_positive + eps) / (
+            true_positive + alpha * false_positive + beta * false_negative + eps
+        )
 
     @staticmethod
     def _safe_mean(mask: torch.Tensor, reference: torch.Tensor) -> torch.Tensor:
@@ -92,6 +108,7 @@ class SemanticBoundaryLoss(nn.Module):
 
         support_pred = torch.sigmoid(support_logit)
         support_target = support_gt * valid_gt
+        support_region_gt = (valid_gt > 0.5).float()
         support_positive_mask = support_gt > self.SUPPORT_POSITIVE_EPS
         dir_valid_mask = (valid_gt > 0.5) & (dist_gt > self.tau_dir)
         dist_valid_mask = valid_gt > 0.5
@@ -104,11 +121,16 @@ class SemanticBoundaryLoss(nn.Module):
             self.support_regression_loss(support_pred, support_target),
             valid_gt,
         )
-        loss_support_overlap = self._soft_dice_loss(
-            support_pred * valid_gt,
-            support_target,
+        loss_support_cover = self._tversky_loss(
+            support_pred,
+            support_region_gt,
+            alpha=self.support_tversky_alpha,
+            beta=self.support_tversky_beta,
         )
-        loss_support = loss_support_reg + loss_support_overlap
+        loss_support = (
+            self.support_cover_weight * loss_support_cover
+            + self.support_reg_weight * loss_support_reg
+        )
 
         dist_error = self.dist_regression_loss(dist_pred, dist_gt)
         loss_dist = self._weighted_mean(dist_error, valid_gt)
@@ -143,7 +165,7 @@ class SemanticBoundaryLoss(nn.Module):
             loss_edge=loss_edge,
             loss_support=loss_support,
             loss_support_reg=loss_support_reg,
-            loss_support_overlap=loss_support_overlap,
+            loss_support_cover=loss_support_cover,
             loss_dir=loss_dir,
             loss_dist=loss_dist,
             valid_ratio=valid_ratio,
@@ -152,7 +174,9 @@ class SemanticBoundaryLoss(nn.Module):
             dist_gt_valid_mean=dist_gt_valid_mean,
             dir_cosine=dir_cosine,
             dist_error=dist_error_valid,
+            support_cover=1.0 - loss_support_cover,
             # Legacy aliases kept only because some unchanged utilities may still read them.
+            loss_support_overlap=loss_support_cover,
             loss_mask=loss_support,
             loss_strength=loss_support_reg,
         )

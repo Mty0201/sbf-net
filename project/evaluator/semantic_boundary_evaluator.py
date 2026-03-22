@@ -14,12 +14,20 @@ class SemanticBoundaryEvaluator:
         self,
         tau_dir: float = 1e-3,
         support_weight: float = 1.0,
+        support_cover_weight: float = 1.0,
+        support_reg_weight: float = 0.25,
+        support_tversky_alpha: float = 0.3,
+        support_tversky_beta: float = 0.7,
         dir_weight: float = 1.0,
         dist_weight: float = 1.0,
     ):
         self.loss_fn = SemanticBoundaryLoss(
             tau_dir=tau_dir,
             support_weight=support_weight,
+            support_cover_weight=support_cover_weight,
+            support_reg_weight=support_reg_weight,
+            support_tversky_alpha=support_tversky_alpha,
+            support_tversky_beta=support_tversky_beta,
             dir_weight=dir_weight,
             dist_weight=dist_weight,
         )
@@ -115,12 +123,15 @@ class SemanticBoundaryEvaluator:
         support_pred = torch.sigmoid(edge_pred[:, 4])
 
         support_target = support_gt * valid_gt
+        support_region_gt = (valid_gt > 0.5).float()
         dir_valid_mask = (valid_gt > 0.5) & (dist_gt > self.loss_fn.tau_dir)
         dist_valid_mask = valid_gt > 0.5
 
-        support_overlap = 1.0 - self.loss_fn._soft_dice_loss(
-            support_pred * valid_gt,
-            support_target,
+        support_cover = 1.0 - self.loss_fn._tversky_loss(
+            support_pred,
+            support_region_gt,
+            alpha=self.loss_fn.support_tversky_alpha,
+            beta=self.loss_fn.support_tversky_beta,
         )
         support_error = self.loss_fn._weighted_mean(
             (support_pred - support_target) ** 2,
@@ -138,7 +149,7 @@ class SemanticBoundaryEvaluator:
         )
 
         return dict(
-            support_overlap=support_overlap,
+            support_cover=support_cover,
             support_error=support_error,
             dir_cosine=dir_cosine,
             dist_error=dist_error,
@@ -180,20 +191,22 @@ class SemanticBoundaryEvaluator:
             val_loss_dir=loss_dict["loss_dir"],
             val_loss_dist=loss_dict["loss_dist"],
             val_loss_support_reg=loss_dict["loss_support_reg"],
-            val_loss_support_overlap=loss_dict["loss_support_overlap"],
+            val_loss_support_cover=loss_dict["loss_support_cover"],
+            val_loss_support_overlap=loss_dict["loss_support_cover"],
             valid_ratio=loss_dict["valid_ratio"],
             support_positive_ratio=loss_dict["support_positive_ratio"],
             dir_valid_ratio=loss_dict["dir_valid_ratio"],
             dist_gt_valid_mean=loss_dict["dist_gt_valid_mean"],
-            support_overlap=edge_metrics["support_overlap"],
+            support_cover=edge_metrics["support_cover"],
             support_error=edge_metrics["support_error"],
             dir_cosine=edge_metrics["dir_cosine"],
             dist_error=edge_metrics["dist_error"],
             # Legacy metric names are preserved only for compatibility readers.
             val_loss_mask=loss_dict["loss_support"],
             val_loss_strength=loss_dict["loss_support_reg"],
-            mask_precision=edge_metrics["support_overlap"],
-            mask_recall=edge_metrics["support_overlap"],
-            mask_f1=edge_metrics["support_overlap"],
+            mask_precision=edge_metrics["support_cover"],
+            mask_recall=edge_metrics["support_cover"],
+            mask_f1=edge_metrics["support_cover"],
+            support_overlap=edge_metrics["support_cover"],
             strength_error_masked=edge_metrics["support_error"],
         )

@@ -22,6 +22,10 @@ loss = dict(
     type="SemanticBoundaryLoss",
     tau_dir=1e-3,
     support_weight=1.0,
+    support_cover_weight=1.0,
+    support_reg_weight=0.25,
+    support_tversky_alpha=0.3,
+    support_tversky_beta=0.7,
     dir_weight=1.0,
     dist_weight=1.0,
 )
@@ -29,6 +33,10 @@ evaluator = dict(
     type="SemanticBoundaryEvaluator",
     tau_dir=1e-3,
     support_weight=1.0,
+    support_cover_weight=1.0,
+    support_reg_weight=0.25,
+    support_tversky_alpha=0.3,
+    support_tversky_beta=0.7,
     dir_weight=1.0,
     dist_weight=1.0,
 )

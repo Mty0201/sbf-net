@@ -13,6 +13,12 @@ Current edge supervision uses:
 
 `edge_valid` is only a supervision validity domain. It is not a predicted mask target. `edge_dir` is the core geometric supervision, `edge_dist` is the explicit snapping step length, and `edge_support` no longer acts as a distance substitute. Legacy names `edge_strength` and `edge_mask` are kept only as dataset-side compatibility aliases.
 
+Current support semantics:
+
+- `edge_support` is treated as a coarse boundary-neighborhood proposal field
+- its main goal is to cover the boundary snapping region rather than reconstruct an exact outer contour
+- the valid-radius band itself is human-defined, so support coverage recall matters more than exact shape matching
+
 ## 1. Training Entry
 
 Current project-local training entry:
@@ -174,7 +180,7 @@ Train:
 - `loss_semantic`
 - `loss_edge`
 - `loss_support`
-- `loss_support_overlap`
+- `loss_support_cover`
 - `loss_support_reg`
 - `loss_dir`
 - `loss_dist`
@@ -209,14 +215,14 @@ Validation:
 - `val_loss_dir`
 - `val_loss_dist`
 - `val_loss_support_reg`
-- `val_loss_support_overlap`
+- `val_loss_support_cover`
 - `valid_ratio`
 - `support_positive_ratio`
 - `dir_valid_ratio`
 - `dist_gt_valid_mean`
 - `dir_cosine`
 - `dist_error`
-- `support_overlap`
+- `support_cover`
 - `support_error`
 
 Legacy aliases such as `val_loss_mask`, `val_loss_strength`, `mask_f1`, and `strength_error_masked` are retained only as compatibility keys.
