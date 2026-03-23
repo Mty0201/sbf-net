@@ -1,0 +1,21 @@
+# Loss Design
+
+- 总损失: `loss = loss_semantic + loss_edge`。
+- semantic loss: `CrossEntropy(ignore_index=-1) + LovaszLoss`。
+- edge loss: `loss_edge = loss_support + loss_dir + loss_dist`。
+- 当前 edge 权重: `support_weight=1.0`, `dir_weight=1.0`, `dist_weight=1.0`。
+- support 语义: 预测边界邻域覆盖，不预测精确外轮廓。
+- support 预测: `support_pred = sigmoid(support_logit)`。
+- support target: `support_gt * valid_gt`。
+- support cover loss: 对 `valid_gt` 区域做 Tversky loss。
+- Tversky 参数: `alpha=0.3`, `beta=0.7`。
+- support reg loss: 对 `support_pred` 与 `support_target` 做加权 `SmoothL1`。
+- support 合成: `loss_support = 1.0 * loss_support_cover + 0.25 * loss_support_reg`。
+- direction 语义: 预测单位方向，与 GT 方向做余弦一致性。
+- direction 有效域: `valid_gt > 0.5` 且 `dist_gt > tau_dir`。
+- direction 阈值: `tau_dir=1e-3`。
+- direction loss: `1 - cosine(dir_pred_unit, dir_gt_unit)`。
+- distance 语义: 预测点到最近 support 的物理距离。
+- distance loss: 对 `dist_pred / dist_scale` 与 `dist_gt / dist_scale` 做加权 `SmoothL1`。
+- distance 重标定: `dist_scale=0.08`。
+- distance 指标: `dist_error` 保持原始物理单位，不跟随缩放。

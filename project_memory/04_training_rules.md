@@ -1,0 +1,26 @@
+# Training Rules
+
+- 正式训练入口固定为 `scripts/train/train.py`。
+- 运行时固定使用 `project.trainer.SemanticBoundaryTrainer`。
+- 当前主配置固定为 `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py`。
+- trainer 不使用 Pointcept trainer 作为运行入口。
+- 训练前必须提供 `SBF_DATA_ROOT`。
+- 训练前必须通过 `--pointcept-root` 或 `POINTCEPT_ROOT` 提供 Pointcept 根目录。
+- trainer 约束: `total_epoch` 必须能被 `eval_epoch` 整除。
+- full 训练默认: `train_batch_size=2`, `val_batch_size=1`。
+- full 训练默认: `grad_accum_steps=6`, `mix_prob=0.8`, `enable_amp=True`。
+- full 训练默认: `total_epoch=3000`, `eval_epoch=100`, `save_freq=100`。
+- full 训练默认: `cpu_fallback_shell_backbone=False`。
+- best checkpoint 选择规则固定为 `val_mIoU` 最大。
+- checkpoint 固定输出 `model_last.pth` 和 `model_best.pth`。
+- full 输出目录固定为 `outputs/semantic_boundary_train/model/`。
+- trainer 使用方式: `python scripts/train/train.py --config configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py --pointcept-root <POINTCEPT_ROOT>`。
+- train 日志关键项: `loss_semantic` 表示语义分支总损失。
+- train 日志关键项: `loss_edge` 表示边界分支总损失。
+- train 日志关键项: `loss_support / loss_support_cover / loss_support_reg` 表示 support 覆盖损失与回归损失。
+- train 日志关键项: `loss_dir` 表示方向一致性损失。
+- train 日志关键项: `loss_dist` 表示缩放监督空间中的距离损失。
+- train 日志关键项: `valid_ratio / support_positive_ratio / dir_valid_ratio` 表示 GT 有效域覆盖情况。
+- train/val 日志关键项: `dist_gt_valid_mean` 表示有效点平均 GT 距离。
+- val 日志关键项: `val_mIoU / val_mAcc / val_allAcc` 表示语义指标。
+- val 日志关键项: `support_cover / support_error / dir_cosine / dist_error` 表示边界分支核心指标。
