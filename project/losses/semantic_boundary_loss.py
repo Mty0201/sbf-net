@@ -23,8 +23,8 @@ class SemanticBoundaryLoss(nn.Module):
         tau_dir: float = 1e-3,
         dist_scale: float = 0.08,
         support_weight: float = 1.0,
-        support_cover_weight: float = 1.0,
-        support_reg_weight: float = 0.25,
+        support_cover_weight: float = 0.25,
+        support_reg_weight: float = 1.0,
         support_tversky_alpha: float = 0.3,
         support_tversky_beta: float = 0.7,
         dir_weight: float = 1.0,
@@ -137,9 +137,11 @@ class SemanticBoundaryLoss(nn.Module):
             alpha=self.support_tversky_alpha,
             beta=self.support_tversky_beta,
         )
+        # Roll support back to a continuous-field-first objective while keeping the
+        # current coverage term as auxiliary regularization.
         loss_support = (
-            self.support_cover_weight * loss_support_cover
-            + self.support_reg_weight * loss_support_reg
+            self.support_reg_weight * loss_support_reg
+            + self.support_cover_weight * loss_support_cover
         )
 
         # Keep the model prediction in physical distance units and only normalize inside
