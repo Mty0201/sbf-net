@@ -12,7 +12,7 @@ env/
 build/
 dist/
 *.egg-info/
-docs/
+
 
 # Logs
 *.log

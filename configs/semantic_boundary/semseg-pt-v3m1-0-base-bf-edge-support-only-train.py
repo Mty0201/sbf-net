@@ -15,7 +15,7 @@ model = runpy.run_path(
 data = runpy.run_path(
     str(repo_root / "configs" / "bf" / "semseg-pt-v3m1-0-base-bf.py")
 )["data"]
-data["train_batch_size"] = 2
+data["train_batch_size"] = 4
 data["val_batch_size"] = 1
 
 loss = dict(
@@ -66,7 +66,7 @@ work_dir = str(repo_root / "outputs" / "semantic_boundary_support_only_train")
 
 runtime = dict(
     log_freq=1,
-    val_log_freq=4,
+    val_log_freq=1,
     save_freq=100,
     grad_accum_steps=6,
     mix_prob=0.8,
@@ -74,7 +74,7 @@ runtime = dict(
 )
 
 trainer = dict(
-    total_epoch=3000,
+    total_epoch=2000,
     eval_epoch=100,
     num_workers=8,
     max_train_batches=None,

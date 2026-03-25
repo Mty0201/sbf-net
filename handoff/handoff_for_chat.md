@@ -1,58 +1,91 @@
-# Project
+# 0. 项目一句话定义
 
-- 项目: `semantic-boundary-field`
-- 目标: 在 Pointcept PTv3 backbone 上训练带 semantic boundary field 监督的点云语义分割模型。
-- 当前主线: stage-1 双任务训练，联合学习 `semantic + direction + distance + support`。
-- Pointcept 角色: 只作为上游依赖，不是主项目。
+`semantic-boundary-field` 的目标是在 Pointcept PTv3 语义分割主干上加入 boundary field 监督，联合学习 semantic segmentation 和边界相关信号。  
+当前最终优化目标仍是 semantic segmentation 的 `val_mIoU`，edge 分支只服务于提升边界区域的语义判别。
 
-# Just Finished
+## 1. 当前阶段定位
 
-- 当前阶段已收束为 `Stage-1 Dual-Task Training Phase`。
-- 当前正式训练入口已固定为 `scripts/train/train.py`。
-- 当前正式训练配置已固定为 `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py`。
-- 当前系统快照与约束已固化，可直接讨论下一主题。
+- 当前阶段: `Stage-1 Dual-Task Training Phase`
+- 当前在做: 验证当前 `semantic + direction + distance + support` 主线是否能稳定提升 semantic 边界表现
+- 当前不做: 不改 Pointcept 主体，不扩展 test/export/visualization/distributed training
+- 当前唯一主问题: support 是否提供了足够强的 boundary prior 来改善 semantic 边界
 
-# Confirmed Decisions
+## 2. 阅读路径
 
-- 主模型固定为 shared backbone 双分支结构。
-- edge 分支固定预测 `direction + distance + support`。
-- `valid` 只作为 GT 有效监督域，不是预测目标。
-- support 固定为 coarse boundary proposal，不做精确边界重建。
-- direction 固定为 cosine 监督。
-- distance 固定为显式物理步长监督。
-- distance 训练固定使用 `dist_scale=0.08` 的线性重标定。
-- 训练入口固定使用项目内 trainer，不使用 Pointcept trainer。
+### Step 1：先读这些文档
 
-# Current System Snapshot
+- `project_memory/00_project_overview.md`
+- `project_memory/01_current_architecture.md`
+- `project_memory/02_loss_design.md`
+- `project_memory/03_data_pipeline.md`
+- `project_memory/04_training_rules.md`
+- `project_memory/05_active_stage.md`
+- `project_memory/06_task_queue.md`
+- `project_memory/07_pointcept_interface.md`
+- `project_memory/90_archived_decisions.md`
 
-- backbone: `PT-v3m1`
-- semantic head: 输出 `seg_logits`
-- edge head: 输出 `dir_pred(3) + dist_pred(1) + support_pred(1)`
-- 总损失: `loss = loss_semantic + loss_edge`
-- edge 损失: `loss_edge = loss_support + loss_dir + loss_dist`
+### Step 2：再读这些模块
+
+- `project/models/semantic_boundary_model.py`
+- `project/models/heads.py`
+- `project/losses/semantic_boundary_loss.py`
+- `project/evaluator/semantic_boundary_evaluator.py`
+- `project/datasets/bf.py`
+- `project/trainer/trainer.py`
+- `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py`
+- `data_pre/bf_edge_v3/scripts/convert_edge_vec_to_dir_dist.py`
+
+### Step 3：不要读这些内容
+
+- Pointcept 上游主体实现
+- 与当前阶段无关的上游通用代码
+- 已废弃的旧语义命名所对应的历史路径
+- 与当前主问题无关的仓库内容
+
+## 3. 当前系统结构
+
+- backbone: `PT-v3m1` shared backbone
+- semantic 分支: 输出 `seg_logits`，负责 8 类语义分割
+- edge 分支: 输出 `direction + distance + support`
+- trainer/loss 入口: 统一走 `edge_pred = [dir, dist, support]`
+
+## 4. 当前有效语义定义
+
+- support: 当前主边界监督，表示点处于边界邻域中的连续强度
+- vec: 预处理中的几何位移向量，定义为 `q - p`
+- `q`: 点在最近 support 上的投影点
+- `p`: 原始点坐标
+- direction: `normalize(vec)`，表示朝最近边界 support 的单位方向
+- distance: `||vec||`，表示到最近边界 support 的物理距离
+- valid: 只表示监督有效域，不是预测目标
+- 当前训练 GT 格式: `edge.npy = [dir_x, dir_y, dir_z, edge_dist, edge_support, edge_valid]`
+- 旧命名 `mask/strength` 只作为兼容名保留，不代表当前正式语义
+
+## 5. 当前 loss / evaluator 的作用划分
+
 - semantic loss: `CrossEntropy + Lovasz`
-- support loss: coverage-first + regression auxiliary
-- direction loss: cosine consistency
-- distance loss: `SmoothL1(dist_pred / dist_scale, dist_gt / dist_scale)`
-- 关键验收日志: `val_mIoU`, `support_cover`, `dir_cosine`, `dist_error`
+- support loss: 当前关注重点
+- support_reg: support 主项，负责连续 support 场回归
+- support_cover: support 弱辅助项，负责 valid 区域覆盖约束
+- direction loss: 当前保留的结构性几何约束
+- distance loss: 当前保留的物理步长约束
+- 当前训练路径没有单独的 `vec_loss`
+- vec 当前只作为中间几何表示，用来生成 direction 和 distance GT
+- 当前不是重新设计 loss，而是在验证 support 本身是否足够有效
 
-# Next Discussion Topic
+## 6. 当前主问题
 
-- 优先讨论 `distance` 是否真正学到。
-- 核心切口: `loss_dist`、`dist_error`、`dist_error_scaled` 是否同步。
-- 次级切口: support 的 coverage-first 语义是否足够转化为 semantic 收益。
+support 是否提供了足够强的 boundary prior 以改善 semantic 边界。
 
-# Core Questions
+## 7. 下一步任务
 
-- 当前 `distance` 是真实收敛，还是只在重标定空间里看起来收敛。
-- 当前 support 作为 coarse proposal，是否弱于需要的边界先验。
-- 当前双任务分支是否已经开始影响 semantic 主任务。
-- 当前 dual-task 与 semantic-only 的差距，主要来自 support、direction 还是 distance。
+在当前 `support_reg` 主导、`support_cover` 弱辅助的 support loss 下，回到 full dual-task 验证 semantic 是否恢复。
 
-# Hard Constraints
+## 8. Web Chat 使用说明
 
-- 不把 Pointcept 当作主项目讨论。
-- 不重写 Pointcept trainer 或 Pointcept 源码。
-- 不把 semantic-only 当作主任务替代。
-- 不扩展到 test pipeline、result export、visualization、distributed training。
-- 讨论必须基于当前已确认系统，不回到已废弃方案。
+- 你不能访问本地文件，只能读 GitHub 仓库
+- 请先按本 handoff 的 Step 1 -> Step 2 顺序阅读
+- 不要扩展到 Pointcept 主体或无关上游代码
+- 不要把旧兼容命名误当成当前正式语义
+- 分析必须围绕当前唯一主问题展开
+- 当前阶段重点是 support 的有效性，不是整个系统 redesign
