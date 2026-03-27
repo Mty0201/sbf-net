@@ -16,6 +16,8 @@
 - checkpoint 固定输出 `model_last.pth` 和 `model_best.pth`。
 - full 输出目录固定为 `outputs/semantic_boundary_train/model/`。
 - trainer 使用方式: `python scripts/train/train.py --config configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py --pointcept-root <POINTCEPT_ROOT>`。
+- `trainer.run()` 会记录 `smoke_mode`；该字段当前在 `SemanticBoundaryTrainer.__init__` 中由 `max_train_batches / max_val_batches` 是否存在推导初始化，避免启动期属性缺失。
+- 若完整训练链路受当前会话环境限制，可优先使用仓库内 `samples` 作为 `SBF_DATA_ROOT` 做最小 smoke / runtime 验证。
 - train 日志关键项: `loss_semantic` 表示语义分支总损失。
 - train 日志关键项: `loss_edge` 表示边界分支总损失。
 - train 日志关键项: `loss_support / loss_support_cover / loss_support_reg` 表示 support 覆盖损失与回归损失。

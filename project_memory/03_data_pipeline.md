@@ -7,6 +7,8 @@
 - 紧凑数据集导出: `build_edge_dataset_v3.py` 复制基础字段并导出旧版 `edge.npy = [vec_x, vec_y, vec_z, edge_support, edge_valid]`。
 - 正式训练 GT 转换: `convert_edge_vec_to_dir_dist.py` 把旧版 `edge.npy` 转为当前正式格式 `[dir_x, dir_y, dir_z, edge_dist, edge_support, edge_valid]`。
 - 当前训练读取: `BFDataset.get_data()` 直接加载样本目录中的正式 `edge.npy`；缺失 `edge.npy` 视为数据错误并显式失败。
+- 仓库内 `samples/` 当前已对齐到正式六列格式 `edge.npy = [dir_x, dir_y, dir_z, edge_dist, edge_support, edge_valid]`，可直接用于最小 smoke / runtime 验证。
+- 本轮已确认并修复: `samples` 曾残留旧五列 `edge.npy`，会在 `SemanticBoundaryLoss` / `SemanticBoundaryEvaluator` 读取 `edge[:, 5]` 时触发越界；当前 sample 资产已完成 vec -> dir+dist 转换。
 - train transform: `InjectIndexValidKeys(edge)` -> Pointcept augmentations -> `GridSample` -> `SphereCrop` -> `ToTensor` -> `Collect`。
 - val transform: `InjectIndexValidKeys(edge)` -> `GridSample(return_inverse=True)` -> `ToTensor` -> `Collect`。
 - GT/support: `edge_support` 由 `edge_dist` 在 `support_radius` 内生成截断 Gaussian。

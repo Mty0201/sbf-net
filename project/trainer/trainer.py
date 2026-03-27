@@ -38,6 +38,10 @@ class SemanticBoundaryTrainer:
         self.runtime_cfg = cfg.get("runtime", {})
         self.scheduler_cfg = cfg.get("scheduler")
         self.param_dicts = cfg.get("param_dicts")
+        self.smoke_mode = bool(
+            self.trainer_cfg.get("max_train_batches") is not None
+            or self.trainer_cfg.get("max_val_batches") is not None
+        )
         self.best_val_miou = float("-inf")
         self.start_epoch = 1
         self.total_epoch = int(

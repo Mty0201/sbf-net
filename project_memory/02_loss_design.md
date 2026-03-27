@@ -12,7 +12,7 @@
 - support reg loss: 对 `support_pred` 与 `support_target` 做加权 `SmoothL1`。
 - support 合成: `loss_support = 1.0 * loss_support_reg + 0.25 * loss_support_cover`。
 - 当前 support sweep 已收束。
-- 当前已确认结果: `semantic-only=73.8`, `support-only(reg=1, cover=0.2)=74.5`, `support-only(reg=1, cover=0.25)=74.4`, `support-only(reg=1, cover=0.3)=73.7`，其它 cover 参数均不优于 `73.8`。
+- 当前已确认结果: `semantic-only=73.8`, `support-only(reg=1, cover=0.2)=74.6`, `support-only(reg=1, cover=0.25)=74.4`, `support-only(reg=1, cover=0.3)=73.7`，其它 cover 参数均不优于 `73.8`。
 - 当前有效结论: support 分支确实能稳定提醒 semantic 主任务，但最优区域已经收束在 `reg=1, cover=0.2`；`reg=1, cover=0.25` 是次优且更稳定的参考点。
 - 当前对 support loss 的有效解释: `reg` 仍是主项，`cover` 只能做弱辅助；当前问题已不再是 support 参数设计。
 - direction 语义: 预测单位方向，与 GT 方向做余弦一致性。
@@ -27,4 +27,6 @@
 - distance 重标定: `dist_scale=0.08`。
 - distance 指标: `dist_error` 保持原始物理单位，不跟随缩放。
 - 当前判断: `dist` 项会在不到一个 epoch 的训练中快速下降到极小值（约 `0.0002`），当前不是主要矛盾。
+- 当前已落地的 `Stage-2` 独立实验 config 固定为: `support_reg_weight=1.0`, `support_cover_weight=0.2`, `dir_weight=1.0`, `dist_weight=0.0`。
+- 当前 `Stage-2` 的验收口径已更新为: `73.8` 只是安全线，只有 `val_mIoU > 74.6` 才能说明 architecture improvement 让 direction 成为净增益项。
 - 阶段结论: `2.5` 阶段已完成；当前问题已从 support 参数设计转向架构问题，`Stage-2` 的正式目标是从架构改进角度重新接入 direction 项。

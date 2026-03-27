@@ -22,7 +22,7 @@
 ## 2. 当前已确认结论
 
 - `semantic-only baseline = 73.8`
-- `support-only(reg=1, cover=0.2) = 74.5`，当前最佳
+- `support-only(reg=1, cover=0.2) = 74.6`，当前最佳
 - `support-only(reg=1, cover=0.25) = 74.4`，次优且稳定，可作参考
 - `support-only(reg=1, cover=0.3) = 73.7`，不优于基线；其它 cover 参数也均不优于 `73.8`
 - `support + dir + dist = 71`，在当前架构下失败
@@ -30,6 +30,9 @@
 - `dir` 项可学习；训练时 `dir_cosine` 可到约 `0.6`，不训练时在 `0` 附近
 - 但 `dir` 的学习会以 semantic 主任务性能为代价
 - 当前简单线性层堆叠的多头结构表达能力不足，本质上仍在争抢 backbone 特征空间
+- 仓库内已落地一条隔离的 `Stage-2` 最小实验路径：`SupportConditionedEdgeHead` + 独立 `stage2-support-dir` config；主线 train config 未被改写
+- 训练入口中的 `smoke_mode` 启动期属性缺失问题已修复；当前由 trainer 内部按 `max_train_batches / max_val_batches` 自动初始化
+- 仓库内 `samples` 已对齐到当前正式六列 `edge.npy` 格式，可优先用于最小 smoke / runtime 验证；本轮已修复旧五列 sample 资产导致的 `edge[:, 5]` 越界问题
 
 ## 2.5 当前最小技术摘要
 
@@ -41,7 +44,7 @@
 
 ## 3. 当前正式主线
 
-当前正式主线已经从 `2.5` 阶段的 support 参数探索切换为：准备正式进入 `Stage-2`，从架构改进角度重新接入 direction 项，并持续以 `semantic-only baseline 73.8` 作为核心门槛。
+当前正式主线已经从 `2.5` 阶段的 support 参数探索切换为：准备正式进入 `Stage-2`，从架构改进角度重新接入 direction 项，并以 `semantic-only baseline 73.8` 作为安全线、以超越 `support-only best 74.6` 作为当前主目标。
 
 第一性问题:
 
@@ -54,6 +57,7 @@
 - 当前 boundary 是 semantic boundary，因此 semantic `val_mIoU` 仍是主评判指标。
 - `Stage-2` 的核心不是继续扫 support 参数，而是围绕当前结构的表达能力与分支竞争问题做架构改进。
 - 当前最佳进入 `Stage-2` 的实验参考点是 `support-only(reg=1, cover=0.2)`；`0.25` 可作稳定次优参考。
+- 当前 `Stage-2` 的验收口径是：`<73.8` 失败；`73.8 ~ 74.6` 仅说明 direction 不再明显伤害 semantic；只有 `val_mIoU > 74.6` 才能说明 architecture improvement 让 direction 成为净增益项。
 - 不修改 Pointcept 主体，不更改当前训练入口、主 config、主模型职责划分。
 
 ## 4. 建议下一窗口先读

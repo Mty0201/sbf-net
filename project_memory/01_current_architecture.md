@@ -5,6 +5,9 @@
 - semantic 分支: 输出 `seg_logits`，负责 8 类语义分割。
 - edge 分支: 输出 `dir_pred(3) + dist_pred(1) + support_pred(1)`。
 - trainer/loss 统一入口: `edge_pred = [dir, dist, support]`。
+- 当前仓库已落地一条隔离的 `Stage-2` 实验路径: `SupportConditionedEdgeHead` 通过 `edge_head_cfg` 显式选择；默认路径仍是旧 `EdgeHead`。
+- `SupportConditionedEdgeHead` 结构: `backbone feat -> support_mlp -> support_feat -> support_head`，`concat(backbone feat, support_feat) -> direction private tower -> dir_head`，`support_feat -> dist_head`。
+- 即使切到 `SupportConditionedEdgeHead`，模型输出接口仍保持 `seg_logits / support_pred / dist_pred / dir_pred / edge_pred`，且 `edge_pred = [dir, dist, support]` 不变。
 - semantic: 主任务输出，负责类别预测。
 - support: 粗边界邻域场，表示点处于有效边界吸附带内的强度。
 - direction: 单位吸附方向，表示点指向最近 support 的方向。
