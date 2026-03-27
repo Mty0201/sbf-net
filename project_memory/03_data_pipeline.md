@@ -6,7 +6,7 @@
 - pointwise 监督生成: `build_pointwise_edge_supervision.py` 基于 `scene + supports.npz` 生成逐点 `edge_vec / edge_dist / edge_dir / edge_support / edge_valid`。
 - 紧凑数据集导出: `build_edge_dataset_v3.py` 复制基础字段并导出旧版 `edge.npy = [vec_x, vec_y, vec_z, edge_support, edge_valid]`。
 - 正式训练 GT 转换: `convert_edge_vec_to_dir_dist.py` 把旧版 `edge.npy` 转为当前正式格式 `[dir_x, dir_y, dir_z, edge_dist, edge_support, edge_valid]`。
-- 当前训练读取: `BFDataset.get_data()` 直接加载样本目录中的正式 `edge.npy`。
+- 当前训练读取: `BFDataset.get_data()` 直接加载样本目录中的正式 `edge.npy`；缺失 `edge.npy` 视为数据错误并显式失败。
 - train transform: `InjectIndexValidKeys(edge)` -> Pointcept augmentations -> `GridSample` -> `SphereCrop` -> `ToTensor` -> `Collect`。
 - val transform: `InjectIndexValidKeys(edge)` -> `GridSample(return_inverse=True)` -> `ToTensor` -> `Collect`。
 - GT/support: `edge_support` 由 `edge_dist` 在 `support_radius` 内生成截断 Gaussian。

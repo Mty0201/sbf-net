@@ -10,7 +10,6 @@ from functools import partial
 
 import numpy as np
 import torch
-import torch.nn as nn
 from torch.cuda.amp import GradScaler
 from torch.utils.data import DataLoader
 
@@ -25,18 +24,6 @@ from project.losses import build_loss
 from project.utils import AverageMeter, create_logger
 
 
-class IdentityPointBackbone(nn.Module):
-    """CPU-safe backbone fallback for smoke tests when CUDA is unavailable."""
-
-    def __init__(self, in_channels: int, out_channels: int):
-        super().__init__()
-        self.proj = nn.Linear(in_channels, out_channels)
-
-    def forward(self, point):
-        point.feat = self.proj(point.feat)
-        return point
-
-
 class SemanticBoundaryTrainer:
     def __init__(self, cfg: dict):
         self.cfg = cfg
@@ -44,7 +31,6 @@ class SemanticBoundaryTrainer:
         self.trainer_cfg = cfg["trainer"]
         self.data_cfg = cfg["data"]
         self.optimizer_cfg = cfg["optimizer"]
-        self.smoke_mode = "actual_backbone_cuda"
         self.resume = bool(cfg.get("resume", False))
         self.weight = cfg.get("weight")
         self.seed = cfg.get("seed")
@@ -120,8 +106,6 @@ class SemanticBoundaryTrainer:
             self.logger.info(f"LR groups: group_{idx} lr: {group['lr']}")
         self.scheduler = self._build_scheduler()
         self.scaler = GradScaler(enabled=self.use_amp)
-        self._cpu_backbone_ready = False
-        self._prepare_cpu_backbone_for_runtime()
         self.logger.info("=> Loading checkpoint / weight if needed ...")
         self._load_checkpoint_or_weight()
 
@@ -231,38 +215,6 @@ class SemanticBoundaryTrainer:
                 moved[key] = value
         return moved
 
-    def _ensure_cpu_backbone(self, batch: dict):
-        if torch.cuda.is_available():
-            return
-        if not self.trainer_cfg.get("cpu_fallback_shell_backbone", False):
-            return
-        if self._cpu_backbone_ready:
-            return
-
-        self.model.backbone = IdentityPointBackbone(
-            in_channels=batch["feat"].shape[1],
-            out_channels=self.model.semantic_head.proj.in_features,
-        ).to(self.device)
-        self._cpu_backbone_ready = True
-        self.smoke_mode = "shell_only_no_cuda"
-        self.logger.info("Using CPU shell backbone fallback for this run.")
-
-    def _prepare_cpu_backbone_for_runtime(self):
-        if torch.cuda.is_available():
-            return
-        if not self.trainer_cfg.get("cpu_fallback_shell_backbone", False):
-            return
-        if self._cpu_backbone_ready:
-            return
-        in_channels = int(self.cfg["model"]["backbone"]["in_channels"])
-        self.model.backbone = IdentityPointBackbone(
-            in_channels=in_channels,
-            out_channels=self.model.semantic_head.proj.in_features,
-        ).to(self.device)
-        self._cpu_backbone_ready = True
-        self.smoke_mode = "shell_only_no_cuda"
-        self.logger.info("Prepared CPU shell backbone before checkpoint loading.")
-
     @staticmethod
     def _forward_input_from_batch(batch: dict) -> dict:
         return {
@@ -299,8 +251,6 @@ class SemanticBoundaryTrainer:
                 "dir_cosine",
                 "dist_error",
             ]
-        if "loss_mask" in loss_dict:
-            return ["loss", "loss_semantic", "loss_mask", "loss_strength"]
         return ["loss", "loss_semantic"]
 
     @staticmethod
@@ -409,7 +359,6 @@ class SemanticBoundaryTrainer:
                 data_time = time.perf_counter() - iter_start
                 data_time_meter.update(data_time)
                 batch = self._move_batch_to_device(batch)
-                self._ensure_cpu_backbone(batch)
 
                 with self._autocast_context():
                     output = self.model(self._forward_input_from_batch(batch))
@@ -507,7 +456,6 @@ class SemanticBoundaryTrainer:
                 if max_batches is not None and batch_idx >= max_batches:
                     break
                 batch = self._move_batch_to_device(batch)
-                self._ensure_cpu_backbone(batch)
                 output = self.model(self._forward_input_from_batch(batch))
                 metric_dict = self.evaluator(**self._build_eval_inputs(output, batch))
                 detached = self._detach_scalar_dict(metric_dict)

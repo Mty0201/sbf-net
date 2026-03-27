@@ -4,7 +4,9 @@ from .semantic_only_loss import SemanticOnlyLoss
 
 def build_loss(cfg: dict | None):
     if cfg is None:
-        return SemanticBoundaryLoss()
+        raise ValueError(
+            "loss config is required; implicit SemanticBoundaryLoss fallback has been removed."
+        )
     loss_type = cfg.get("type", "SemanticBoundaryLoss")
     if loss_type == "SemanticBoundaryLoss":
         kwargs = {key: value for key, value in cfg.items() if key != "type"}

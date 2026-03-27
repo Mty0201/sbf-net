@@ -7,6 +7,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 
 
 def bootstrap_paths() -> Path:
@@ -24,19 +25,26 @@ def describe_losses(tag: str, loss_dict: dict[str, torch.Tensor]):
         print(f"  {key}: {scalar:.6f}, is_nan={is_nan}")
 
 
-def make_pseudo_case(num_points: int, num_classes: int, all_zero_mask: bool = False):
+def make_pseudo_case(num_points: int, num_classes: int, all_zero_valid: bool = False):
     torch.manual_seed(0)
     seg_logits = torch.randn(num_points, num_classes, dtype=torch.float32)
     edge_pred = torch.randn(num_points, 5, dtype=torch.float32)
     segment = torch.randint(0, num_classes, (num_points,), dtype=torch.long)
-    edge = torch.randn(num_points, 5, dtype=torch.float32)
+    edge = torch.zeros(num_points, 6, dtype=torch.float32)
+    edge[:, 0:3] = F.normalize(
+        torch.randn(num_points, 3, dtype=torch.float32), dim=1
+    )
     edge[:, 3] = torch.rand(num_points, dtype=torch.float32)
 
-    if all_zero_mask:
+    if all_zero_valid:
         edge[:, 4] = 0.0
+        edge[:, 5] = 0.0
     else:
+        valid_count = max(1, num_points // 3)
         edge[:, 4] = 0.0
-        edge[: max(1, num_points // 3), 4] = 1.0
+        edge[:, 5] = 0.0
+        edge[:valid_count, 4] = 1.0
+        edge[:valid_count, 5] = 1.0
     return seg_logits, edge_pred, segment, edge
 
 
@@ -64,18 +72,18 @@ def main():
     num_classes = 8
 
     seg_logits, edge_pred, segment, edge = make_pseudo_case(
-        num_points=16, num_classes=num_classes, all_zero_mask=False
+        num_points=16, num_classes=num_classes, all_zero_valid=False
     )
     describe_losses(
-        "pseudo_mixed_mask",
+        "pseudo_mixed_valid",
         loss_fn(seg_logits, edge_pred, segment, edge),
     )
 
     seg_logits, edge_pred, segment, edge = make_pseudo_case(
-        num_points=16, num_classes=num_classes, all_zero_mask=True
+        num_points=16, num_classes=num_classes, all_zero_valid=True
     )
     describe_losses(
-        "pseudo_all_zero_mask",
+        "pseudo_all_zero_valid",
         loss_fn(seg_logits, edge_pred, segment, edge),
     )
 

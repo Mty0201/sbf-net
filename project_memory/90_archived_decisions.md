@@ -1,6 +1,6 @@
 ﻿# Archived Decisions
 
-- 历史 edge loss 主线并非无效尝试: 早期设计曾带来约 `+1` mIoU 收益；其中 `reg` 思路与当前 support_reg 本质一致，`overlap` 本质上就是当前的覆盖约束；当时尚未拆成 `direction / distance`，而是直接预测连续位移向量场 `vec`。该历史结论只作为当前阶段判断的背景，不改变当前 Stage-3 主问题。
+- 历史 edge loss 主线并非无效尝试: 早期设计曾带来约 `+1` mIoU 收益；其中 `reg` 思路与当前 support_reg 本质一致，`overlap` 本质上就是当前的覆盖约束；当时尚未拆成 `direction / distance`，而是直接预测连续位移向量场 `vec`。该历史结论只作为当前阶段判断的背景，不改变当前“准备进入 `Stage-2`、以架构改进重新接入 direction”为核心目标。
 - 旧版 `edge.npy` 五列 `[vec_x, vec_y, vec_z, edge_support, edge_valid]`: 已废弃，因为正式训练改用显式 `direction + distance + support + valid` 六列格式。
 - 把 `edge_valid` 当作预测 mask 目标: 已废弃，因为 `edge_valid` 现在只表示监督有效域。
 - 用 `edge_support` 代替距离监督: 已废弃，因为 `edge_dist` 已单独建模并单独优化。

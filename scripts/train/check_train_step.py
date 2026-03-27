@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
+import os
 import runpy
 import sys
 from pathlib import Path
 
 import numpy as np
 import torch
-import torch.nn as nn
 
 
 GRID_SIZE = 0.04
@@ -18,7 +18,12 @@ MAX_POINTS = 8192
 def bootstrap_paths() -> Path:
     script_path = Path(__file__).resolve()
     repo_root = script_path.parents[2]
-    pointcept_root = repo_root.parent
+    pointcept_root_env = os.environ.get("POINTCEPT_ROOT")
+    if pointcept_root_env is None:
+        raise RuntimeError(
+            "POINTCEPT_ROOT is required; implicit parent-directory fallback has been removed."
+        )
+    pointcept_root = Path(pointcept_root_env).resolve()
     sys.path.insert(0, str(repo_root))
     sys.path.insert(0, str(pointcept_root))
     return repo_root
@@ -91,24 +96,6 @@ def main():
     batch = load_real_sample(sample_dir)
     batch = move_batch_to_device(batch, device)
 
-    smoke_mode = "actual_backbone_cuda"
-    if not torch.cuda.is_available():
-        smoke_mode = "shell_only_no_cuda"
-
-        class IdentityPointBackbone(nn.Module):
-            def __init__(self, in_channels, out_channels):
-                super().__init__()
-                self.proj = nn.Linear(in_channels, out_channels)
-
-            def forward(self, point):
-                point.feat = self.proj(point.feat)
-                return point
-
-        model.backbone = IdentityPointBackbone(
-            in_channels=batch["feat"].shape[1],
-            out_channels=model.semantic_head.proj.in_features,
-        ).to(device)
-
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
     forward_input = {
@@ -136,13 +123,22 @@ def main():
 
     print("env: ptv3")
     print(f"device: {device}")
-    print(f"smoke_mode: {smoke_mode}")
+    print("path_mode: actual_backbone_only")
     print(f"sample_path: {batch['sample_dir']}")
     print(f"original_N: {batch['original_n']}")
     print(f"used_N: {batch['used_n']}")
     print(f"seg_logits_shape: {tuple(output['seg_logits'].shape)}")
     print(f"edge_pred_shape: {tuple(output['edge_pred'].shape)}")
-    for key in ["loss", "loss_semantic", "loss_mask", "loss_vec", "loss_strength"]:
+    for key in [
+        "loss",
+        "loss_semantic",
+        "loss_edge",
+        "loss_support",
+        "loss_support_reg",
+        "loss_support_cover",
+        "loss_dir",
+        "loss_dist",
+    ]:
         print(f"{key}: {float(loss_dict[key].detach().cpu()):.6f}")
     print(f"backward_ok: {backward_ok}")
     print(f"optimizer_step_ok: {step_ok}")

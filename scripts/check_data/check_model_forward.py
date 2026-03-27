@@ -2,18 +2,23 @@
 
 from __future__ import annotations
 
+import os
 import runpy
 import sys
 from pathlib import Path
 
 import torch
-import torch.nn as nn
 
 
 def bootstrap_paths() -> Path:
     script_path = Path(__file__).resolve()
     repo_root = script_path.parents[2]
-    pointcept_root = repo_root.parent
+    pointcept_root_env = os.environ.get("POINTCEPT_ROOT")
+    if pointcept_root_env is None:
+        raise RuntimeError(
+            "POINTCEPT_ROOT is required; implicit parent-directory fallback has been removed."
+        )
+    pointcept_root = Path(pointcept_root_env).resolve()
     sys.path.insert(0, str(repo_root))
     sys.path.insert(0, str(pointcept_root))
     return repo_root
@@ -50,28 +55,10 @@ def main():
         offset=torch.tensor([num_points], dtype=torch.int64, device=device),
     )
 
-    smoke_mode = "actual_backbone_cuda"
-    if not torch.cuda.is_available():
-        smoke_mode = "shell_only_no_cuda"
-
-        class IdentityPointBackbone(nn.Module):
-            def __init__(self, in_channels, out_channels):
-                super().__init__()
-                self.proj = nn.Linear(in_channels, out_channels)
-
-            def forward(self, point):
-                point.feat = self.proj(point.feat)
-                return point
-
-        model.backbone = IdentityPointBackbone(
-            in_channels=pseudo_input["feat"].shape[1],
-            out_channels=model.semantic_head.proj.in_features,
-        ).to(device)
-
     with torch.no_grad():
         output = model(pseudo_input)
 
-    print(f"smoke_mode: {smoke_mode}")
+    print("path_mode: actual_backbone_only")
     print("output_keys:", sorted(output.keys()))
     for key in sorted(output.keys()):
         value = output[key]

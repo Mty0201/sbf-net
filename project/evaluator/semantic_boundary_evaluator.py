@@ -204,7 +204,6 @@ class SemanticBoundaryEvaluator:
             val_loss_dist=loss_dict["loss_dist"],
             val_loss_support_reg=loss_dict["loss_support_reg"],
             val_loss_support_cover=loss_dict["loss_support_cover"],
-            val_loss_support_overlap=loss_dict["loss_support_cover"],
             valid_ratio=loss_dict["valid_ratio"],
             support_positive_ratio=loss_dict["support_positive_ratio"],
             dir_valid_ratio=loss_dict["dir_valid_ratio"],
@@ -214,12 +213,4 @@ class SemanticBoundaryEvaluator:
             dir_cosine=edge_metrics["dir_cosine"],
             dist_error=edge_metrics["dist_error"],
             dist_error_scaled=edge_metrics["dist_error_scaled"],
-            # Legacy metric names are preserved only for compatibility readers.
-            val_loss_mask=loss_dict["loss_support"],
-            val_loss_strength=loss_dict["loss_support_reg"],
-            mask_precision=edge_metrics["support_cover"],
-            mask_recall=edge_metrics["support_cover"],
-            mask_f1=edge_metrics["support_cover"],
-            support_overlap=edge_metrics["support_cover"],
-            strength_error_masked=edge_metrics["support_error"],
         )

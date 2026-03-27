@@ -17,8 +17,11 @@ class BFDataset(DefaultDataset):
         data_dict = super().get_data(idx)
         data_path = Path(self.data_list[idx % len(self.data_list)])
         edge_path = data_path / "edge.npy"
-        if edge_path.is_file():
-            data_dict["edge"] = np.load(edge_path).astype(np.float32)
+        if not edge_path.is_file():
+            raise FileNotFoundError(
+                f"Missing required edge supervision file: {edge_path}"
+            )
+        data_dict["edge"] = np.load(edge_path).astype(np.float32)
         return data_dict
 
     def get_data_name(self, idx):

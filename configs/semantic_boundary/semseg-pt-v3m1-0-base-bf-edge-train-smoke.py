@@ -84,5 +84,4 @@ trainer = dict(
     num_workers=0,
     max_train_batches=1,
     max_val_batches=1,
-    cpu_fallback_shell_backbone=True,
 )

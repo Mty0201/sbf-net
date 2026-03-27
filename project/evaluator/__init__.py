@@ -4,7 +4,9 @@ from .semantic_evaluator import SemanticEvaluator
 
 def build_evaluator(cfg: dict | None):
     if cfg is None:
-        return SemanticBoundaryEvaluator()
+        raise ValueError(
+            "evaluator config is required; implicit SemanticBoundaryEvaluator fallback has been removed."
+        )
     evaluator_type = cfg.get("type", "SemanticBoundaryEvaluator")
     if evaluator_type == "SemanticBoundaryEvaluator":
         kwargs = {key: value for key, value in cfg.items() if key != "type"}

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import runpy
 import sys
 from pathlib import Path
@@ -10,7 +11,12 @@ from pathlib import Path
 def bootstrap_paths() -> Path:
     script_path = Path(__file__).resolve()
     repo_root = script_path.parents[2]
-    pointcept_root = repo_root.parent
+    pointcept_root_env = os.environ.get("POINTCEPT_ROOT")
+    if pointcept_root_env is None:
+        raise RuntimeError(
+            "POINTCEPT_ROOT is required; implicit parent-directory fallback has been removed."
+        )
+    pointcept_root = Path(pointcept_root_env).resolve()
     sys.path.insert(0, str(repo_root))
     sys.path.insert(0, str(pointcept_root))
     return repo_root

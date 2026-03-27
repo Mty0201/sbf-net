@@ -9,7 +9,6 @@ DEFAULT_INDEX_VALID_KEYS = [
     "color",
     "normal",
     "superpoint",
-    "strength",
     "segment",
     "instance",
 ]

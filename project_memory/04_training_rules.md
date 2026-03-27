@@ -10,7 +10,8 @@
 - full 训练默认: `train_batch_size=2`, `val_batch_size=1`。
 - full 训练默认: `grad_accum_steps=6`, `mix_prob=0.8`, `enable_amp=True`。
 - full 训练默认: `total_epoch=3000`, `eval_epoch=100`, `save_freq=100`。
-- full 训练默认: `cpu_fallback_shell_backbone=False`。
+- 训练入口不再提供 `POINTCEPT_ROOT` 或 `SBF_DATA_ROOT` 的隐式默认回退路径；缺失时应显式失败。
+- 运行时不再提供 CPU shell backbone fallback；宿主/设备问题应直接暴露。
 - best checkpoint 选择规则固定为 `val_mIoU` 最大。
 - checkpoint 固定输出 `model_last.pth` 和 `model_best.pth`。
 - full 输出目录固定为 `outputs/semantic_boundary_train/model/`。
@@ -20,6 +21,7 @@
 - train 日志关键项: `loss_support / loss_support_cover / loss_support_reg` 表示 support 覆盖损失与回归损失。
 - train 日志关键项: `loss_dir` 表示方向一致性损失。
 - train 日志关键项: `loss_dist` 表示缩放监督空间中的距离损失。
+- train/val 不再保留 `loss_mask / loss_strength / val_loss_mask / mask_f1` 等历史兼容日志键。
 - train 日志关键项: `valid_ratio / support_positive_ratio / dir_valid_ratio` 表示 GT 有效域覆盖情况。
 - train/val 日志关键项: `dist_gt_valid_mean` 表示有效点平均 GT 距离。
 - val 日志关键项: `val_mIoU / val_mAcc / val_allAcc` 表示语义指标。

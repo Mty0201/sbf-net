@@ -12,8 +12,10 @@
 - valid: 只存在于 GT，表示该点是否进入有效监督域。
 - 关系: semantic 负责类别，support 定义边界邻域，direction + distance 共同定义几何吸附场，valid 只控制监督范围。
 - 当前结构观察: semantic 与 edge 分支仍强共享 backbone 特征，edge 分支本身较薄，对 backbone 特征的直接依赖较强。
-- 当前工作假设: 现有结构下 semantic 与 boundary 特征没有充分分化，因此 direction supervision 的优化压力会破坏 semantic 主任务表征。
-- 注意: 上述内容是进入 `Stage-3` 后的当前架构判断，用于指导最小架构设计，不代表已经被完全证明。
+- 当前结构结论: 当前简单线性层堆叠的多头结构表达能力不足，本质上仍在争抢 shared backbone 输出特征空间。
+- 当前已确认结果: support only 仍可带来收益，但一旦在现有结构中真实接入 direction supervision，semantic `val_mIoU` 会下降到约 `71`。
+- 当前阶段判断: `dir` 的主要问题不再是“是否可学习”，而是“如何在不伤害 semantic 主任务的前提下完成接入”。
+- `Stage-2` 的核心即从架构改进角度解决上述特征竞争问题，而不是继续围绕 support 参数本身做探索。
 - 数据模块: `BFDataset` 负责加载样本目录中的 `edge.npy`。
 - 变换模块: `InjectIndexValidKeys` 负责把 `edge` 纳入 Pointcept 的索引同步链。
 - loss 模块: `SemanticBoundaryLoss` 负责 semantic + edge 联合优化。

@@ -1,6 +1,6 @@
 # Task Queue
 
-1. 围绕 `shared backbone + thin edge head` 的当前结构，明确 direction 接入后伤害 semantic 的最可能耦合位置与结构性原因。
-2. 提出最小侵入式架构改进方向，只允许围绕分支解耦、特征缓冲或边界分支能力补强，不重写整体系统。
-3. 为下一轮设计/实现先固定首个成功门槛: 接入 direction supervision 后，semantic `val_mIoU` 不低于 `semantic-only` 基线 `73.8`。
-4. 仅在 architecture 尝试之后仍有证据指向 loss 主矛盾时，才重新打开 support / dist 相关 sweep；当前不继续 2.5 阶段式扫参。
+1. 把 `2.5` 阶段结论视为已完成事实，不再继续做 support 参数 sweep；当前主参考点固定为 `support-only(reg=1, cover=0.2)=74.5`，`reg=1, cover=0.25)=74.4` 作为次优稳定参考。
+2. 正式准备进入 `Stage-2 architecture improvement phase`，目标是在不破坏 semantic 主任务的前提下重新接入 direction 项。
+3. `Stage-2` 的首要工作是围绕当前 shared backbone + thin multi-head 结构的特征竞争问题提出架构改进方案，而不是继续调 support 参数。
+4. 当前不做: 不把当前问题重新定义成 loss sweep，不重开 `dist` 主线，不顺手扩展到 Pointcept 改写、test/export/visualization。

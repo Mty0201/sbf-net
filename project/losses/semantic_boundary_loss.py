@@ -195,8 +195,4 @@ class SemanticBoundaryLoss(nn.Module):
             dist_error=dist_error_valid,
             dist_error_scaled=dist_error_scaled_valid,
             support_cover=1.0 - loss_support_cover,
-            # Legacy aliases kept only because some unchanged utilities may still read them.
-            loss_support_overlap=loss_support_cover,
-            loss_mask=loss_support,
-            loss_strength=loss_support_reg,
         )

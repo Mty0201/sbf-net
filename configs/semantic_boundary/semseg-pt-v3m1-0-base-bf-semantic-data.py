@@ -5,7 +5,11 @@ from pathlib import Path
 
 dataset_type = "BFDataset"
 repo_root = Path(__file__).resolve().parents[2]
-data_root = os.environ.get("SBF_DATA_ROOT", str(repo_root / "samples"))
+data_root = os.environ.get("SBF_DATA_ROOT")
+if data_root is None:
+    raise RuntimeError(
+        "SBF_DATA_ROOT is required; implicit samples fallback has been removed."
+    )
 
 data = dict(
     num_classes=8,
