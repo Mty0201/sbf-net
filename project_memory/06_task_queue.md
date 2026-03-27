@@ -1,7 +1,6 @@
 # Task Queue
 
-1. 运行正式双任务配置，确认真实 BF 数据上首个 train/val 周期完整结束。
-2. 校准 `dist_scale=0.08`，对照 `loss_dist`、`dist_error`、`dist_error_scaled` 是否同步稳定。
-3. 检查 support 分支是否满足覆盖优先目标，重点看 `support_cover` 与 `support_error`。
-4. 对比 dual-task 与 semantic-only 基线的 `val_mIoU` 和 per-class IoU，确认边界分支未破坏语义主线。
-5. 补项目内 test pipeline 与 result export，保持不改 Pointcept 主框架。
+1. 围绕 `shared backbone + thin edge head` 的当前结构，明确 direction 接入后伤害 semantic 的最可能耦合位置与结构性原因。
+2. 提出最小侵入式架构改进方向，只允许围绕分支解耦、特征缓冲或边界分支能力补强，不重写整体系统。
+3. 为下一轮设计/实现先固定首个成功门槛: 接入 direction supervision 后，semantic `val_mIoU` 不低于 `semantic-only` 基线 `73.8`。
+4. 仅在 architecture 尝试之后仍有证据指向 loss 主矛盾时，才重新打开 support / dist 相关 sweep；当前不继续 2.5 阶段式扫参。

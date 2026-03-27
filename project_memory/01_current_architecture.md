@@ -11,6 +11,9 @@
 - distance: 吸附步长，表示点到最近 support 的物理距离。
 - valid: 只存在于 GT，表示该点是否进入有效监督域。
 - 关系: semantic 负责类别，support 定义边界邻域，direction + distance 共同定义几何吸附场，valid 只控制监督范围。
+- 当前结构观察: semantic 与 edge 分支仍强共享 backbone 特征，edge 分支本身较薄，对 backbone 特征的直接依赖较强。
+- 当前工作假设: 现有结构下 semantic 与 boundary 特征没有充分分化，因此 direction supervision 的优化压力会破坏 semantic 主任务表征。
+- 注意: 上述内容是进入 `Stage-3` 后的当前架构判断，用于指导最小架构设计，不代表已经被完全证明。
 - 数据模块: `BFDataset` 负责加载样本目录中的 `edge.npy`。
 - 变换模块: `InjectIndexValidKeys` 负责把 `edge` 纳入 Pointcept 的索引同步链。
 - loss 模块: `SemanticBoundaryLoss` 负责 semantic + edge 联合优化。

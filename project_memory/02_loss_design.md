@@ -10,12 +10,20 @@
 - support cover loss: 对 `valid_gt` 区域做 Tversky loss。
 - Tversky 参数: `alpha=0.3`, `beta=0.7`。
 - support reg loss: 对 `support_pred` 与 `support_target` 做加权 `SmoothL1`。
-- support 合成: `loss_support = 1.0 * loss_support_cover + 0.25 * loss_support_reg`。
+- support 合成: `loss_support = 1.0 * loss_support_reg + 0.25 * loss_support_cover`。
+- 当前 support sweep 已基本收束到 `1reg + 0.25cover` 附近。
+- 当前已确认结果: `semantic-only=73.8`, `1reg+0.25cover=74.3`, `0.25reg+1cover=71`, `1reg+0.5cover=73`, `1reg+0cover=71`, `1reg+0.35cover=73`, `1reg+0.15cover=73`。
+- 当前有效结论: support 分支确实能带来收益，但 `cover` 只能做弱辅助，不能去掉，也不能过强。
+- 当前对 support loss 的有效解释: `reg` 为主，`cover` 为弱辅助。
 - direction 语义: 预测单位方向，与 GT 方向做余弦一致性。
 - direction 有效域: `valid_gt > 0.5` 且 `dist_gt > tau_dir`。
 - direction 阈值: `tau_dir=1e-3`。
 - direction loss: `1 - cosine(dir_pred_unit, dir_gt_unit)`。
+- 当前已确认: direction 是可以学习的；不训练时 `dir_cosine` 约在 0 附近，训练后可提升到约 0.6。
+- 当前已确认: 在现有 shared-backbone + thin-head 架构下，一旦真实接入 direction supervision，semantic `val_mIoU` 会显著下降到约 71。
 - distance 语义: 预测点到最近 support 的物理距离。
 - distance loss: 对 `dist_pred / dist_scale` 与 `dist_gt / dist_scale` 做加权 `SmoothL1`。
 - distance 重标定: `dist_scale=0.08`。
 - distance 指标: `dist_error` 保持原始物理单位，不跟随缩放。
+- 当前判断: `dist` 以及历史 `vec` 相关项的训练损失会很快下降到较小量级，但目前没有证据表明它是当前阶段主矛盾。
+- 阶段结论: loss 设计阶段已收束，当前主矛盾已从 loss 设计转向 architecture capacity / branch decoupling。
