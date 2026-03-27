@@ -1,5 +1,7 @@
 """Shared-backbone semantic segmentation + boundary field model."""
 
+from __future__ import annotations
+
 import torch
 import torch.nn as nn
 
@@ -7,7 +9,13 @@ import pointcept.models  # noqa: F401  # ensure Pointcept model registry is popu
 from pointcept.models.builder import MODELS, build_model
 from pointcept.models.utils.structure import Point
 
-from .heads import EdgeHead, SemanticHead
+from .heads import EdgeHead, SemanticHead, SupportConditionedEdgeHead
+
+
+EDGE_HEAD_TYPES = {
+    "EdgeHead": EdgeHead,
+    "SupportConditionedEdgeHead": SupportConditionedEdgeHead,
+}
 
 
 @MODELS.register_module()
@@ -19,12 +27,22 @@ class SharedBackboneSemanticBoundaryModel(nn.Module):
         num_classes,
         backbone_out_channels,
         edge_out_channels=4,
+        edge_head_cfg: dict | None = None,
         backbone=None,
     ):
         super().__init__()
         self.backbone = build_model(backbone)
         self.semantic_head = SemanticHead(backbone_out_channels, num_classes)
-        self.edge_head = EdgeHead(backbone_out_channels, edge_out_channels)
+        edge_head_cfg = dict(edge_head_cfg or {})
+        edge_head_type = edge_head_cfg.pop("type", "EdgeHead")
+        if edge_head_type not in EDGE_HEAD_TYPES:
+            raise ValueError(f"Unsupported edge head type: {edge_head_type}")
+        edge_head_cls = EDGE_HEAD_TYPES[edge_head_type]
+        self.edge_head = edge_head_cls(
+            backbone_out_channels,
+            edge_out_channels,
+            **edge_head_cfg,
+        )
 
     @staticmethod
     def _extract_feat(backbone_output):
