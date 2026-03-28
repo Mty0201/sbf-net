@@ -18,6 +18,9 @@
 - trainer 使用方式: `python scripts/train/train.py --config configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py --pointcept-root <POINTCEPT_ROOT>`。
 - `trainer.run()` 会记录 `smoke_mode`；该字段当前在 `SemanticBoundaryTrainer.__init__` 中由 `max_train_batches / max_val_batches` 是否存在推导初始化，避免启动期属性缺失。
 - 若完整训练链路受当前会话环境限制，可优先使用仓库内 `samples` 作为 `SBF_DATA_ROOT` 做最小 smoke / runtime 验证。
+- `Stage-2` 基于 `samples` 的最小启动验证应使用 `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-stage2-support-dir-train-smoke.py`；不要直接用 full stage-2 train config 做 sample smoke。
+- `Stage-2 v2` 基于 `samples` 的最小启动验证应使用 `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-stage2-v2-train-smoke.py`。
+- 当前会话环境中的 `Stage-2 v2` smoke 已确认可完成 config 解析、dataset/dataloader 构建、model/loss/optimizer 初始化并进入 trainer training loop；随后在 PTv3/spconv forward 处因缺少 NVIDIA driver 停止，应视为当前宿主环境限制而非 v2 路径装配失败。
 - train 日志关键项: `loss_semantic` 表示语义分支总损失。
 - train 日志关键项: `loss_edge` 表示边界分支总损失。
 - train 日志关键项: `loss_support / loss_support_cover / loss_support_reg` 表示 support 覆盖损失与回归损失。

@@ -9,12 +9,21 @@ import pointcept.models  # noqa: F401  # ensure Pointcept model registry is popu
 from pointcept.models.builder import MODELS, build_model
 from pointcept.models.utils.structure import Point
 
-from .heads import EdgeHead, SemanticHead, SupportConditionedEdgeHead
+from .heads import (
+    EdgeHead,
+    ResidualFeatureAdapter,
+    SemanticHead,
+    SupportConditionedEdgeHead,
+)
 
 
 EDGE_HEAD_TYPES = {
     "EdgeHead": EdgeHead,
     "SupportConditionedEdgeHead": SupportConditionedEdgeHead,
+}
+
+ADAPTER_TYPES = {
+    "ResidualFeatureAdapter": ResidualFeatureAdapter,
 }
 
 
@@ -28,10 +37,18 @@ class SharedBackboneSemanticBoundaryModel(nn.Module):
         backbone_out_channels,
         edge_out_channels=4,
         edge_head_cfg: dict | None = None,
+        semantic_adapter_cfg: dict | None = None,
+        boundary_adapter_cfg: dict | None = None,
         backbone=None,
     ):
         super().__init__()
         self.backbone = build_model(backbone)
+        self.semantic_adapter = self._build_adapter(
+            backbone_out_channels, semantic_adapter_cfg
+        )
+        self.boundary_adapter = self._build_adapter(
+            backbone_out_channels, boundary_adapter_cfg
+        )
         self.semantic_head = SemanticHead(backbone_out_channels, num_classes)
         edge_head_cfg = dict(edge_head_cfg or {})
         edge_head_type = edge_head_cfg.pop("type", "EdgeHead")
@@ -43,6 +60,17 @@ class SharedBackboneSemanticBoundaryModel(nn.Module):
             edge_out_channels,
             **edge_head_cfg,
         )
+
+    @staticmethod
+    def _build_adapter(in_channels, adapter_cfg: dict | None):
+        if adapter_cfg is None:
+            return nn.Identity()
+        adapter_cfg = dict(adapter_cfg)
+        adapter_type = adapter_cfg.pop("type", "ResidualFeatureAdapter")
+        if adapter_type not in ADAPTER_TYPES:
+            raise ValueError(f"Unsupported adapter type: {adapter_type}")
+        adapter_cls = ADAPTER_TYPES[adapter_type]
+        return adapter_cls(in_channels, **adapter_cfg)
 
     @staticmethod
     def _extract_feat(backbone_output):
@@ -63,8 +91,10 @@ class SharedBackboneSemanticBoundaryModel(nn.Module):
         backbone_output = self.backbone(Point(input_dict))
         point, feat = self._extract_feat(backbone_output)
 
-        seg_logits = self.semantic_head(feat)
-        edge_output = self.edge_head(feat)
+        semantic_feat = self.semantic_adapter(feat)
+        boundary_feat = self.boundary_adapter(feat)
+        seg_logits = self.semantic_head(semantic_feat)
+        edge_output = self.edge_head(boundary_feat)
         support_pred = edge_output["support_pred"]
         dist_pred = edge_output["dist_pred"]
         dir_pred = edge_output["dir_pred"]

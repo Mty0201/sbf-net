@@ -26,13 +26,19 @@
 - `support-only(reg=1, cover=0.25) = 74.4`，次优且稳定，可作参考
 - `support-only(reg=1, cover=0.3) = 73.7`，不优于基线；其它 cover 参数也均不优于 `73.8`
 - `support + dir + dist = 71`，在当前架构下失败
+- `Stage-2 v1` 真实 full train: `SupportConditionedEdgeHead + support(1.0/0.2) + dir(1.0) + dist(0.0)` 最佳 `val_mIoU = 71.34`（epoch 36），最终 `68.31`（epoch 100），仍低于 `73.8`
 - `dist` 项在不到一个 epoch 内快速降到极小值（约 `0.0002`），当前不是主要矛盾
 - `dir` 项可学习；训练时 `dir_cosine` 可到约 `0.6`，不训练时在 `0` 附近
 - 但 `dir` 的学习会以 semantic 主任务性能为代价
+- `Stage-2 v1` 真实 run 中，train `dir_cosine` 后期可到约 `0.65 ~ 0.75`，但验证期按样本均值统计仅约 `0.27`（best epoch）到 `0.31`（final epoch）；同一 run 中验证 `support_cover` 由约 `0.72` 下滑到约 `0.53 / 0.51`
 - 当前简单线性层堆叠的多头结构表达能力不足，本质上仍在争抢 backbone 特征空间
 - 仓库内已落地一条隔离的 `Stage-2` 最小实验路径：`SupportConditionedEdgeHead` + 独立 `stage2-support-dir` config；主线 train config 未被改写
+- 仓库内已落地一条隔离的 `Stage-2 v2` 最小实现路径：post-backbone `semantic_adapter / boundary_adapter` branch split + 独立 `stage2-v2` model/train/train-smoke config；主线 train config 未被改写
+- 仓库内已补齐 `Stage-2` 的 sample smoke 启动 config：`stage2-support-dir-train-smoke.py`
+- `Stage-2 v2` smoke 已在当前会话环境完成 config / data / model / optimizer 初始化并进入 trainer training loop；随后在 PTv3/spconv forward 处因缺少 NVIDIA driver 停止，应视为宿主环境限制而非 v2 装配失败
 - 训练入口中的 `smoke_mode` 启动期属性缺失问题已修复；当前由 trainer 内部按 `max_train_batches / max_val_batches` 自动初始化
 - 仓库内 `samples` 已对齐到当前正式六列 `edge.npy` 格式，可优先用于最小 smoke / runtime 验证；本轮已修复旧五列 sample 资产导致的 `edge[:, 5]` 越界问题
+- 在当前受限会话环境中，`Stage-2` smoke 已可进入第一轮训练迭代；后续若在 PTv3 forward 处再被 NVIDIA driver / CUDA 宿主条件卡住，应视为环境限制而非当前项目逻辑阻塞
 
 ## 2.5 当前最小技术摘要
 

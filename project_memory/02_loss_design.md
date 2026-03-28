@@ -28,5 +28,7 @@
 - distance 指标: `dist_error` 保持原始物理单位，不跟随缩放。
 - 当前判断: `dist` 项会在不到一个 epoch 的训练中快速下降到极小值（约 `0.0002`），当前不是主要矛盾。
 - 当前已落地的 `Stage-2` 独立实验 config 固定为: `support_reg_weight=1.0`, `support_cover_weight=0.2`, `dir_weight=1.0`, `dist_weight=0.0`。
+- 当前已确认 `Stage-2 v1` 真实 full train 结果: 在上述 loss 设定下，最佳 `val_mIoU = 71.34`（epoch 36），最终 `68.31`（epoch 100）。
+- 当前已确认 `Stage-2 v1` 训练/验证观察: train `dir_cosine` 后期可到约 `0.65 ~ 0.75`，但验证期按样本均值统计的 `dir_cosine` 在最佳点约 `0.27`、末期约 `0.31`；同一 run 中验证 `support_cover` 从首轮约 `0.72` 下降到最佳点约 `0.53`、末期约 `0.51`，`support_error` 从首轮约 `0.077` 上升到最佳点约 `0.142`、末期约 `0.140`。
 - 当前 `Stage-2` 的验收口径已更新为: `73.8` 只是安全线，只有 `val_mIoU > 74.6` 才能说明 architecture improvement 让 direction 成为净增益项。
 - 阶段结论: `2.5` 阶段已完成；当前问题已从 support 参数设计转向架构问题，`Stage-2` 的正式目标是从架构改进角度重新接入 direction 项。

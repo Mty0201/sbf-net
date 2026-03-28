@@ -7,6 +7,9 @@
 - trainer/loss 统一入口: `edge_pred = [dir, dist, support]`。
 - 当前仓库已落地一条隔离的 `Stage-2` 实验路径: `SupportConditionedEdgeHead` 通过 `edge_head_cfg` 显式选择；默认路径仍是旧 `EdgeHead`。
 - `SupportConditionedEdgeHead` 结构: `backbone feat -> support_mlp -> support_feat -> support_head`，`concat(backbone feat, support_feat) -> direction private tower -> dir_head`，`support_feat -> dist_head`。
+- 当前已确认 `Stage-2 v1` 真实 full train 结果: 上述 `SupportConditionedEdgeHead` 路径最佳 `val_mIoU = 71.34`（epoch 36），最终 `68.31`（epoch 100），未达到 `73.8` 安全线。
+- 当前仓库已落地一条隔离的 `Stage-2 v2` 实验路径: 在 `SharedBackboneSemanticBoundaryModel` 中把第一次分流前移到 backbone 输出后，形成 `feat -> semantic_adapter -> semantic_head` 与 `feat -> boundary_adapter -> edge_head` 两条路径；默认路径保持 adapter 关闭时的原行为不变。
+- 当前 `Stage-2 v2` 仍沿用 `SupportConditionedEdgeHead` 作为 boundary path 内部 head，但 direction 入口改为 `boundary_adapter` 输出后的 `boundary_feat`，不再直接读取未分流的 shared backbone feat。
 - 即使切到 `SupportConditionedEdgeHead`，模型输出接口仍保持 `seg_logits / support_pred / dist_pred / dir_pred / edge_pred`，且 `edge_pred = [dir, dist, support]` 不变。
 - semantic: 主任务输出，负责类别预测。
 - support: 粗边界邻域场，表示点处于有效边界吸附带内的强度。

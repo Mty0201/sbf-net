@@ -4,6 +4,32 @@ import torch
 import torch.nn as nn
 
 
+class ResidualFeatureAdapter(nn.Module):
+    """Lightweight identity-friendly adapter for task-specific feature branches."""
+
+    def __init__(
+        self,
+        in_channels,
+        hidden_channels=None,
+        residual_scale=1.0,
+        zero_init_last=True,
+    ):
+        super().__init__()
+        hidden_channels = int(hidden_channels or in_channels)
+        self.residual_scale = float(residual_scale)
+        self.adapter = nn.Sequential(
+            nn.Linear(in_channels, hidden_channels),
+            nn.ReLU(inplace=True),
+            nn.Linear(hidden_channels, in_channels),
+        )
+        if zero_init_last:
+            nn.init.zeros_(self.adapter[-1].weight)
+            nn.init.zeros_(self.adapter[-1].bias)
+
+    def forward(self, feat):
+        return feat + self.residual_scale * self.adapter(feat)
+
+
 class SemanticHead(nn.Module):
     def __init__(self, in_channels, num_classes):
         super().__init__()
