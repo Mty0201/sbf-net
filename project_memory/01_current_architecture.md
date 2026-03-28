@@ -24,6 +24,9 @@
 - `Stage-2` 的核心即从架构改进角度解决上述特征竞争问题，而不是继续围绕 support 参数本身做探索。
 - 数据模块: `BFDataset` 负责加载样本目录中的 `edge.npy`。
 - 变换模块: `InjectIndexValidKeys` 负责把 `edge` 纳入 Pointcept 的索引同步链。
-- loss 模块: `SemanticBoundaryLoss` 负责 semantic + edge 联合优化。
+- loss 模块: `SemanticBoundaryLoss` 负责 semantic + edge 联合优化。`support_weighted_edge` 开关（默认 `False`）控制 `loss_dir` / `loss_dist` 是否使用 `support_gt * valid_gt` 加权。
+- loss 模块: `RouteASemanticBoundaryLoss` 继承 `SemanticBoundaryLoss`，增加 local within-basin direction coherence loss。需要 `edge_support_id.npy` 提供 basin 标识。
 - evaluator 模块: `SemanticBoundaryEvaluator` 负责 semantic 指标和 edge 指标统计。
 - runtime 模块: `SemanticBoundaryTrainer` 负责训练、验证、scheduler、checkpoint。
+- 数据模块: `BFDataset` 可选加载 sidecar `edge_support_id.npy`（Route A 专用）。若文件不存在则跳过，不报错。
+- trainer: 当 batch 中包含 `support_id` 时，自动向 loss 传递 `coord / support_id / offset`。

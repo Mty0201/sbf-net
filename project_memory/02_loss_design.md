@@ -32,3 +32,6 @@
 - 当前已确认 `Stage-2 v1` 训练/验证观察: train `dir_cosine` 后期可到约 `0.65 ~ 0.75`，但验证期按样本均值统计的 `dir_cosine` 在最佳点约 `0.27`、末期约 `0.31`；同一 run 中验证 `support_cover` 从首轮约 `0.72` 下降到最佳点约 `0.53`、末期约 `0.51`，`support_error` 从首轮约 `0.077` 上升到最佳点约 `0.142`、末期约 `0.140`。
 - 当前 `Stage-2` 的验收口径已更新为: `73.8` 只是安全线，只有 `val_mIoU > 74.6` 才能说明 architecture improvement 让 direction 成为净增益项。
 - 阶段结论: `2.5` 阶段已完成；当前问题已从 support 参数设计转向架构问题，`Stage-2` 的正式目标是从架构改进角度重新接入 direction 项。
+- `Stage-2 v2` full train 结果: 有效 best 约 `72.5`，未过 `73.8` 安全线；v2 相比 v1 有改善。
+- B′ 路线: `SemanticBoundaryLoss` 新增 `support_weighted_edge` 开关（默认 `False`）。开启时 `loss_dir` 改为 `weighted_mean(dir_error, support_gt * valid_gt * (dist_gt > tau_dir))`，`loss_dist` 改为 `weighted_mean(dist_error, support_gt * valid_gt)`。不引入 `support_id`，不改模型结构。
+- Route A 路线: `RouteASemanticBoundaryLoss` 继承 `SemanticBoundaryLoss`，增加 `coherence_weight * loss_coherence`。需要 sidecar `edge_support_id.npy`。参数: `coherence_weight=0.1`, `local_radius=0.30`, `max_points_per_basin=100`。

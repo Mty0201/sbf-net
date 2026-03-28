@@ -239,7 +239,7 @@ class SemanticBoundaryTrainer:
     @staticmethod
     def _loss_log_keys(loss_dict: dict[str, torch.Tensor] | dict[str, float]) -> list[str]:
         if "loss_edge" in loss_dict:
-            return [
+            keys = [
                 "loss",
                 "loss_semantic",
                 "loss_edge",
@@ -255,6 +255,9 @@ class SemanticBoundaryTrainer:
                 "dir_cosine",
                 "dist_error",
             ]
+            if "loss_coherence" in loss_dict:
+                keys.append("loss_coherence")
+            return keys
         return ["loss", "loss_semantic"]
 
     @staticmethod
@@ -263,6 +266,10 @@ class SemanticBoundaryTrainer:
         if "edge_pred" in output and "edge" in batch:
             kwargs["edge_pred"] = output["edge_pred"]
             kwargs["edge"] = batch["edge"]
+            if "support_id" in batch:
+                kwargs["support_id"] = batch["support_id"]
+                kwargs["coord"] = batch["coord"]
+                kwargs["offset"] = batch["offset"]
         return kwargs
 
     @staticmethod
@@ -426,7 +433,10 @@ class SemanticBoundaryTrainer:
     def validate(self) -> dict[str, float]:
         self.model.eval()
         metrics = ["val_mIoU", "val_mAcc", "val_allAcc"]
-        if self.cfg.get("loss", {}).get("type", "SemanticBoundaryLoss") == "SemanticBoundaryLoss":
+        if self.cfg.get("loss", {}).get("type", "SemanticBoundaryLoss") in (
+            "SemanticBoundaryLoss",
+            "RouteASemanticBoundaryLoss",
+        ):
             metrics.extend(
                 [
                     "val_loss_edge",

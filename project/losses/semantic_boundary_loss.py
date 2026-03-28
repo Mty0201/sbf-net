@@ -29,6 +29,7 @@ class SemanticBoundaryLoss(nn.Module):
         support_tversky_beta: float = 0.7,
         dir_weight: float = 1.0,
         dist_weight: float = 1.0,
+        support_weighted_edge: bool = False,
     ):
         super().__init__()
         self.tau_dir = float(tau_dir)
@@ -42,6 +43,7 @@ class SemanticBoundaryLoss(nn.Module):
         self.support_tversky_beta = float(support_tversky_beta)
         self.dir_weight = float(dir_weight)
         self.dist_weight = float(dist_weight)
+        self.support_weighted_edge = bool(support_weighted_edge)
 
         self.semantic_loss = nn.CrossEntropyLoss(ignore_index=-1)
         self.lovasz_loss = LovaszLoss(
@@ -101,6 +103,7 @@ class SemanticBoundaryLoss(nn.Module):
         edge_pred: torch.Tensor,
         segment: torch.Tensor,
         edge: torch.Tensor,
+        **_extra,
     ) -> dict[str, torch.Tensor]:
         segment = segment.reshape(-1).long()
         edge = edge.float()
@@ -147,13 +150,22 @@ class SemanticBoundaryLoss(nn.Module):
         # Keep the model prediction in physical distance units and only normalize inside
         # the supervision space so evaluator metrics can stay directly interpretable.
         dist_error = self.dist_regression_loss(dist_pred_scaled, dist_gt_scaled)
-        loss_dist = self._weighted_mean(dist_error, valid_gt)
+        if self.support_weighted_edge:
+            edge_weight = support_gt * valid_gt
+            loss_dist = self._weighted_mean(dist_error, edge_weight)
+        else:
+            loss_dist = self._weighted_mean(dist_error, valid_gt)
 
         dir_pred_unit = self._normalize_direction(dir_pred_raw)
         dir_gt_unit = self._normalize_direction(dir_gt)
         dir_cosine_all = torch.sum(dir_pred_unit * dir_gt_unit, dim=1).clamp(-1.0, 1.0)
         dir_error = 1.0 - dir_cosine_all
-        loss_dir = self._masked_mean(dir_error, dir_valid_mask, edge_pred)
+        if self.support_weighted_edge:
+            dir_weight = support_gt * valid_gt
+            dir_weight = dir_weight * (dist_gt > self.tau_dir).float()
+            loss_dir = self._weighted_mean(dir_error, dir_weight)
+        else:
+            loss_dir = self._masked_mean(dir_error, dir_valid_mask, edge_pred)
 
         loss_edge = (
             self.support_weight * loss_support

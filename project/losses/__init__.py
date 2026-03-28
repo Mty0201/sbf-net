@@ -1,5 +1,6 @@
 from .semantic_boundary_loss import SemanticBoundaryLoss
 from .semantic_only_loss import SemanticOnlyLoss
+from .route_a_loss import RouteASemanticBoundaryLoss
 
 
 def build_loss(cfg: dict | None):
@@ -13,7 +14,15 @@ def build_loss(cfg: dict | None):
         return SemanticBoundaryLoss(**kwargs)
     if loss_type == "SemanticOnlyLoss":
         return SemanticOnlyLoss()
+    if loss_type == "RouteASemanticBoundaryLoss":
+        kwargs = {key: value for key, value in cfg.items() if key != "type"}
+        return RouteASemanticBoundaryLoss(**kwargs)
     raise ValueError(f"Unsupported loss type: {loss_type}")
 
 
-__all__ = ["SemanticBoundaryLoss", "SemanticOnlyLoss", "build_loss"]
+__all__ = [
+    "SemanticBoundaryLoss",
+    "SemanticOnlyLoss",
+    "RouteASemanticBoundaryLoss",
+    "build_loss",
+]
