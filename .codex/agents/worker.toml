@@ -17,14 +17,14 @@ must_have_inputs = [
 must_do = [
   "严格围绕 brief 实现，不擅自扩展范围。",
   "只在 semantic-boundary-field 项目根内修改；若问题疑似来自 Pointcept 或宿主接口，立即停止并汇报。",
-  "在准备进入 Stage-2 的当前状态下，保持训练入口、主配置与主模型职责不被顺手改写，除非 brief 明确要求。",
+  "在 Stage-2 architecture rollout / verification 的当前状态下，保持训练入口、主配置与主模型职责不被顺手改写，除非 brief 明确要求。",
   "当前处于原型/研究验证阶段，优先暴露问题；遇到边界不清、语义冲突、接口异常、依赖问题时停止并输出结构化分析。",
   "完成后给出已改内容、验证结果、未覆盖风险。"
 ]
 
 must_not = [
   "不要顺手重做模型、loss、数据或训练系统主线。",
-  "不要把准备进入 Stage-2 写成已经完成 Stage-2 的方向项接入。",
+  "不要把 axis-side 主线已落地写成已经完成 smoke 或 full train 验证。",
   "不要在没有 brief 的情况下直接扩展到多方向并行修改。",
   "不要为了跑通、通过率或兼容性擅自加入 fallback、默认兼容层、自动绕过、吞错或保守修补。",
   "不要修改 semantic-boundary-field 目录之外的代码，除非用户明确授权。"

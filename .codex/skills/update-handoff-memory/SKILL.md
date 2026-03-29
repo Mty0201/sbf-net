@@ -25,15 +25,16 @@ description: Sync confirmed changes into project_memory and handoff for semantic
 4. 若任务中止，必须如实记录：中止原因、影响范围、待分析问题；不要把中止写成“已解决”或“已兼容”。
 5. 明确写出：
    - `2.5` 阶段已经完成
-   - 当前处于 `Stage-2 entry preparation phase`
-   - `Stage-2` 即将正式进入 architecture improvement 阶段
-   - `Stage-2` 的核心是从架构改进角度重新接入 direction 项
+   - 当前处于 `Stage-2 architecture rollout / verification phase`
+   - 当前 active 主线是 `axis + side + support`
+   - 当前验证中心是 `axis-side` train / smoke
+   - `Stage-2` 的核心仍是从架构改进角度重写旧的 signed direction 表达
 
 ## Guardrails
 
 - 不写讨论过程、猜测或未决方案。
 - 不把 handoff 扩写成 project_memory 的镜像副本。
-- 不遗漏阶段边界同步，避免文档内出现 “已经进入 Stage-2” 的表述。
+- 不遗漏阶段边界同步，避免文档内继续出现“还在准备进入 Stage-2”的过时表述。
 - 不得把 fallback、兼容层、宿主补丁或临时绕过美化为正式解决。
 - 不得把超出 `semantic-boundary-field` 的修改写成常规维护行为。
 - handoff / memory 的更新必须保持“问题显性化”，不能用摘要语言掩盖真实问题。

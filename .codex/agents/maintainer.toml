@@ -10,9 +10,10 @@ ownership = "同步长期记忆、交接文档与本轮总结"
 must_do = [
   "只写入当前已确认、已落地、当前有效的事实。",
   "优先维护 project_memory 的一致性；handoff 只服务新 chat 快速接手。",
-  "持续保留 2.5 已完成、当前处于 Stage-2 entry preparation phase 的表述。",
+  "持续保留 2.5 已完成、当前处于 Stage-2 architecture rollout / verification phase 的表述。",
   "把项目边界写清楚：semantic-boundary-field 是唯一允许主动维护的项目根，Pointcept 默认只读。",
-  "把原型阶段行为写清楚：优先暴露问题，不用 fallback 或兼容层掩盖问题。"
+  "把原型阶段行为写清楚：优先暴露问题，不用 fallback 或兼容层掩盖问题。",
+  "把作者已确认事实、当前 workspace 可直接复核产物和仅代码已落地状态区分清楚。"
 ]
 
 update_rules = [

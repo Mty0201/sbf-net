@@ -1,35 +1,36 @@
 # Current Architecture
 
+## Shared Base
+
 - 主模型: `SharedBackboneSemanticBoundaryModel`。
-- 主干结构: `PT-v3m1` shared backbone -> `SemanticHead` + `EdgeHead`。
-- semantic 分支: 输出 `seg_logits`，负责 8 类语义分割。
-- edge 分支: 输出 `dir_pred(3) + dist_pred(1) + support_pred(1)`。
-- trainer/loss 统一入口: `edge_pred = [dir, dist, support]`。
-- 当前仓库已落地一条隔离的 `Stage-2` 实验路径: `SupportConditionedEdgeHead` 通过 `edge_head_cfg` 显式选择；默认路径仍是旧 `EdgeHead`。
-- `SupportConditionedEdgeHead` 结构: `backbone feat -> support_mlp -> support_feat -> support_head`，`concat(backbone feat, support_feat) -> direction private tower -> dir_head`，`support_feat -> dist_head`。
-- 当前已确认 `Stage-2 v1` 真实 full train 结果: 上述 `SupportConditionedEdgeHead` 路径最佳 `val_mIoU = 71.34`（epoch 36），最终 `68.31`（epoch 100），未达到 `73.8` 安全线。
-- 当前仓库已落地一条隔离的 `Stage-2 v2` 实验路径: 在 `SharedBackboneSemanticBoundaryModel` 中把第一次分流前移到 backbone 输出后，形成 `feat -> semantic_adapter -> semantic_head` 与 `feat -> boundary_adapter -> edge_head` 两条路径；默认路径保持 adapter 关闭时的原行为不变。
-- 当前 `Stage-2 v2` 仍沿用 `SupportConditionedEdgeHead` 作为 boundary path 内部 head，但 direction 入口改为 `boundary_adapter` 输出后的 `boundary_feat`，不再直接读取未分流的 shared backbone feat。
-- 即使切到 `SupportConditionedEdgeHead`，模型输出接口仍保持 `seg_logits / support_pred / dist_pred / dir_pred / edge_pred`，且 `edge_pred = [dir, dist, support]` 不变。
-- semantic: 主任务输出，负责类别预测。
-- support: 粗边界邻域场，表示点处于有效边界吸附带内的强度。
-- direction: 单位吸附方向，表示点指向最近 support 的方向。
-- distance: 吸附步长，表示点到最近 support 的物理距离。
-- valid: 只存在于 GT，表示该点是否进入有效监督域。
-- 关系: semantic 负责类别，support 定义边界邻域，direction + distance 共同定义几何吸附场，valid 只控制监督范围。
-- 当前结构观察: semantic 与 edge 分支仍强共享 backbone 特征，edge 分支本身较薄，对 backbone 特征的直接依赖较强。
-- 当前结构结论: 当前简单线性层堆叠的多头结构表达能力不足，本质上仍在争抢 shared backbone 输出特征空间。
-- 当前已确认结果: support only 仍可带来收益，但一旦在现有结构中真实接入 direction supervision，semantic `val_mIoU` 会下降到约 `71`。
-- 当前阶段判断: `dir` 的主要问题不再是“是否可学习”，而是“如何在不伤害 semantic 主任务的前提下完成接入”。
-- `Stage-2` 的核心即从架构改进角度解决上述特征竞争问题，而不是继续围绕 support 参数本身做探索。
-- 数据模块: `BFDataset` 负责加载样本目录中的 `edge.npy`。
+- 当前 active 主线复用 `Stage-2 v2` 的 shared-backbone split 结构: `PT-v3m1 shared backbone -> semantic_adapter -> semantic_head`，以及 `backbone -> boundary_adapter -> edge_head`。
+- boundary path 内部仍沿用 `SupportConditionedEdgeHead`；`axis-side` 不新增独立 model / head class，只改 loss / evaluator / trainer log semantics 与 config 选择。
+- semantic 分支输出 `seg_logits`，负责 8 类语义分割。
+- 模型统一输出接口仍保持 `seg_logits / edge_pred`；`edge_pred` 固定为 5 通道张量。
+- 当前结构观察: semantic 与 boundary 分支仍强共享 backbone 特征，edge 分支本身较薄，对 backbone 特征的直接依赖较强。
+
+## Current Active Mainline: Axis-Side
+
+- 当前 active 主表达统一为 `axis + side + support`。
+- 当前 active `edge_pred` 解释为 `[axis(3), side_logit(1), support_logit(1)]`。
+- `axis` 表示 unsigned direction axis；`side` 表示 support 两侧的二值符号；`support` 保持原有边界邻域覆盖语义。作者口头中的 `magnitude` 在当前代码 / 文档同步中等价于 `support`。
+- `axis-side` 复用现有六列 GT `edge.npy = [dir_x, dir_y, dir_z, dist, support, valid]`；`side GT` 由现有 `dir_gt` 在 loss / evaluator 内运行时导出，不新增 sidecar。
+- `dist_gt` 仍保留在 GT 中，用于 `tau_dir` 有效域判定与历史对照指标；当前 active 主线不再把 `dist` 作为独立预测通道。
+- trainer / evaluator 已新增 axis-side 专用指标与日志分支: `loss_axis / loss_side / axis_cosine / side_accuracy / dir_cosine`。
+
+## Historical Signed-Direction Routes
+
+- 历史 signed-direction 主表达是 `support + dir + dist`；在这些路线下，同一 5 通道 `edge_pred` 被解释为 `[dir(3), dist(1), support(1)]`。
+- `Stage-2 v1` 通过 `edge_head_cfg` 显式选择 `SupportConditionedEdgeHead`；当前已确认 full train 最佳 `71.34`，最终 `68.31`。
+- `Stage-2 v2` 把第一次分流前移到 backbone 输出后，减轻 semantic / boundary 特征竞争；当前已确认 full train best `72.38`，仍未过 `73.8`。
+- `B′` 和 `Route A` 都建立在上述 signed-direction 语义之上；它们是当前 `axis-side` 主线的前序路线或平行对照路线，不是当前 active 主表达。
+- 当前已确认: 在现有 shared-backbone + thin-head 条件下，直接使用 signed direction supervision 会把 semantic `val_mIoU` 拉低到约 `71`；这正是当前主线改写为 `axis + side + support` 的背景。
+
+## Supporting Modules
+
+- 数据模块: `BFDataset` 负责加载样本目录中的正式六列 `edge.npy`；Route A 专用 `support_id` sidecar 仍是可选加载。
 - 变换模块: `InjectIndexValidKeys` 负责把 `edge` 纳入 Pointcept 的索引同步链。
-- loss 模块: `SemanticBoundaryLoss` 负责 semantic + edge 联合优化。`support_weighted_edge` 开关（默认 `False`）控制 `loss_dir` / `loss_dist` 是否使用 `support_gt * valid_gt` 加权。
-- loss 模块: `RouteASemanticBoundaryLoss` 继承 `SemanticBoundaryLoss`，增加 local within-basin direction coherence loss。需要 `edge_support_id.npy` 提供 basin 标识。
-- 当前 working tree 额外落地了 `AxisSideSemanticBoundaryLoss` / `AxisSideEvaluator` 路线；该路线复用 `Stage-2 v2` 模型与现有 `SupportConditionedEdgeHead`，未引入新的模型或数据文件改动。
-- `AxisSideSemanticBoundaryLoss` 不改 `edge_pred` 宽度: `edge_pred[:, 0:3]` 解释为 axis 预测，`edge_pred[:, 3]` 解释为 `side_logit`，`edge_pred[:, 4]` 继续作为 `support_logit`。
-- `axis-side` 路线的 GT 仍使用六列 `edge.npy = [dir_x, dir_y, dir_z, dist, support, valid]`；`side GT` 在 loss/evaluator 内由 `dir_gt` 运行时导出，不新增 sidecar。
-- evaluator 模块: `SemanticBoundaryEvaluator` 负责 semantic 指标和 edge 指标统计。
-- runtime 模块: `SemanticBoundaryTrainer` 负责训练、验证、scheduler、checkpoint。
-- 数据模块: `BFDataset` 可选加载 sidecar `edge_support_id.npy`（Route A 专用）。若文件不存在则跳过，不报错。
+- loss 模块: 当前 active 主线使用 `AxisSideSemanticBoundaryLoss`；signed-direction 对照路线仍保留 `SemanticBoundaryLoss` 与 `RouteASemanticBoundaryLoss`。
+- evaluator 模块: 当前 active 主线使用 `AxisSideEvaluator`；signed-direction 对照路线仍保留 `SemanticBoundaryEvaluator`。
+- runtime 模块: `SemanticBoundaryTrainer` 负责训练、验证、scheduler、checkpoint，并已为 axis-side 增加 train / val summary 分支。
 - trainer: 当 batch 中包含 `support_id` 时，自动向 loss 传递 `coord / support_id / offset`。
