@@ -13,7 +13,7 @@
 
 - `2.5` 阶段探索性实验已完成并已收束。
 - 当前阶段状态是 `Stage-2 entry preparation phase`，尚未把 `Stage-2` 的架构改进实现真正展开。
-- 当前进入 `Stage-2` 的已确认实验事实是：`semantic-only=73.8`，`support-only(reg=1, cover=0.2)=74.5` 为最佳，`support + dir + dist = 71` 在当前结构下失败。
+- 当前进入 `Stage-2` 的已确认实验事实是：`semantic-only=73.8`，`support-only(reg=1, cover=0.2)=74.6` 为最佳，`support + dir + dist = 71` 在当前结构下失败。
 - `Stage-2` 的正式核心是从架构改进角度重新接入 direction 项，而不是继续扫 support 参数。
 
 ## Canonical Sources

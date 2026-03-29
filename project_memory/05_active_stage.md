@@ -1,7 +1,8 @@
 # Active Stage
 
-- 当前阶段状态: `axis-side implementation verification phase`。
+- 当前阶段状态: `Stage-2 entry preparation phase`。
 - `2.5` 阶段已完成，support 参数探索已收束。
+- 当前正式主线: 为通过架构改进重新接入 direction 做进入前准备，不再继续扫 support 参数。
 - `Stage-2 v1` 已完成 full train: 最佳 `val_mIoU = 71.34`（epoch 36），最终 `68.31`（epoch 100），未过安全线。
 - `Stage-2 v2` 已完成 full train: best `72.38`，未过 `73.8` 安全线；v2 相比 v1 有改善。
 - 当前阶段主评判指标: semantic `val_mIoU`。
@@ -34,11 +35,11 @@
 
 - 当前 working tree 已落地 `AxisSideSemanticBoundaryLoss`、`AxisSideEvaluator`、`axis-side-train.py` 和 `axis-side-train-smoke.py`。
 - `axis-side` 复用 `Stage-2 v2` 模型与现有五通道 edge 输出，不改 `edge.npy` 六列格式，也不引入新的 sidecar。
-- 当前 workspace 尚未确认成功的 `axis-side` smoke 输出。
-- 本轮在 CPU-only `ptv3` 环境复跑 `axis-side` smoke 时，PTv3 / spconv 在首个训练 step 前因缺少 NVIDIA driver 失败；因此 `axis-side smoke passed` 当前不能写成已确认事实。
+- 当前 workspace 仅定位到一次 `axis-side` smoke 启动日志（`Device: cpu`），未见 train/val 行或 checkpoint。
+- 因此 `axis-side smoke passed` 当前不能写成已确认事实。
 
 ## 当前优先级
 
-- 先在 CUDA-enabled `ptv3` 环境确认 `axis-side` smoke。
+- 先在 CUDA-enabled `ptv3` 环境确认 `axis-side` smoke；当前本地 artifact 还不足以证明其已跑通。
 - 仅在 `axis-side` smoke 确认通过后，再安排 `axis-side` full train。
 - 若需要把 `B′ full train` 写成已完成，先定位对应 log / output 证据。
