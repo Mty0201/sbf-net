@@ -189,7 +189,10 @@ class AxisSideSemanticBoundaryLoss(nn.Module):
         dir_gt_unit = self._normalize_direction(dir_gt)
         axis_cosine_all = torch.sum(axis_pred_unit * dir_gt_unit, dim=1).clamp(-1.0, 1.0)
         axis_error = 1.0 - axis_cosine_all.abs()  # sign-invariant!
-        loss_axis = self._masked_mean(axis_error, axis_valid_mask, edge_pred)
+        # Weight axis loss by support_gt so direction supervision concentrates
+        # near edges (high support) and fades away from them (low support).
+        axis_weight_map = support_gt * valid_gt
+        loss_axis = self._weighted_mean(axis_error, axis_weight_map)
 
         # --- side loss: BCE on hemisphere convention ---
         side_gt = self._derive_side_gt(dir_gt)
@@ -203,7 +206,9 @@ class AxisSideSemanticBoundaryLoss(nn.Module):
         side_valid_mask = axis_valid_mask.clone()
         if self.side_support_threshold > 0:
             side_valid_mask = side_valid_mask & (support_gt > self.side_support_threshold)
-        loss_side = self._masked_mean(side_bce, side_valid_mask, edge_pred)
+        # Weight side loss by support_gt (same rationale as axis).
+        side_weight_map = support_gt * valid_gt
+        loss_side = self._weighted_mean(side_bce, side_weight_map)
 
         # --- combine ---
         loss_edge = (
