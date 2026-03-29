@@ -194,7 +194,11 @@ class AxisSideSemanticBoundaryLoss(nn.Module):
         # --- side loss: BCE on hemisphere convention ---
         side_gt = self._derive_side_gt(dir_gt)
         side_pred = torch.sigmoid(side_logit)
-        side_bce = F.binary_cross_entropy(side_pred, side_gt, reduction="none")
+        side_bce = F.binary_cross_entropy_with_logits(
+            side_logit,
+            side_gt,
+            reduction="none",
+        )
         # Side is only meaningful where axis is valid AND support is above threshold
         side_valid_mask = axis_valid_mask.clone()
         if self.side_support_threshold > 0:
