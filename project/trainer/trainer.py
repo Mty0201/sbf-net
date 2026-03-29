@@ -238,6 +238,24 @@ class SemanticBoundaryTrainer:
 
     @staticmethod
     def _loss_log_keys(loss_dict: dict[str, torch.Tensor] | dict[str, float]) -> list[str]:
+        if "loss_axis" in loss_dict:
+            # AxisSideSemanticBoundaryLoss
+            return [
+                "loss",
+                "loss_semantic",
+                "loss_edge",
+                "loss_support",
+                "loss_support_reg",
+                "loss_support_cover",
+                "loss_axis",
+                "loss_side",
+                "valid_ratio",
+                "support_positive_ratio",
+                "axis_valid_ratio",
+                "axis_cosine",
+                "side_accuracy",
+                "dir_cosine",
+            ]
         if "loss_edge" in loss_dict:
             keys = [
                 "loss",
@@ -455,6 +473,25 @@ class SemanticBoundaryTrainer:
                     "dist_error",
                 ]
             )
+        elif self.cfg.get("loss", {}).get("type") == "AxisSideSemanticBoundaryLoss":
+            metrics.extend(
+                [
+                    "val_loss_edge",
+                    "val_loss_support",
+                    "val_loss_axis",
+                    "val_loss_side",
+                    "val_loss_support_reg",
+                    "val_loss_support_cover",
+                    "valid_ratio",
+                    "support_positive_ratio",
+                    "axis_valid_ratio",
+                    "support_cover",
+                    "support_error",
+                    "axis_cosine",
+                    "side_accuracy",
+                    "dir_cosine",
+                ]
+            )
         else:
             metrics.append("val_loss_semantic")
         metric_meters = {key: AverageMeter() for key in metrics}
@@ -482,7 +519,33 @@ class SemanticBoundaryTrainer:
                 if processed_iter % self.val_log_freq == 0 or processed_iter == (
                     min(len(self.val_loader), max_batches) if max_batches is not None else len(self.val_loader)
                 ):
-                    if "val_loss_edge" in metric_meters:
+                    if "val_loss_axis" in metric_meters:
+                        self.logger.info(
+                            "Val/Test: [{iter}/{max_iter}] val_loss_edge: {loss_edge:.4f} "
+                            "val_loss_support: {loss_support:.4f} "
+                            "val_loss_axis: {loss_axis:.4f} "
+                            "val_loss_side: {loss_side:.4f} "
+                            "support_cover: {support_cover:.4f} "
+                            "axis_cosine: {axis_cosine:.4f} "
+                            "side_accuracy: {side_accuracy:.4f} "
+                            "dir_cosine: {dir_cosine:.4f} "
+                            "mIoU: {miou:.4f} mAcc: {macc:.4f} allAcc: {allacc:.4f}".format(
+                                iter=processed_iter,
+                                max_iter=min(len(self.val_loader), max_batches) if max_batches is not None else len(self.val_loader),
+                                loss_edge=metric_meters["val_loss_edge"].val,
+                                loss_support=metric_meters["val_loss_support"].val,
+                                loss_axis=metric_meters["val_loss_axis"].val,
+                                loss_side=metric_meters["val_loss_side"].val,
+                                support_cover=metric_meters["support_cover"].val,
+                                axis_cosine=metric_meters["axis_cosine"].val,
+                                side_accuracy=metric_meters["side_accuracy"].val,
+                                dir_cosine=metric_meters["dir_cosine"].val,
+                                miou=metric_meters["val_mIoU"].val,
+                                macc=metric_meters["val_mAcc"].val,
+                                allacc=metric_meters["val_allAcc"].val,
+                            )
+                        )
+                    elif "val_loss_edge" in metric_meters:
                         self.logger.info(
                             "Val/Test: [{iter}/{max_iter}] val_loss_edge: {loss_edge:.4f} "
                             "val_loss_support: {loss_support:.4f} "
@@ -621,7 +684,17 @@ class SemanticBoundaryTrainer:
             if self.save_freq and epoch % int(self.save_freq) == 0:
                 self.save_checkpoint(f"epoch_{epoch}.pth", epoch, val_metrics)
 
-            if "loss_edge" in train_metrics:
+            if "loss_axis" in train_metrics:
+                self.logger.info(
+                    "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
+                    "loss_edge={loss_edge:.4f} loss_support={loss_support:.4f} "
+                    "loss_axis={loss_axis:.4f} loss_side={loss_side:.4f} "
+                    "axis_cosine={axis_cosine:.4f} side_accuracy={side_accuracy:.4f} "
+                    "optimizer_steps={optimizer_steps}".format(
+                        **train_metrics
+                    )
+                )
+            elif "loss_edge" in train_metrics:
                 self.logger.info(
                     "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
                     "loss_edge={loss_edge:.4f} loss_support={loss_support:.4f} "

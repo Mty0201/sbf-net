@@ -1,5 +1,6 @@
 from .semantic_boundary_evaluator import SemanticBoundaryEvaluator
 from .semantic_evaluator import SemanticEvaluator
+from .axis_side_evaluator import AxisSideEvaluator
 
 
 def build_evaluator(cfg: dict | None):
@@ -13,11 +14,15 @@ def build_evaluator(cfg: dict | None):
         return SemanticBoundaryEvaluator(**kwargs)
     if evaluator_type == "SemanticEvaluator":
         return SemanticEvaluator()
+    if evaluator_type == "AxisSideEvaluator":
+        kwargs = {key: value for key, value in cfg.items() if key != "type"}
+        return AxisSideEvaluator(**kwargs)
     raise ValueError(f"Unsupported evaluator type: {evaluator_type}")
 
 
 __all__ = [
     "SemanticBoundaryEvaluator",
     "SemanticEvaluator",
+    "AxisSideEvaluator",
     "build_evaluator",
 ]

@@ -26,6 +26,9 @@
 - 变换模块: `InjectIndexValidKeys` 负责把 `edge` 纳入 Pointcept 的索引同步链。
 - loss 模块: `SemanticBoundaryLoss` 负责 semantic + edge 联合优化。`support_weighted_edge` 开关（默认 `False`）控制 `loss_dir` / `loss_dist` 是否使用 `support_gt * valid_gt` 加权。
 - loss 模块: `RouteASemanticBoundaryLoss` 继承 `SemanticBoundaryLoss`，增加 local within-basin direction coherence loss。需要 `edge_support_id.npy` 提供 basin 标识。
+- 当前 working tree 额外落地了 `AxisSideSemanticBoundaryLoss` / `AxisSideEvaluator` 路线；该路线复用 `Stage-2 v2` 模型与现有 `SupportConditionedEdgeHead`，未引入新的模型或数据文件改动。
+- `AxisSideSemanticBoundaryLoss` 不改 `edge_pred` 宽度: `edge_pred[:, 0:3]` 解释为 axis 预测，`edge_pred[:, 3]` 解释为 `side_logit`，`edge_pred[:, 4]` 继续作为 `support_logit`。
+- `axis-side` 路线的 GT 仍使用六列 `edge.npy = [dir_x, dir_y, dir_z, dist, support, valid]`；`side GT` 在 loss/evaluator 内由 `dir_gt` 运行时导出，不新增 sidecar。
 - evaluator 模块: `SemanticBoundaryEvaluator` 负责 semantic 指标和 edge 指标统计。
 - runtime 模块: `SemanticBoundaryTrainer` 负责训练、验证、scheduler、checkpoint。
 - 数据模块: `BFDataset` 可选加载 sidecar `edge_support_id.npy`（Route A 专用）。若文件不存在则跳过，不报错。

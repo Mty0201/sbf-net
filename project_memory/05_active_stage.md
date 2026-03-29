@@ -1,9 +1,9 @@
 # Active Stage
 
-- 当前阶段状态: `B′ vs A experiment comparison phase`。
+- 当前阶段状态: `axis-side implementation verification phase`。
 - `2.5` 阶段已完成，support 参数探索已收束。
 - `Stage-2 v1` 已完成 full train: 最佳 `val_mIoU = 71.34`（epoch 36），最终 `68.31`（epoch 100），未过安全线。
-- `Stage-2 v2` 已完成 full train: 有效 best 约 `72.5`，未过 `73.8` 安全线；v2 相比 v1 有改善。
+- `Stage-2 v2` 已完成 full train: best `72.38`，未过 `73.8` 安全线；v2 相比 v1 有改善。
 - 当前阶段主评判指标: semantic `val_mIoU`。
 - 当前基线: `semantic-only val_mIoU = 73.8`（安全线），`support-only best = 74.6`（当前主目标）。
 - 验收口径: `<73.8` 失败；`73.8 ~ 74.6` 说明 direction 不再伤害 semantic；`>74.6` 说明 direction 成为净增益项。
@@ -28,8 +28,17 @@
 - 独立 config: `stage2-bprime-train.py` / `stage2-bprime-train-smoke.py`。
 - B′ smoke 已通过。
 - B′ 具备进入 full train 的条件。
+- 当前 workspace 中尚未定位到可确认的 `B′` full train 输出；不要把 `B′ full train ≈72.8` 写成已证实事实。
+
+## Axis-Side 当前状态
+
+- 当前 working tree 已落地 `AxisSideSemanticBoundaryLoss`、`AxisSideEvaluator`、`axis-side-train.py` 和 `axis-side-train-smoke.py`。
+- `axis-side` 复用 `Stage-2 v2` 模型与现有五通道 edge 输出，不改 `edge.npy` 六列格式，也不引入新的 sidecar。
+- 当前 workspace 尚未确认成功的 `axis-side` smoke 输出。
+- 本轮在 CPU-only `ptv3` 环境复跑 `axis-side` smoke 时，PTv3 / spconv 在首个训练 step 前因缺少 NVIDIA driver 失败；因此 `axis-side smoke passed` 当前不能写成已确认事实。
 
 ## 当前优先级
 
-- B′ full train 先于 Route A full train。
-- 两者构成 D1-O0 vs D1-O1 的对照实验。
+- 先在 CUDA-enabled `ptv3` 环境确认 `axis-side` smoke。
+- 仅在 `axis-side` smoke 确认通过后，再安排 `axis-side` full train。
+- 若需要把 `B′ full train` 写成已完成，先定位对应 log / output 证据。

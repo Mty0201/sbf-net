@@ -22,6 +22,8 @@
 - `Stage-2 v2` 基于 `samples` 的最小启动验证应使用 `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-stage2-v2-train-smoke.py`。
 - `B′` 基于 `samples` 的最小启动验证应使用 `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-stage2-bprime-train-smoke.py`。B′ smoke 已通过（train 2 epoch + val 1 epoch 完整跑通）。
 - `Route A` 基于 `samples` 的最小启动验证应使用 `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-route-a-train-smoke.py`。Route A smoke 已通过（`loss_coherence` 非零）。
+- `axis-side` 基于 `samples` 的最小启动验证应使用 `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train-smoke.py`。
+- `axis-side` 仍使用现有六列 `edge.npy`，不需要新增 sidecar。
 - Route A smoke 需要 `samples` 中每个 scene 包含 `edge_support_id.npy`；B′ smoke 不需要。
 - Route A 第一轮实验的 config 中 `mix_prob=0.0`（避免 support_id 跨场景冲突）。
 - 当前 smoke 验证使用 `conda run -n ptv3` 环境（含 `flash_attn`）；`pointcept` 环境缺少 `flash_attn`，无法完成 PTv3 模型初始化。
