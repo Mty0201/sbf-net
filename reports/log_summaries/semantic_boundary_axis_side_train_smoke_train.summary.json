@@ -1,0 +1,747 @@
+{
+  "generated_at": "2026-03-30T11:47:35Z",
+  "input": {
+    "path": "/home/mty0201/Pointcept/semantic-boundary-field/outputs/semantic_boundary_axis_side_train_smoke/train.log",
+    "name": "train.log",
+    "size_bytes": 9755,
+    "size_human": "9.53 KB",
+    "line_count": 142
+  },
+  "basic_info": {
+    "file_name": "train.log",
+    "file_size_bytes": 9755,
+    "file_size_human": "9.53 KB",
+    "line_count": 142,
+    "timestamp_range": {
+      "first": "2026-03-29T19:11:01",
+      "last": "2026-03-30T01:08:03"
+    },
+    "epoch_range": {
+      "min": 1,
+      "max": 1,
+      "hint_total": 2
+    },
+    "iter_range": {
+      "min": 1,
+      "max": 2,
+      "hint_total": 2
+    },
+    "runs_detected": 4,
+    "checkpoint_count": 4
+  },
+  "sessions": [
+    {
+      "start_line": 1,
+      "end_line": 30,
+      "start_timestamp": "2026-03-29T19:11:01",
+      "end_timestamp": "2026-03-29T19:11:01",
+      "device": "cpu",
+      "save_path": "/home/mty0201/Pointcept/semantic-boundary-field/outputs/semantic_boundary_axis_side_train_smoke",
+      "smoke_mode": true,
+      "optimizer": "AdamW",
+      "start_epoch": 1,
+      "total_epoch": 2,
+      "eval_epoch": 1,
+      "train_loop": 2,
+      "total_train_iterations": 2,
+      "train_records": 0,
+      "val_records": 0,
+      "train_result_records": 0,
+      "checkpoints": [],
+      "warnings": [],
+      "errors": [],
+      "status": "startup_only"
+    },
+    {
+      "start_line": 31,
+      "end_line": 60,
+      "start_timestamp": "2026-03-29T21:50:02",
+      "end_timestamp": "2026-03-29T21:50:03",
+      "device": "cpu",
+      "save_path": "/home/mty0201/Pointcept/semantic-boundary-field/outputs/semantic_boundary_axis_side_train_smoke",
+      "smoke_mode": true,
+      "optimizer": "AdamW",
+      "start_epoch": 1,
+      "total_epoch": 2,
+      "eval_epoch": 1,
+      "train_loop": 2,
+      "total_train_iterations": 2,
+      "train_records": 0,
+      "val_records": 0,
+      "train_result_records": 0,
+      "checkpoints": [],
+      "warnings": [],
+      "errors": [],
+      "status": "startup_only"
+    },
+    {
+      "start_line": 61,
+      "end_line": 90,
+      "start_timestamp": "2026-03-29T21:51:32",
+      "end_timestamp": "2026-03-29T21:51:32",
+      "device": "cpu",
+      "save_path": "/home/mty0201/Pointcept/semantic-boundary-field/outputs/semantic_boundary_axis_side_train_smoke",
+      "smoke_mode": true,
+      "optimizer": "AdamW",
+      "start_epoch": 1,
+      "total_epoch": 2,
+      "eval_epoch": 1,
+      "train_loop": 2,
+      "total_train_iterations": 2,
+      "train_records": 0,
+      "val_records": 0,
+      "train_result_records": 0,
+      "checkpoints": [],
+      "warnings": [],
+      "errors": [],
+      "status": "startup_only"
+    },
+    {
+      "start_line": 91,
+      "end_line": 142,
+      "start_timestamp": "2026-03-30T01:07:52",
+      "end_timestamp": "2026-03-30T01:08:03",
+      "device": "cuda",
+      "save_path": "/home/mty0201/Pointcept/semantic-boundary-field/outputs/semantic_boundary_axis_side_train_smoke",
+      "smoke_mode": true,
+      "optimizer": "AdamW",
+      "start_epoch": 1,
+      "total_epoch": 2,
+      "eval_epoch": 1,
+      "train_loop": 2,
+      "total_train_iterations": 2,
+      "train_records": 2,
+      "val_records": 1,
+      "train_result_records": 1,
+      "checkpoints": [
+        "/home/mty0201/Pointcept/semantic-boundary-field/outputs/semantic_boundary_axis_side_train_smoke/model/model_last.pth",
+        "/home/mty0201/Pointcept/semantic-boundary-field/outputs/semantic_boundary_axis_side_train_smoke/model/model_best.pth",
+        "/home/mty0201/Pointcept/semantic-boundary-field/outputs/semantic_boundary_axis_side_train_smoke/model/model_last.pth",
+        "/home/mty0201/Pointcept/semantic-boundary-field/outputs/semantic_boundary_axis_side_train_smoke/model/model_best.pth"
+      ],
+      "warnings": [],
+      "errors": [],
+      "status": "validated_with_checkpoints"
+    }
+  ],
+  "last_values": {
+    "train": {
+      "loss": 4.6192,
+      "loss_semantic": 3.2087,
+      "loss_edge": 1.4105,
+      "loss_support": 0.173,
+      "loss_support_reg": 0.0416,
+      "loss_support_cover": 0.657,
+      "loss_axis": 0.5237,
+      "loss_side": 0.7138,
+      "valid_ratio": 0.1654,
+      "support_positive_ratio": 0.1654,
+      "axis_valid_ratio": 0.1654,
+      "axis_cosine": 0.4827,
+      "side_accuracy": 0.4982,
+      "dir_cosine": -0.0045,
+      "Lr": 6e-06
+    },
+    "val": {
+      "val_loss_edge": 1.4745,
+      "val_loss_support": 0.1796,
+      "val_loss_axis": 0.5654,
+      "val_loss_side": 0.7295,
+      "support_cover": 0.3061,
+      "axis_cosine": 0.4411,
+      "side_accuracy": 0.4602,
+      "dir_cosine": 0.0143,
+      "mIoU": 0.0378,
+      "mAcc": 0.1576,
+      "allAcc": 0.1001
+    },
+    "best_line": {
+      "mIoU": 0.0378
+    },
+    "train_result": {
+      "loss": 4.5781,
+      "loss_semantic": 3.1722,
+      "loss_edge": 1.4059,
+      "loss_support": 0.1707,
+      "loss_axis": 0.5225,
+      "loss_side": 0.7127,
+      "axis_cosine": 0.485,
+      "side_accuracy": 0.491,
+      "optimizer_steps": 1.0
+    },
+    "scalar": {
+      "val_mIoU": 0.0378,
+      "best_val_mIoU": 0.0378
+    }
+  },
+  "best_values": {
+    "train": {
+      "loss": {
+        "value": 4.537,
+        "timestamp": "2026-03-30T01:07:59",
+        "epoch": 1,
+        "iter": 1,
+        "direction": "lower_is_better"
+      },
+      "loss_semantic": {
+        "value": 3.1357,
+        "timestamp": "2026-03-30T01:07:59",
+        "epoch": 1,
+        "iter": 1,
+        "direction": "lower_is_better"
+      },
+      "loss_edge": {
+        "value": 1.4014,
+        "timestamp": "2026-03-30T01:07:59",
+        "epoch": 1,
+        "iter": 1,
+        "direction": "lower_is_better"
+      },
+      "loss_support": {
+        "value": 0.1683,
+        "timestamp": "2026-03-30T01:07:59",
+        "epoch": 1,
+        "iter": 1,
+        "direction": "lower_is_better"
+      },
+      "loss_support_reg": {
+        "value": 0.0406,
+        "timestamp": "2026-03-30T01:07:59",
+        "epoch": 1,
+        "iter": 1,
+        "direction": "lower_is_better"
+      },
+      "loss_support_cover": {
+        "value": 0.6385,
+        "timestamp": "2026-03-30T01:07:59",
+        "epoch": 1,
+        "iter": 1,
+        "direction": "lower_is_better"
+      },
+      "loss_axis": {
+        "value": 0.5214,
+        "timestamp": "2026-03-30T01:07:59",
+        "epoch": 1,
+        "iter": 1,
+        "direction": "lower_is_better"
+      },
+      "loss_side": {
+        "value": 0.7116,
+        "timestamp": "2026-03-30T01:07:59",
+        "epoch": 1,
+        "iter": 1,
+        "direction": "lower_is_better"
+      },
+      "axis_cosine": {
+        "value": 0.4874,
+        "timestamp": "2026-03-30T01:07:59",
+        "epoch": 1,
+        "iter": 1,
+        "direction": "higher_is_better"
+      },
+      "side_accuracy": {
+        "value": 0.4982,
+        "timestamp": "2026-03-30T01:08:00",
+        "epoch": 1,
+        "iter": 2,
+        "direction": "higher_is_better"
+      },
+      "dir_cosine": {
+        "value": 0.0162,
+        "timestamp": "2026-03-30T01:07:59",
+        "epoch": 1,
+        "iter": 1,
+        "direction": "higher_is_better"
+      }
+    },
+    "val": {
+      "val_loss_edge": {
+        "value": 1.4745,
+        "timestamp": "2026-03-30T01:08:00",
+        "epoch": 1,
+        "iter": 1,
+        "direction": "lower_is_better"
+      },
+      "val_loss_support": {
+        "value": 0.1796,
+        "timestamp": "2026-03-30T01:08:00",
+        "epoch": 1,
+        "iter": 1,
+        "direction": "lower_is_better"
+      },
+      "val_loss_axis": {
+        "value": 0.5654,
+        "timestamp": "2026-03-30T01:08:00",
+        "epoch": 1,
+        "iter": 1,
+        "direction": "lower_is_better"
+      },
+      "val_loss_side": {
+        "value": 0.7295,
+        "timestamp": "2026-03-30T01:08:00",
+        "epoch": 1,
+        "iter": 1,
+        "direction": "lower_is_better"
+      },
+      "support_cover": {
+        "value": 0.3061,
+        "timestamp": "2026-03-30T01:08:00",
+        "epoch": 1,
+        "iter": 1,
+        "direction": "higher_is_better"
+      },
+      "axis_cosine": {
+        "value": 0.4411,
+        "timestamp": "2026-03-30T01:08:00",
+        "epoch": 1,
+        "iter": 1,
+        "direction": "higher_is_better"
+      },
+      "side_accuracy": {
+        "value": 0.4602,
+        "timestamp": "2026-03-30T01:08:00",
+        "epoch": 1,
+        "iter": 1,
+        "direction": "higher_is_better"
+      },
+      "dir_cosine": {
+        "value": 0.0143,
+        "timestamp": "2026-03-30T01:08:00",
+        "epoch": 1,
+        "iter": 1,
+        "direction": "higher_is_better"
+      },
+      "mIoU": {
+        "value": 0.0378,
+        "timestamp": "2026-03-30T01:08:00",
+        "epoch": 1,
+        "iter": 1,
+        "direction": "higher_is_better"
+      },
+      "mAcc": {
+        "value": 0.1576,
+        "timestamp": "2026-03-30T01:08:00",
+        "epoch": 1,
+        "iter": 1,
+        "direction": "higher_is_better"
+      },
+      "allAcc": {
+        "value": 0.1001,
+        "timestamp": "2026-03-30T01:08:00",
+        "epoch": 1,
+        "iter": 1,
+        "direction": "higher_is_better"
+      }
+    },
+    "best_line": {
+      "mIoU": {
+        "value": 0.0378,
+        "timestamp": "2026-03-30T01:08:00",
+        "epoch": 1,
+        "iter": null,
+        "direction": "higher_is_better"
+      }
+    },
+    "train_result": {
+      "loss": {
+        "value": 4.5781,
+        "timestamp": "2026-03-30T01:08:03",
+        "epoch": 1,
+        "iter": null,
+        "direction": "lower_is_better"
+      },
+      "loss_semantic": {
+        "value": 3.1722,
+        "timestamp": "2026-03-30T01:08:03",
+        "epoch": 1,
+        "iter": null,
+        "direction": "lower_is_better"
+      },
+      "loss_edge": {
+        "value": 1.4059,
+        "timestamp": "2026-03-30T01:08:03",
+        "epoch": 1,
+        "iter": null,
+        "direction": "lower_is_better"
+      },
+      "loss_support": {
+        "value": 0.1707,
+        "timestamp": "2026-03-30T01:08:03",
+        "epoch": 1,
+        "iter": null,
+        "direction": "lower_is_better"
+      },
+      "loss_axis": {
+        "value": 0.5225,
+        "timestamp": "2026-03-30T01:08:03",
+        "epoch": 1,
+        "iter": null,
+        "direction": "lower_is_better"
+      },
+      "loss_side": {
+        "value": 0.7127,
+        "timestamp": "2026-03-30T01:08:03",
+        "epoch": 1,
+        "iter": null,
+        "direction": "lower_is_better"
+      },
+      "axis_cosine": {
+        "value": 0.485,
+        "timestamp": "2026-03-30T01:08:03",
+        "epoch": 1,
+        "iter": null,
+        "direction": "higher_is_better"
+      },
+      "side_accuracy": {
+        "value": 0.491,
+        "timestamp": "2026-03-30T01:08:03",
+        "epoch": 1,
+        "iter": null,
+        "direction": "higher_is_better"
+      }
+    },
+    "scalar": {
+      "val_mIoU": {
+        "value": 0.0378,
+        "timestamp": "2026-03-30T01:08:03",
+        "epoch": 1,
+        "iter": null,
+        "direction": "higher_is_better"
+      },
+      "best_val_mIoU": {
+        "value": 0.0378,
+        "timestamp": "2026-03-30T01:08:03",
+        "epoch": 1,
+        "iter": null,
+        "direction": "higher_is_better"
+      }
+    }
+  },
+  "recent_changes": {
+    "train": [
+      {
+        "line": 121,
+        "timestamp": "2026-03-30T01:07:59",
+        "epoch": 1,
+        "epoch_total": 1,
+        "iter": 1,
+        "iter_total": 2,
+        "metrics": {
+          "loss": 4.537,
+          "loss_semantic": 3.1357,
+          "loss_edge": 1.4014,
+          "loss_support": 0.1683,
+          "loss_support_reg": 0.0406,
+          "loss_support_cover": 0.6385,
+          "loss_axis": 0.5214,
+          "loss_side": 0.7116,
+          "valid_ratio": 0.1792,
+          "support_positive_ratio": 0.1792,
+          "axis_valid_ratio": 0.1791,
+          "axis_cosine": 0.4874,
+          "side_accuracy": 0.4837,
+          "dir_cosine": 0.0162,
+          "Lr": 6e-06
+        }
+      },
+      {
+        "line": 122,
+        "timestamp": "2026-03-30T01:08:00",
+        "epoch": 1,
+        "epoch_total": 1,
+        "iter": 2,
+        "iter_total": 2,
+        "metrics": {
+          "loss": 4.6192,
+          "loss_semantic": 3.2087,
+          "loss_edge": 1.4105,
+          "loss_support": 0.173,
+          "loss_support_reg": 0.0416,
+          "loss_support_cover": 0.657,
+          "loss_axis": 0.5237,
+          "loss_side": 0.7138,
+          "valid_ratio": 0.1654,
+          "support_positive_ratio": 0.1654,
+          "axis_valid_ratio": 0.1654,
+          "axis_cosine": 0.4827,
+          "side_accuracy": 0.4982,
+          "dir_cosine": -0.0045,
+          "Lr": 6e-06
+        }
+      }
+    ],
+    "val": [
+      {
+        "line": 124,
+        "timestamp": "2026-03-30T01:08:00",
+        "step": 1,
+        "step_total": 1,
+        "metrics": {
+          "val_loss_edge": 1.4745,
+          "val_loss_support": 0.1796,
+          "val_loss_axis": 0.5654,
+          "val_loss_side": 0.7295,
+          "support_cover": 0.3061,
+          "axis_cosine": 0.4411,
+          "side_accuracy": 0.4602,
+          "dir_cosine": 0.0143,
+          "mIoU": 0.0378,
+          "mAcc": 0.1576,
+          "allAcc": 0.1001
+        }
+      }
+    ],
+    "train_result": [
+      {
+        "line": 138,
+        "timestamp": "2026-03-30T01:08:03",
+        "metrics": {
+          "loss": 4.5781,
+          "loss_semantic": 3.1722,
+          "loss_edge": 1.4059,
+          "loss_support": 0.1707,
+          "loss_axis": 0.5225,
+          "loss_side": 0.7127,
+          "axis_cosine": 0.485,
+          "side_accuracy": 0.491,
+          "optimizer_steps": 1.0
+        }
+      }
+    ],
+    "scalar": [
+      {
+        "stage": "scalar",
+        "metric": "val_mIoU",
+        "value": 0.0378,
+        "timestamp": "2026-03-30T01:08:03",
+        "epoch": 1,
+        "iter": null,
+        "source": "current_line"
+      },
+      {
+        "stage": "scalar",
+        "metric": "best_val_mIoU",
+        "value": 0.0378,
+        "timestamp": "2026-03-30T01:08:03",
+        "epoch": 1,
+        "iter": null,
+        "source": "current_line"
+      }
+    ]
+  },
+  "loss_trends": {
+    "train": {
+      "loss": {
+        "count": 2,
+        "first": 4.537,
+        "last": 4.6192,
+        "delta": 0.08220000000000027,
+        "min": 4.537,
+        "max": 4.6192,
+        "trend": "flat"
+      },
+      "loss_semantic": {
+        "count": 2,
+        "first": 3.1357,
+        "last": 3.2087,
+        "delta": 0.07299999999999995,
+        "min": 3.1357,
+        "max": 3.2087,
+        "trend": "up"
+      },
+      "loss_edge": {
+        "count": 2,
+        "first": 1.4014,
+        "last": 1.4105,
+        "delta": 0.009100000000000108,
+        "min": 1.4014,
+        "max": 1.4105,
+        "trend": "flat"
+      },
+      "loss_support": {
+        "count": 2,
+        "first": 0.1683,
+        "last": 0.173,
+        "delta": 0.004699999999999982,
+        "min": 0.1683,
+        "max": 0.173,
+        "trend": "up"
+      },
+      "loss_support_reg": {
+        "count": 2,
+        "first": 0.0406,
+        "last": 0.0416,
+        "delta": 0.0010000000000000009,
+        "min": 0.0406,
+        "max": 0.0416,
+        "trend": "up"
+      },
+      "loss_support_cover": {
+        "count": 2,
+        "first": 0.6385,
+        "last": 0.657,
+        "delta": 0.018500000000000072,
+        "min": 0.6385,
+        "max": 0.657,
+        "trend": "up"
+      },
+      "loss_axis": {
+        "count": 2,
+        "first": 0.5214,
+        "last": 0.5237,
+        "delta": 0.0023000000000000798,
+        "min": 0.5214,
+        "max": 0.5237,
+        "trend": "flat"
+      },
+      "loss_side": {
+        "count": 2,
+        "first": 0.7116,
+        "last": 0.7138,
+        "delta": 0.0021999999999999797,
+        "min": 0.7116,
+        "max": 0.7138,
+        "trend": "flat"
+      }
+    },
+    "val": {
+      "val_loss_edge": {
+        "count": 1,
+        "first": 1.4745,
+        "last": 1.4745,
+        "delta": 0.0,
+        "min": 1.4745,
+        "max": 1.4745,
+        "trend": "flat"
+      },
+      "val_loss_support": {
+        "count": 1,
+        "first": 0.1796,
+        "last": 0.1796,
+        "delta": 0.0,
+        "min": 0.1796,
+        "max": 0.1796,
+        "trend": "flat"
+      },
+      "val_loss_axis": {
+        "count": 1,
+        "first": 0.5654,
+        "last": 0.5654,
+        "delta": 0.0,
+        "min": 0.5654,
+        "max": 0.5654,
+        "trend": "flat"
+      },
+      "val_loss_side": {
+        "count": 1,
+        "first": 0.7295,
+        "last": 0.7295,
+        "delta": 0.0,
+        "min": 0.7295,
+        "max": 0.7295,
+        "trend": "flat"
+      }
+    },
+    "train_result": {
+      "loss": {
+        "count": 1,
+        "first": 4.5781,
+        "last": 4.5781,
+        "delta": 0.0,
+        "min": 4.5781,
+        "max": 4.5781,
+        "trend": "flat"
+      },
+      "loss_semantic": {
+        "count": 1,
+        "first": 3.1722,
+        "last": 3.1722,
+        "delta": 0.0,
+        "min": 3.1722,
+        "max": 3.1722,
+        "trend": "flat"
+      },
+      "loss_edge": {
+        "count": 1,
+        "first": 1.4059,
+        "last": 1.4059,
+        "delta": 0.0,
+        "min": 1.4059,
+        "max": 1.4059,
+        "trend": "flat"
+      },
+      "loss_support": {
+        "count": 1,
+        "first": 0.1707,
+        "last": 0.1707,
+        "delta": 0.0,
+        "min": 0.1707,
+        "max": 0.1707,
+        "trend": "flat"
+      },
+      "loss_axis": {
+        "count": 1,
+        "first": 0.5225,
+        "last": 0.5225,
+        "delta": 0.0,
+        "min": 0.5225,
+        "max": 0.5225,
+        "trend": "flat"
+      },
+      "loss_side": {
+        "count": 1,
+        "first": 0.7127,
+        "last": 0.7127,
+        "delta": 0.0,
+        "min": 0.7127,
+        "max": 0.7127,
+        "trend": "flat"
+      }
+    }
+  },
+  "warnings": [],
+  "anomalies": [
+    {
+      "line": 91,
+      "timestamp": "2026-03-30T01:07:52",
+      "message": "Detected 4 training starts in one log file."
+    }
+  ],
+  "auto_questions": [
+    "Why were there 4 startup attempts in the same log, and which session should be treated as authoritative?",
+    "Is the latest val_mIoU 0.0378 expected for this run, or does it point to a config / data / label mismatch?"
+  ],
+  "notes": [],
+  "class_results_tail": [
+    {
+      "timestamp": "2026-03-30T01:08:00",
+      "label": "wall",
+      "iou": 0.0036,
+      "accuracy": 0.0037
+    },
+    {
+      "timestamp": "2026-03-30T01:08:00",
+      "label": "eave",
+      "iou": 0.0255,
+      "accuracy": 0.5169
+    },
+    {
+      "timestamp": "2026-03-30T01:08:00",
+      "label": "column",
+      "iou": 0.0651,
+      "accuracy": 0.0896
+    },
+    {
+      "timestamp": "2026-03-30T01:08:00",
+      "label": "window",
+      "iou": 0.1262,
+      "accuracy": 0.178
+    },
+    {
+      "timestamp": "2026-03-30T01:08:00",
+      "label": "clutter",
+      "iou": 0.0653,
+      "accuracy": 0.2821
+    }
+  ]
+}

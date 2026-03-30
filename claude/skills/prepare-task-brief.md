@@ -1,106 +1,80 @@
 # Skill: prepare-task-brief（SBF 项目专用）
 
-生成一份最小可执行 task brief，供 Worker 按 brief 落地改动。
+围绕 `project_memory/tasks/TASK_TEMPLATE.md` 生成下一轮最小 task 草案。
 对应 Codex 的 `.codex/skills/prepare-task-brief/SKILL.md`。
 
 ---
 
 ## 触发场景
 
-- 需要在实现前把任务压缩成单一、可执行、可验证的 brief
-- 用户提出一个改动需求，需要先确认边界再交给 Worker
-- 需要把用户的模糊需求映射到具体文件和最小影响集合
-- 需要在对齐"2.5 已结束、当前准备进入 Stage-2"的阶段边界后，再下发实现任务
+- 当前 task 已收尾，准备新开一轮 task
+- 用户需求还比较宽，需要先压缩成单轮、可执行、可验证的任务书
+- 需要把当前状态、下一步和边界映射到 `TASK_TEMPLATE.md`
+- 需要为 web ChatGPT、Claude、Codex 共享同一份 task 草案，而不是继续写长 handoff
 
 ---
 
-## 必要输入（Architect 执行本 skill 前必须确认已读）
+## 必要输入
 
-1. `handoff/handoff_for_chat.md`
-2. 与任务直接相关的 `project_memory/` 文件
-3. 用户当前请求
+1. `AGENTS.md`
+2. `project_memory/current_state.md`
+3. `project_memory/tasks/TASK_TEMPLATE.md`
+4. 若是承接上一轮，再读当前 task 文件
+5. 若任务直接依赖证据，再补一个最相关的 summary / packet / 专题 memory
 
 ---
 
 ## 生成流程
 
-**Step 1：阶段状态确认**
-- 确认 2.5 阶段已结束，当前处于 `Stage-2 entry preparation phase`
-- 确认唯一允许主动维护的项目根是 `semantic-boundary-field/`；Pointcept 只读
-- 若问题疑似来自 Pointcept 或宿主接口，停止继续生成 brief，输出停止声明
+**Step 1：边界确认**
+- 从 `AGENTS.md` 和 `current_state.md` 确认当前阶段边界、当前 task 指针和禁改项
+- 确认唯一允许主动维护的项目根是 `semantic-boundary-field/`；`Pointcept` 默认只读
+- 若问题疑似来自宿主接口或边界语义冲突，停止继续生成 task 草案，输出停止声明
 
 **Step 2：事实提炼**
-- 从 `project_memory/` 提炼与本任务相关的已确认事实
-- 明确哪些是稳定事实，哪些是待验证假设（后者放"需人工确认项"）
-- 验证数字：semantic-only = 73.8 / support-only best = 74.6 / Stage-2 v1 best = 71.34
+- 只提炼当前轮真正需要的稳定事实
+- 避免复制完整 handoff、完整 memory 或完整原始日志
+- 若需要证据，只补读一个最相关的 summary / packet / 专题文档
 
-**Step 3：文件名映射**
-- 若用户给出的文件名与仓库现状不一致，先做路径映射
-- 把映射结果写进 brief，不静默使用"猜测路径"
-- 当前已落地的 Stage-2 路径：
-  - `stage2-support-dir` config
-  - `stage2-v2` model/train/train-smoke config
-  - `stage2-support-dir-train-smoke.py`（sample smoke）
-  - `stage2-v2-train-smoke.py`（v2 sample smoke）
+**Step 3：任务文件名**
+- 基于日期和目录现状，建议新的任务文件名：
+  `project_memory/tasks/TASK-YYYY-MM-DD-XXX.md`
+- 若用户给出的文件名与仓库现状不一致，先写清映射，不静默猜路径
 
-**Step 4：边界划定**
-- 固定禁改项（任何 brief 都不得包含）：
-  - `scripts/train/train.py`
-  - `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py`
-  - `project_memory/` 下的任何文件
-  - `handoff/handoff_for_chat.md`
-- 确认本任务允许改动的最小文件集合
+**Step 4：按模板生成**
+- 按 `TASK_TEMPLATE.md` 逐节生成 task 草案，至少填好：
+  - `Goal`
+  - `Why now`
+  - `In scope`
+  - `Out of scope`
+  - `Constraints`
+  - `Read first`
+  - `Implementation plan`
+  - `Validation`
+  - `Deliverables`
+  - `Result`
+  - `Next step`
 
-**Step 5：任务压缩**
-- 把任务限制为一个最小可交付目标
-- 若工作量较大，拆成当前轮最小落地点，而不是一次性大改
-- 不在 brief 中展开新的研究方案
-
-**Step 6：输出 brief**（使用下方模板）
+**Step 5：结果约束**
+- `Result` 只写当前已知状态，例如“待开始”或“等待验证”
+- 不得凭空补训练结果、验证结论或已完成状态
+- 同时给出最小 `Read first` 清单和建议文件名
 
 ---
 
-## Brief 模板
+## 产出
 
-```markdown
-## Task Brief：[任务名]
-
-**目标**：[一句话，可验证]
-
-**当前事实**（来自 project_memory）：
-- [事实1，来源：project_memory/XX.md]
-- [事实2，来源：...]
-
-**允许改动**：
-- [文件或模块，精确到文件名]
-
-**禁止改动**：
-- `scripts/train/train.py`
-- `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py`
-- [本任务其他禁止项]
-
-**最小影响文件**：
-- [预计需要改动的文件列表]
-
-**验证方式**：
-- [具体可执行步骤，如：python scripts/train/train.py --config ... 并确认进入 training loop]
-
-**停止条件**：
-- [Worker 遇到什么情况应停止并汇报]
-
-**需人工确认项**：
-- [模糊或有歧义的部分，需用户决策后再实现]
-
-[待验证设计选择，写入 brief 而非 project_memory]
-```
+- 一份符合 `TASK_TEMPLATE.md` 的 task 草案
+- 一个建议文件名
+- 一组最小 `Read first` 文件
+- 如有必要，一小组需人工确认的边界问题
 
 ---
 
 ## Guardrails
 
-- 不把 brief 写成架构大设计，只写最小可落地目标
+- 不把 task 草案写成长 handoff 或架构大设计
 - 不把 `handoff` 当作事实源替代 `project_memory`
-- 不因为"准备进入 Stage-2"就放松对训练入口 / 主配置 / 主模型职责的保护
-- 不把 Pointcept 目录路径写成常规可维护范围
-- 禁止为了跑通 / 通过率 / 兼容性在 brief 中预设 fallback 或兼容层
-- 当前处于原型/研究验证阶段，brief 中的验证方式必须能真实暴露问题，不掩盖问题
+- 不顺手回写 `current_state.md`、`handoff/latest_round.md` 或旧 task
+- 不虚构验证证据、训练结果或尚未出现的产物
+- 当前处于原型 / 研究验证阶段，task 草案必须帮助暴露问题，而不是掩盖问题
