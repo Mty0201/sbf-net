@@ -256,6 +256,21 @@ class SemanticBoundaryTrainer:
                 "side_accuracy",
                 "dir_cosine",
             ]
+        if "loss_ordinal" in loss_dict:
+            # SupportShapeLoss
+            return [
+                "loss",
+                "loss_semantic",
+                "loss_edge",
+                "loss_support",
+                "loss_support_reg",
+                "loss_support_cover",
+                "loss_ordinal",
+                "valid_ratio",
+                "support_positive_ratio",
+                "support_cover",
+                "ordinal_pairs",
+            ]
         if "loss_edge" in loss_dict:
             keys = [
                 "loss",
@@ -284,10 +299,12 @@ class SemanticBoundaryTrainer:
         if "edge_pred" in output and "edge" in batch:
             kwargs["edge_pred"] = output["edge_pred"]
             kwargs["edge"] = batch["edge"]
+            if "coord" in batch:
+                kwargs["coord"] = batch["coord"]
+            if "offset" in batch:
+                kwargs["offset"] = batch["offset"]
             if "support_id" in batch:
                 kwargs["support_id"] = batch["support_id"]
-                kwargs["coord"] = batch["coord"]
-                kwargs["offset"] = batch["offset"]
         return kwargs
 
     @staticmethod
@@ -455,6 +472,27 @@ class SemanticBoundaryTrainer:
             "SemanticBoundaryLoss",
             "RouteASemanticBoundaryLoss",
         ):
+            metrics.extend(
+                [
+                    "val_loss_edge",
+                    "val_loss_support",
+                    "val_loss_dir",
+                    "val_loss_dist",
+                    "val_loss_support_reg",
+                    "val_loss_support_cover",
+                    "valid_ratio",
+                    "support_positive_ratio",
+                    "dir_valid_ratio",
+                    "dist_gt_valid_mean",
+                    "support_cover",
+                    "support_error",
+                    "dir_cosine",
+                    "dist_error",
+                ]
+            )
+        elif self.cfg.get("loss", {}).get("type") == "SupportShapeLoss":
+            # Evaluator uses SemanticBoundaryEvaluator internally, which
+            # returns the full key set.  dir/dist metrics will be zero.
             metrics.extend(
                 [
                     "val_loss_edge",
@@ -684,7 +722,19 @@ class SemanticBoundaryTrainer:
             if self.save_freq and epoch % int(self.save_freq) == 0:
                 self.save_checkpoint(f"epoch_{epoch}.pth", epoch, val_metrics)
 
-            if "loss_axis" in train_metrics:
+            if "loss_ordinal" in train_metrics:
+                self.logger.info(
+                    "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
+                    "loss_edge={loss_edge:.4f} loss_support={loss_support:.4f} "
+                    "loss_support_reg={loss_support_reg:.4f} "
+                    "loss_support_cover={loss_support_cover:.4f} "
+                    "loss_ordinal={loss_ordinal:.4f} "
+                    "ordinal_pairs={ordinal_pairs:.0f} "
+                    "optimizer_steps={optimizer_steps}".format(
+                        **train_metrics
+                    )
+                )
+            elif "loss_axis" in train_metrics:
                 self.logger.info(
                     "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
                     "loss_edge={loss_edge:.4f} loss_support={loss_support:.4f} "
