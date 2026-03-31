@@ -30,7 +30,7 @@
 - `optimizer_steps` = `194.0000`
 - `ordinal_pairs` = `209.0000`
 
-### val
+### val (step/batch-level, NOT epoch-aggregated)
 
 - `allAcc` = `0.9416`
 - `dir_cosine` = `0.0016`
@@ -50,7 +50,7 @@
 - `val_loss_support_reg` = `0.0447`
 - `valid_ratio` = `0.1633`
 
-### scalar
+### scalar (epoch-aggregated, authoritative for val_mIoU)
 
 - `best_val_mIoU` = `0.7316`
 - `val_mIoU` = `0.7085`
@@ -72,7 +72,7 @@
 
 ## Best Values
 
-### val
+### val (step/batch-level, NOT epoch-aggregated)
 
 - `allAcc` best `0.9626` (higher_is_better, ts `2026-03-30T19:37:47`, epoch `89`, iter `6`)
 - `dir_cosine` best `0.0775` (higher_is_better, ts `2026-03-30T11:18:10`, epoch `1`, iter `25`)
@@ -109,7 +109,7 @@
 - `loss_support_reg` best `0.0300` (lower_is_better, ts `2026-03-30T17:06:25`, epoch `63`, iter `391`)
 - `support_cover` best `0.6829` (higher_is_better, ts `2026-03-30T20:10:58`, epoch `95`, iter `1007`)
 
-### scalar
+### scalar (epoch-aggregated, authoritative for val_mIoU)
 
 - `best_val_mIoU` best `0.7316` (higher_is_better, ts `2026-03-30T17:21:28`, epoch `65`, iter `None`)
 - `val_mIoU` best `0.7316` (higher_is_better, ts `2026-03-30T17:21:28`, epoch `65`, iter `None`)
@@ -124,7 +124,7 @@
 - `2026-03-30T20:39:53` epoch 100, iter 1159: loss=0.2569, loss_semantic=0.1319, loss_edge=0.1250, loss_support=0.1104, support_cover=0.6266, Lr=1.000e-06, loss_ordinal=0.0292, loss_support_cover=0.3734
 - `2026-03-30T20:39:53` epoch 100, iter 1160: loss=0.2471, loss_semantic=0.1222, loss_edge=0.1249, loss_support=0.1109, support_cover=0.6185, Lr=1.000e-06, loss_ordinal=0.0280, loss_support_cover=0.3815
 
-### val (last 5)
+### val (step/batch-level, NOT epoch-aggregated) (last 5)
 
 - `2026-03-30T20:39:56` step 28: mIoU=0.5297, mAcc=0.8402, allAcc=0.8194, support_cover=0.3443, support_error=0.1819, dir_cosine=-0.0227, dist_error=0.0445, val_loss_edge=0.2221
 - `2026-03-30T20:39:56` step 29: mIoU=0.3616, mAcc=0.6860, allAcc=0.7081, support_cover=0.3206, support_error=0.1518, dir_cosine=0.0269, dist_error=0.0480, val_loss_edge=0.2118
@@ -140,7 +140,7 @@
 - `2026-03-30T20:34:18` no step info: loss=0.2725, loss_semantic=0.1438, loss_edge=0.1287, loss_support=0.1128, loss_ordinal=0.0316, loss_support_cover=0.3794, loss_support_reg=0.0370, optimizer_steps=194.0000
 - `2026-03-30T20:39:57` no step info: loss=0.2712, loss_semantic=0.1427, loss_edge=0.1285, loss_support=0.1128, loss_ordinal=0.0314, loss_support_cover=0.3792, loss_support_reg=0.0370, optimizer_steps=194.0000
 
-### scalar (last 5)
+### scalar (epoch-aggregated, authoritative for val_mIoU) (last 5)
 
 - `2026-03-30T20:28:39` `best_val_mIoU` = `0.7316`
 - `2026-03-30T20:34:18` `val_mIoU` = `0.7111`

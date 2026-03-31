@@ -527,18 +527,20 @@ def read_summary_snapshot(summary_pair: Dict[str, Optional[Path]]) -> Dict[str, 
             snapshot["excerpt"].append(
                 f"Latest session status `{last_session.get('status')}`, device `{last_session.get('device')}`, checkpoints `{len(last_session.get('checkpoints') or [])}`."
             )
-        if "mIoU" in last_val:
-            snapshot["excerpt"].append(f"Latest val `mIoU={last_val['mIoU']:.4f}`.")
-        elif "val_mIoU" in (data.get("last_values") or {}).get("scalar", {}):
+        last_scalar = (data.get("last_values") or {}).get("scalar", {})
+        best_scalar = (data.get("best_values") or {}).get("scalar", {})
+        if "val_mIoU" in last_scalar:
             snapshot["excerpt"].append(
-                f"Latest scalar `val_mIoU={(data.get('last_values') or {}).get('scalar', {}).get('val_mIoU'):.4f}`."
+                f"Latest val_mIoU `{last_scalar['val_mIoU']:.4f}` (epoch-aggregated scalar)."
             )
-        if "mIoU" in best_val:
-            snapshot["excerpt"].append(f"Best val `mIoU={best_val['mIoU']['value']:.4f}`.")
-        elif "best_val_mIoU" in (data.get("best_values") or {}).get("scalar", {}):
+        elif "mIoU" in last_val:
+            snapshot["excerpt"].append(f"Latest step-level val `mIoU={last_val['mIoU']:.4f}` (per-batch, not epoch-aggregated).")
+        if "best_val_mIoU" in best_scalar:
             snapshot["excerpt"].append(
-                f"Best scalar `best_val_mIoU={(data.get('best_values') or {}).get('scalar', {}).get('best_val_mIoU', {}).get('value'):.4f}`."
+                f"Best val_mIoU `{best_scalar['best_val_mIoU']['value']:.4f}` (epoch-aggregated scalar)."
             )
+        elif "mIoU" in best_val:
+            snapshot["excerpt"].append(f"Best step-level val `mIoU={best_val['mIoU']['value']:.4f}` (per-batch, not epoch-aggregated).")
         snapshot["auto_questions"] = (data.get("auto_questions") or [])[:2]
         return snapshot
 

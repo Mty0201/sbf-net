@@ -701,11 +701,17 @@ def markdown_for_summary(summary: Dict[str, Any], recent_count: int) -> str:
         )
 
     lines.extend(["", "## Last Values", ""])
+    stage_annotations = {
+        "val": "val (step/batch-level, NOT epoch-aggregated)",
+        "scalar": "scalar (epoch-aggregated, authoritative for val_mIoU)",
+        "train": "train",
+        "train_result": "train_result",
+    }
     for stage_name in ("train_result", "val", "scalar", "train"):
         values = summary["last_values"].get(stage_name)
         if not values:
             continue
-        lines.append(f"### {stage_name}")
+        lines.append(f"### {stage_annotations.get(stage_name, stage_name)}")
         lines.append("")
         for metric_name in sorted(values):
             lines.append(f"- `{metric_name}` = `{format_number(values[metric_name])}`")
@@ -716,7 +722,7 @@ def markdown_for_summary(summary: Dict[str, Any], recent_count: int) -> str:
         values = summary["best_values"].get(stage_name)
         if not values:
             continue
-        lines.append(f"### {stage_name}")
+        lines.append(f"### {stage_annotations.get(stage_name, stage_name)}")
         lines.append("")
         for metric_name in sorted(values):
             item = values[metric_name]
@@ -730,7 +736,8 @@ def markdown_for_summary(summary: Dict[str, Any], recent_count: int) -> str:
         records = summary["recent_changes"].get(stage_name)
         if not records:
             continue
-        lines.append(f"### {stage_name} (last {min(recent_count, len(records))})")
+        header = stage_annotations.get(stage_name, stage_name)
+        lines.append(f"### {header} (last {min(recent_count, len(records))})")
         lines.append("")
         for record in records:
             if "metrics" in record:
