@@ -1,7 +1,8 @@
 # Claude 协作协议（SBF 项目专用）
 
-本文件是 Claude 在 `semantic-boundary-field` 项目中的主协议文件。
-Codex 协议在 `.codex/` 中，两套协议并存、互不覆盖。
+> Legacy reference only. Claude 默认启动请走 `CLAUDE.md -> AGENTS.md -> docs/workflows/sbf_net_workflow_v1.md`。本文件只为旧角色术语、旧窗口或历史线程兼容保留，不再作为默认主协议。
+
+本文件保留较早版本的 Claude 角色化说明。若与当前 task 级闭环 workflow 冲突，以 `AGENTS.md` 和 `docs/workflows/sbf_net_workflow_v1.md` 为准。
 
 ---
 

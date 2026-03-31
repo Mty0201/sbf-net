@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a target-specific markdown context packet from current project state."""
+"""Build a target-specific derived markdown context packet from current project state."""
 
 from __future__ import annotations
 
@@ -108,7 +108,9 @@ KEYWORD_STOPWORDS = {
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Build target-specific context packet markdown files.")
+    parser = argparse.ArgumentParser(
+        description="Build target-specific derived context packet markdown files."
+    )
     parser.add_argument(
         "--target",
         choices=("web_chat", "claude", "codex", "all"),

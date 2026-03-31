@@ -1,4 +1,4 @@
-> **接手入口**：本文件只提供新 chat 的最小背景。读完后请回到项目根目录先读 `AGENTS.md`，再按其指定顺序继续。
+> Legacy reference only. 默认新窗口 / 网页端接手入口已切到 `handoff/chat_entry.md`；当前 workflow 规则和事实源以 `AGENTS.md`、`project_memory/current_state.md` 和当前 task 文件为准。本文件仅为旧线程兼容保留，正文可能包含历史阶段表述。
 
 # 0. 项目一句话定义
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check whether the current task workflow chain is present, fresh, and aligned."""
+"""Check whether the current task canonical and checkpoint chain is present, fresh, and aligned."""
 
 from __future__ import annotations
 
@@ -46,7 +46,7 @@ class GlobalIssues:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Inspect whether the current task workflow chain is closed, fresh, and aligned."
+        description="Inspect whether the current task canonical and checkpoint chain is closed, fresh, and aligned."
     )
     parser.add_argument(
         "--target",

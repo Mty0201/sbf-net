@@ -26,6 +26,7 @@ description: Draft the next minimal task file for semantic-boundary-field from T
 3. 只提炼当前轮真正需要的稳定事实，避免复制完整 handoff 或完整 memory。
 4. 基于日期和目录现状，建议新的任务文件名：`project_memory/tasks/TASK-YYYY-MM-DD-XXX.md`。
 5. 按 `TASK_TEMPLATE.md` 逐节生成草案，至少填好：
+   - `Task type`
    - `Goal`
    - `Why now`
    - `In scope`
@@ -33,8 +34,12 @@ description: Draft the next minimal task file for semantic-boundary-field from T
    - `Constraints`
    - `Read first`
    - `Implementation plan`
+   - `Checkpoints`
+   - `Done condition`
+   - `Review / acceptance plan`
    - `Validation`
    - `Deliverables`
+   - `Closeout expectation`
    - `Result`
    - `Next step`
 6. `Result` 只写当前已知状态，例如“待开始”或“等待验证”，不要凭空补结果。
@@ -53,3 +58,4 @@ description: Draft the next minimal task file for semantic-boundary-field from T
 - 不复制完整 `project_memory`、完整 `handoff` 或完整原始日志
 - 不在这个 skill 里顺手回写 `current_state.md`、`handoff/latest_round.md` 或旧 task
 - 不虚构验证结论、训练结果或尚未出现的产物
+- 不把 `AGENTS.md` 或 workflow 文档的通用规则整段复制进 task 草案

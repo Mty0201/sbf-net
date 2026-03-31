@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Refresh summary, context packet, and round update artifacts in one ordered chain."""
+"""Refresh task checkpoint artifacts in one ordered chain."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ BACKTICK = "`"
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Refresh log summaries, context packets, and round updates in one ordered chain."
+        description="Refresh log summaries, context packets, and round updates as task checkpoint artifacts in one ordered chain."
     )
     parser.add_argument(
         "--mode",

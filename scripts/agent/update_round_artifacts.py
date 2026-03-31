@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate conservative round-end writeback drafts from current task artifacts."""
+"""Generate conservative round-end writeback drafts from current task checkpoint artifacts."""
 
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ TARGET_NOTES = {
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Build conservative round-end writeback drafts for task/current_state/handoff."
+        description="Build conservative round-end writeback drafts from checkpoint artifacts for task/current_state/handoff."
     )
     parser.add_argument(
         "--mode",

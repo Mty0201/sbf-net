@@ -43,6 +43,7 @@
 
 **Step 4：按模板生成**
 - 按 `TASK_TEMPLATE.md` 逐节生成 task 草案，至少填好：
+  - `Task type`
   - `Goal`
   - `Why now`
   - `In scope`
@@ -50,8 +51,12 @@
   - `Constraints`
   - `Read first`
   - `Implementation plan`
+  - `Checkpoints`
+  - `Done condition`
+  - `Review / acceptance plan`
   - `Validation`
   - `Deliverables`
+  - `Closeout expectation`
   - `Result`
   - `Next step`
 
@@ -78,3 +83,4 @@
 - 不顺手回写 `current_state.md`、`handoff/latest_round.md` 或旧 task
 - 不虚构验证证据、训练结果或尚未出现的产物
 - 当前处于原型 / 研究验证阶段，task 草案必须帮助暴露问题，而不是掩盖问题
+- 不把 `AGENTS.md` 或 workflow 文档里的通用规则整段复制进 task 草案

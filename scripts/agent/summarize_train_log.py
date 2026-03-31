@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Summarize training logs into markdown and JSON artifacts."""
+"""Summarize training logs into derived checkpoint markdown and JSON artifacts."""
 
 from __future__ import annotations
 
@@ -55,7 +55,7 @@ WARNING_TOKENS = ("warning", "warn", "error", "exception", "traceback", "nan", "
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Summarize one or more training logs into markdown and JSON artifacts."
+        description="Summarize one or more training logs into derived checkpoint markdown and JSON artifacts."
     )
     parser.add_argument("logs", nargs="+", help="Path(s) to train log files.")
     parser.add_argument(
