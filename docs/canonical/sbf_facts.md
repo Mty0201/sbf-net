@@ -38,3 +38,34 @@ It is intentionally not a workflow document. A maintainer should be able to reco
 - Do not overstate validation status: the `axis-side` route is implemented, but implementation alone is not proof of full-train success.
 - Prefer exposing real architectural or supervision problems over masking them with compatibility patches.
 - Treat historical signed-direction runs as evidence and comparison routes, not as the active mainline semantics.
+
+## Evidence That Still Governs Future Work
+
+- `semantic-only = 73.8`
+- `support-only (reg=1, cover=0.2) = 74.6`
+- `support + dir + dist = 71`
+- `Stage-2 v1 best 71.34 / final 68.31`
+- `Stage-2 v2 best 72.38`
+
+## Current Interpretation
+
+- `support-only (reg=1, cover=0.2) = 74.6` is the best confirmed result so far.
+- The old signed-direction supervision route remains a failure/reference route rather than the current mainline.
+- `axis-side` smoke has passed, but `axis-side` full-train remains unverified.
+- The current rollout should be judged against the existing evidence above instead of being described as already validated end-to-end.
+- Historical `dist` behavior can still be used for comparison, but it should not be described as a current standalone predicted branch.
+
+## Evidence Sources
+
+| Fact or rule | Source file path(s) used |
+| --- | --- |
+| SBF vs Pointcept boundary rules, read-only host posture, and no-fallback guardrail | `AGENTS.md`; `docs/pointcept_boundary.md` |
+| Current stage label `Stage-2 architecture rollout / verification phase`, active `axis + side + support` mainline, and `magnitude` = `support` terminology | `AGENTS.md`; `project_memory/current_state.md` |
+| Mainline tensor semantics, `edge_pred = [axis(3), side_logit(1), support_logit(1)]`, six-column `edge.npy`, and `dist` not being a predicted channel | `project_memory/01_current_architecture.md` |
+| Confirmed result `semantic-only = 73.8` | `AGENTS.md`; `project_memory/current_state.md` |
+| Confirmed result `support-only (reg=1, cover=0.2) = 74.6` | `AGENTS.md`; `project_memory/current_state.md` |
+| Confirmed result `support + dir + dist = 71` | `AGENTS.md`; `project_memory/current_state.md` |
+| Confirmed result `Stage-2 v1 best 71.34 / final 68.31` | `project_memory/current_state.md`; `project_memory/01_current_architecture.md` |
+| Confirmed result `Stage-2 v2 best 72.38` | `project_memory/current_state.md`; `project_memory/01_current_architecture.md` |
+| `axis-side` smoke status and the fact that smoke evidence exists separately from full-train validation | `reports/log_summaries/semantic_boundary_axis_side_train_smoke_train.summary.md` |
+| Current full-train evidence under the support-shape analysis trail, including authoritative scalar `best_val_mIoU = 0.7316` and `val_mIoU = 0.7085` used in ongoing interpretation | `reports/log_summaries/semseg-pt-v3m1-0-base-bf-edge-support-shape-train_train.summary.md` |
