@@ -32,3 +32,6 @@ wandb/
 tmp/
 samples/
 *.pth
+
+# Local planning artifacts
+.planning/
