@@ -50,3 +50,56 @@ that focus as if smoke or full-train verification has already been completed.
   intended PTv3 path, the run should fail visibly.
 - Phase 1 is not rewriting `README.md`, `train.md`, or `install.md` yet. This document is the
   canonical training guardrail source for this migration phase.
+
+## Canonical Command Patterns
+
+Use the exact command prefix:
+
+```bash
+conda run --no-capture-output -n ptv3 python scripts/train/train.py
+```
+
+Current axis-side smoke example:
+
+```bash
+export POINTCEPT_ROOT=/path/to/Pointcept
+export SBF_DATA_ROOT=/path/to/BF_edge_chunk_npy
+conda run --no-capture-output -n ptv3 python scripts/train/train.py \
+  --config configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train-smoke.py \
+  --pointcept-root "${POINTCEPT_ROOT}"
+```
+
+Current axis-side verification/full-train example:
+
+```bash
+export POINTCEPT_ROOT=/path/to/Pointcept
+export SBF_DATA_ROOT=/path/to/BF_edge_chunk_npy
+conda run --no-capture-output -n ptv3 python scripts/train/train.py \
+  --config configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train.py \
+  --pointcept-root "${POINTCEPT_ROOT}"
+```
+
+## Smoke Versus Full-Train Use
+
+The smoke path exists to validate wiring, environment setup, and trainer startup before an
+expensive run.
+
+- smoke success does not equal full-train validation.
+
+Use `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train-smoke.py` for a
+minimal axis-side smoke startup check, then use
+`configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train.py` for the current
+verification target when the environment is ready for the longer run.
+
+## Invalid Run Patterns
+
+The following warnings must remain visible to maintainers:
+
+- no implicit POINTCEPT_ROOT fallback
+- no implicit SBF_DATA_ROOT fallback
+- no CPU PTv3 fallback
+- no assumption that the `pointcept` environment without `flash_attn` is sufficient for PTv3
+  initialization
+
+If one of these conditions is not satisfied, the correct behavior is an explicit failure rather
+than a compatibility shortcut.
