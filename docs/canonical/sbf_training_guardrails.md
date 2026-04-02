@@ -31,22 +31,31 @@ then instantiates `SemanticBoundaryTrainer` directly.
 
 Use the configs with these roles in mind:
 
-- stable runtime entry config: `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py`
+- **Stable runtime entry config** (unchanged by Phase 7):
+  `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py`
   This remains the stable canonical runtime entry config for the repository.
-- Historical reference configs:
+
+- **Strongest reference baseline** (support-only, the comparison target):
+  `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-support-only-train.py`
+  `support-only (reg=1, cover=0.2) = 74.6`
+  This is the comparison target the active route should beat. It is not the active implementation route.
+
+- **Active implementation route** (Phase 7, support-guided semantic focus):
+  `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train.py`
+  Uses `SharedBackboneSemanticSupportModel`, `SupportGuidedSemanticFocusLoss`, `SupportGuidedSemanticFocusEvaluator`.
+  Trains from scratch (`weight = None`, `resume = False`). Not yet full-train validated (Phase 8 scope).
+  Do not change `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py` — it is the stable entry, not the active route.
+
+- **Historical reference configs** (evidence only):
   `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train.py`
   `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train-smoke.py`
   `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-semantic-train.py`
   `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-semantic-train-smoke.py`
-  These remain auditable historical/reference configs for prior axis-side and semantic-only evidence.
-- support-only reference baseline:
-  `support-only (reg=1, cover=0.2) = 74.6`
-- support-shape side evidence:
-  weaker than the support-only baseline and not the semantic-first mainline
-- Phase 6 semantic-first candidate route:
-  `support-guided semantic focus route` defined in `docs/canonical/sbf_semantic_first_contract.md`
 
-The runtime entrypoint and fail-fast rules stay fixed while the support-only-first semantic-first candidate route is defined in Phase 6. Do not rewrite the historical configs as if they were the preferred current verification target, do not elevate support-shape to the mainline, and do not rewrite the candidate route as already implemented.
+- **Side evidence** (weaker than baseline):
+  `support-shape` — weaker than the support-only baseline and not the semantic-first mainline.
+
+The runtime entrypoint and fail-fast rules stay fixed. The active implementation route is the support-guided semantic focus route. Do not rewrite the stable entry config, do not elevate support-shape to the mainline, and do not claim local smoke/full-train validation that Phase 8 has not yet produced.
 
 ## Guardrails That Must Not Be Relaxed
 
@@ -85,6 +94,18 @@ conda run --no-capture-output -n ptv3 python scripts/train/train.py \
   --pointcept-root "${POINTCEPT_ROOT}"
 ```
 
+## Active Route Command Pattern
+
+```bash
+export POINTCEPT_ROOT=/path/to/Pointcept
+export SBF_DATA_ROOT=/path/to/BF_edge_chunk_npy
+conda run --no-capture-output -n ptv3 python scripts/train/train.py \
+  --config configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train.py \
+  --pointcept-root "${POINTCEPT_ROOT}"
+```
+
+This config trains from scratch with no checkpoint loading. No Pointcept changes required.
+
 ## Smoke Versus Full-Train Use
 
 The smoke path exists to validate wiring, environment setup, and trainer startup before an
@@ -95,8 +116,7 @@ expensive run.
 Use `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train-smoke.py` for a
 minimal historical axis-side smoke startup check, then use
 `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train.py` for the matching
-historical longer-run reference when you need to audit that route. The semantic-first replacement
-route remains pending later phases of milestone `v1.1`.
+historical longer-run reference when you need to audit that route. The active implementation route is the support-guided semantic focus route (see `## Active Route Command Pattern` above).
 
 ## Invalid Run Patterns
 

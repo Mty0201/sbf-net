@@ -8,11 +8,11 @@ The canonical set answers the minimum repository-specific questions that must st
 
 - SBF versus Pointcept boundary rules and no-fallback expectations
 - Current Stage-2 status and the active semantic-first boundary supervision direction
-- The strongest current semantic-first reference baseline and the candidate route being defined to beat it
+- The strongest current semantic-first reference baseline and the active implementation route
 - Experiment evidence and interpretations that still govern future work
 - Training entrypoint, config roles, and fail-fast runtime guardrails
 
-The repository still preserves historical `support`, `axis-side`, `support-shape`, and `axis + side + support` evidence, but those routes are reference-only and are not the preferred current mainline. The strongest current reference baseline is `support-only`, and Phase 6 defines the next semantic-first candidate route relative to that baseline.
+The repository still preserves historical `support`, `axis-side`, `support-shape`, and `axis + side + support` evidence, but those routes are reference-only and are not the preferred current mainline. The strongest current reference baseline is `support-only`. The active implementation route is the support-guided semantic focus route, implemented in Phase 7.
 
 ## Four Maintainer Questions
 
@@ -22,9 +22,11 @@ The repository still preserves historical `support`, `axis-side`, `support-shape
 2. What is the current Stage-2 state, and how does the semantic-first direction relate to the older geometric-field routes?
    - Stage label and active direction: `docs/canonical/sbf_facts.md` -> `## Current Stage-2 Status`
    - Historical tensor and supervision semantics: `docs/canonical/sbf_facts.md` -> `## Historical Mainline Semantics`
-3. Which route is the strongest current semantic-first reference baseline, and what candidate route is Phase 6 defining next?
+3. What is the active implementation route?
    - Baseline and route-selection rules: `docs/canonical/sbf_semantic_first_route.md` -> `## Current Reference Baseline`
-   - Candidate route definition: `docs/canonical/sbf_semantic_first_route.md` -> `## Candidate Route`
+   - Active route definition: `docs/canonical/sbf_semantic_first_route.md` -> `## Active Implementation Route`
+   - Route contract: `docs/canonical/sbf_semantic_first_contract.md` -> `## Core Contract`
+   - Active route config: `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train.py`
 4. Which experiment evidence and conclusions still constrain future work?
    - Confirmed evidence list: `docs/canonical/sbf_facts.md` -> `## Evidence That Still Governs Future Work`
    - Current interpretation of that evidence: `docs/canonical/sbf_facts.md` -> `## Current Interpretation`
@@ -37,7 +39,7 @@ The repository still preserves historical `support`, `axis-side`, `support-shape
 ## Read Order
 
 1. Read `docs/canonical/sbf_facts.md` first if you need boundary, stage, active-direction, or evidence answers.
-2. Read `docs/canonical/sbf_semantic_first_route.md` next if you need the support-only baseline and the current candidate-route definition.
+2. Read `docs/canonical/sbf_semantic_first_route.md` next if you need the support-only baseline and the active implementation route definition.
 3. Read `docs/canonical/sbf_training_guardrails.md` next if you need runtime entry, config, smoke/full-train, or fail-fast rules.
 4. Return to `AGENTS.md` and `docs/workflows/sbf_net_workflow_v1.md` only for workflow boundaries, startup order, and closeout rules; repo-specific facts should be sourced from the canonical docs above.
 
@@ -49,8 +51,8 @@ Use these questions to verify that the canonical docs set still answers the Phas
    - Expected answer anchors: `docs/canonical/sbf_facts.md` -> `## SBF vs Pointcept Boundary`; `docs/canonical/sbf_facts.md` -> `## Work Boundaries That Still Apply`
 2. Can I confirm the repository is still in `Stage-2 architecture rollout / verification phase`, that semantic-first boundary supervision is the active direction, and that the older geometric-field route is historical/reference evidence?
    - Expected answer anchors: `docs/canonical/sbf_facts.md` -> `## Current Stage-2 Status`; `docs/canonical/sbf_facts.md` -> `## Historical Mainline Semantics`
-3. Can I identify that `support-only (reg=1, cover=0.2) = 74.6` is the strongest current reference baseline, that `support-shape` is weaker side evidence only, and that Phase 6 is defining a support-guided semantic-first candidate route?
-   - Expected answer anchors: `docs/canonical/sbf_semantic_first_route.md` -> `## Current Reference Baseline`; `docs/canonical/sbf_semantic_first_route.md` -> `## Candidate Route`
+3. Can I identify that `support-only (reg=1, cover=0.2) = 74.6` is the strongest current reference baseline, that `support-shape` is weaker side evidence only, and that the support-guided semantic focus route is the active implementation route?
+   - Expected answer anchors: `docs/canonical/sbf_semantic_first_route.md` -> `## Current Reference Baseline`; `docs/canonical/sbf_semantic_first_route.md` -> `## Active Implementation Route`
 4. Can I find the experiment scoreboard and the current interpretation that `support-only (reg=1, cover=0.2) = 74.6` remains the best confirmed reference result while `axis-side` full-train is still unverified?
    - Expected answer anchors: `docs/canonical/sbf_facts.md` -> `## Evidence That Still Governs Future Work`; `docs/canonical/sbf_facts.md` -> `## Current Interpretation`
 5. Can I recover the only supported training entry, the required env vars, the stable runtime config role, the historical axis-side smoke/full-train commands, and the banned fallback patterns?

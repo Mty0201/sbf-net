@@ -38,10 +38,13 @@ Missing values should fail explicitly. Do not rely on implicit Pointcept-path or
   `support-only (reg=1, cover=0.2) = 74.6`
 - support-shape side evidence:
   weaker than the support-only baseline and not the semantic-first mainline
-- Phase 6 semantic-first candidate route:
-  `support-guided semantic focus route` documented in `docs/canonical/sbf_semantic_first_contract.md`
+- Active implementation route (Phase 7):
+  `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train.py`
+  Uses `SupportGuidedSemanticFocusLoss` and `SupportGuidedSemanticFocusEvaluator`.
+  Trains from scratch. Not yet full-train validated (Phase 8 scope).
+  See `docs/canonical/sbf_semantic_first_contract.md` for the route contract.
 
-The stable runtime entry remains unchanged. The axis-side and semantic-only configs remain auditable historical/reference paths, not the preferred current mainline. The current semantic-first design target is support-centric and support-only-first; do not rewrite that evidence as if support-shape or the candidate replacement route were already implemented or fully validated.
+The stable runtime entry remains unchanged. The support-guided semantic focus route is the active implementation route. The support-only config is the strongest reference baseline. Do not claim smoke/full-train validation that Phase 8 has not yet produced.
 
 ## 4. Command Pattern
 
@@ -79,8 +82,8 @@ If one of these conditions is not satisfied, the correct behavior is an explicit
 
 ## 6. Where To Look Next
 
-- [docs/canonical/sbf_semantic_first_contract.md](docs/canonical/sbf_semantic_first_contract.md): support-only-first candidate route contract for Phase 6
-- [docs/canonical/sbf_semantic_first_route.md](docs/canonical/sbf_semantic_first_route.md): support-only baseline and candidate-route definition
+- [docs/canonical/sbf_semantic_first_contract.md](docs/canonical/sbf_semantic_first_contract.md): active implementation route contract
+- [docs/canonical/sbf_semantic_first_route.md](docs/canonical/sbf_semantic_first_route.md): support-only baseline and active implementation route definition
 - [docs/canonical/sbf_training_guardrails.md](docs/canonical/sbf_training_guardrails.md): canonical guardrails and invalid-run patterns
 - [docs/canonical/sbf_facts.md](docs/canonical/sbf_facts.md): current Stage-2 and active-mainline facts
 - [install.md](install.md): environment setup reference
