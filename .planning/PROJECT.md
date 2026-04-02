@@ -2,31 +2,41 @@
 
 ## What This Is
 
-`semantic-boundary-field` is a brownfield research/training repository for SBF experiments that extends an external Pointcept checkout through project-local datasets, models, losses, evaluators, configs, and trainer wiring. The repository also contains a hand-built workflow layer for agent coordination and experiment continuity; the current project scope is to complete the cutover so GSD plus `.planning/` become the primary way future planning and execution happen in this repo.
+`semantic-boundary-field` is a brownfield research and training repository for SBF experiments that extends an external Pointcept checkout through project-local datasets, models, losses, evaluators, configs, and trainer wiring. The repository has now completed its workflow-control migration to `GSD` plus `.planning/`, while preserving repository-specific facts and training guardrails in canonical docs and retaining legacy workflow material only as historical archive.
 
 ## Core Value
 
 The repository must preserve correct, minimal, SBF-specific operational guidance while removing the hand-built orchestration layer as the default workflow control system.
 
-## Requirements
+## Current State
 
-### Validated
+- **Shipped milestone:** `v1.0` on 2026-04-02
+- **Workflow control path:** `GSD` -> `.planning/README.md` -> `.planning/PROJECT.md` -> `.planning/ROADMAP.md` -> `.planning/STATE.md`
+- **Canonical repo facts:** `docs/canonical/README.md`
+- **Legacy historical lookup:** `docs/archive/workflow-legacy/README.md`
+- **Milestone archives:** `.planning/milestones/`
+
+## Validated
 
 - ✓ The repo can run SBF training and smoke workflows against an external Pointcept checkout through `POINTCEPT_ROOT` and Python config entrypoints under `scripts/train/` and `configs/` — existing
 - ✓ The repo already contains the current Stage-2 training architecture and route-specific runtime pieces in `project/`, including the active `axis + side + support` mainline path — existing
 - ✓ The repo already enforces important training/config guardrails such as repository-bound runtime extensions, explicit dataset/config environment requirements, and no upstream Pointcept patching from the local project module path — existing
-- ✓ The repo already contains a substantial manual workflow/orchestration layer in `AGENTS.md`, `handoff/`, `project_memory/`, `reports/`, `.codex/agents/`, repo-local skills, and agent helper scripts that can now be treated as migration targets — existing
-- ✓ GSD tooling and initial codebase-map artifacts are present in `.codex/get-shit-done/` and `.planning/codebase/`, so the repository is ready to pivot to a GSD-centered workflow — existing
-- ✓ Minimal canonical SBF-specific guidance now exists under `docs/canonical/` for boundary rules, Stage-2/current-mainline facts, governing experiment evidence, and training/config guardrails — Phase 1
-- ✓ Default-facing docs and retained wrappers now route maintainers to GSD, local `.planning/`, and canonical guidance instead of an old parallel control path — Phase 2
-- ✓ The legacy workflow layer is now archived out of the default path, with historical material preserved under `docs/archive/workflow-legacy/` and live wrappers reduced to compatibility redirects — Phase 3
-- ✓ Future workflow planning and execution now route through GSD plus `.planning/` without relying on the archived workflow layer as the control plane — Phase 4
+- ✓ Minimal canonical SBF-specific guidance exists under `docs/canonical/` for boundary rules, Stage-2/current-mainline facts, governing experiment evidence, and training/config guardrails — v1.0
+- ✓ Default-facing docs and wrappers route maintainers to GSD, local `.planning/`, and canonical guidance instead of an old parallel control path — v1.0
+- ✓ Legacy workflow material is archived under `docs/archive/workflow-legacy/` and no longer serves as the active control plane — v1.0
+- ✓ Future workflow planning and execution route through GSD plus `.planning/` without relying on the archived workflow layer as the control plane — v1.0
 
-### Active
+## Active
 
-None.
+None. The next milestone has not been defined yet.
 
-### Out of Scope
+## Next Milestone Goals
+
+- Decide whether to address accepted workflow debt first or return to repository feature and verification work.
+- If workflow debt is prioritized, evaluate Nyquist validation coverage and canonical provenance cleanup.
+- If feature work resumes, define the next milestone explicitly with new requirements instead of reusing archived `v1.0` scope.
+
+## Out of Scope
 
 - New model architecture work or feature-development on SBF training routes — this phase is workflow migration only
 - Pointcept runtime, registry, trainer, or dataset protocol redesign outside this repository's allowed extension boundary — preserve host boundary
@@ -35,13 +45,15 @@ None.
 
 ## Context
 
-The repository is a brownfield ML research codebase executed locally through Python and Conda, with Pointcept treated as an external dependency rather than something vendored or edited in place. Training/runtime behavior is assembled from Python config fragments in `configs/`, launched from `scripts/train/train.py`, and implemented through project-local registry extensions in `project/`.
+The repository remains a brownfield ML research codebase executed locally through Python and Conda, with Pointcept treated as an external dependency rather than something vendored or edited in place. Training and runtime behavior are still assembled from Python config fragments in `configs/`, launched from `scripts/train/train.py`, and implemented through project-local registry extensions in `project/`.
 
-The current technical guardrails that must survive the workflow migration are repository-specific rather than orchestration-specific: SBF vs Pointcept boundary rules, Stage-2 current-mainline facts, experiment conclusions that still matter for future work, and training/config entrypoint rules that prevent invalid runs or accidental misuse.
+The workflow migration milestone is complete. The active control path is now small and explicit, while repository-specific knowledge remains separated from workflow policy:
 
-The repository also accumulated a second, manual workflow subsystem in `AGENTS.md`, `handoff/`, `project_memory/`, `reports/`, `.codex/agents/`, repo-local orchestration skills, and related scripts. That subsystem was built mainly to fight context pollution and coordinate agent work by hand. Phase 3 archived or demoted that layer so GSD is now the clear default entry, with the archive preserved only for historical lookup. Phase 4 completes the cutover by making `.planning/README.md`, `.planning/PROJECT.md`, `.planning/ROADMAP.md`, `.planning/STATE.md`, and active phase records under `.planning/phases/` the explicit repository-local operating path.
+- workflow control in `.planning/`
+- canonical SBF facts and guardrails in `docs/canonical/`
+- historical workflow continuity in `docs/archive/workflow-legacy/`
 
-The preferred migration posture is a clean cut where practical: physically archive legacy workflow scaffolding out of the default path, keep only thin wrappers when needed for compatibility, and avoid leaving legacy material in place as the active control plane.
+The current post-migration posture is to keep that separation intact while defining the next milestone.
 
 ## Constraints
 
@@ -60,6 +72,7 @@ The preferred migration posture is a clean cut where practical: physically archi
 | Minimal canonical guidance must remain repository-specific | SBF/Pointcept boundaries, current-mainline architecture facts, experiment evidence, and training/config guardrails still matter for safe future work | Phases 1-3 kept canonical docs active while moving workflow history into the archive |
 | Prefer physical archival over soft deprecation where practical | A clean cut is less ambiguous than leaving legacy material in default-facing paths | Phase 3 moved legacy continuity trees, manual tooling, and wrapper bodies into `docs/archive/workflow-legacy/` |
 | Thin wrappers are allowed only for compatibility or transition | Any remaining wrappers must be minimal and must point to GSD rather than reintroduce manual orchestration | Phase 2 reduced retained wrappers to redirect-only compatibility surfaces |
+| Live planning artifacts should stay milestone-scoped and compact | Archived roadmap and requirements history should not bloat the default control surface for future work | `v1.0` was moved into `.planning/milestones/`, leaving live `.planning/ROADMAP.md` ready for the next milestone |
 
 ## Evolution
 
@@ -79,4 +92,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-02 after Phase 4 completion*
+*Last updated: 2026-04-02 after v1.0 milestone completion*

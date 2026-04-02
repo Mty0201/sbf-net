@@ -1,94 +1,11 @@
 # Roadmap: semantic-boundary-field
 
-## Overview
+## Milestones
 
-This migration first extracts the minimum SBF-specific operational knowledge into canonical guidance, then flips the repository's default workflow surfaces to GSD, archives the hand-built orchestration layer out of the default path, and finishes with a clean control-plane cutover where future planning and execution happen through GSD and `.planning/`.
+- [x] [`v1.0` workflow migration](/home/mty0201/Pointcept/semantic-boundary-field/.planning/milestones/v1.0-ROADMAP.md) - shipped 2026-04-02, 4 phases, 12 plans, GSD plus `.planning/` cutover complete
 
-## Phases
+## Current Status
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+No active milestone is defined.
 
-Decimal phases appear between their surrounding integers in numeric order.
-
-- [x] **Phase 1: Canonical SBF Guidance** - Preserve the minimum SBF-specific rules, facts, evidence, and training guardrails outside the legacy workflow scaffolding.
-- [x] **Phase 2: GSD Default Entry** - Make the repository's default-facing docs and thin wrappers point to GSD first.
-- [x] **Phase 3: Legacy Workflow Archival** - Archive the manual orchestration surfaces out of the default workflow path while keeping useful history discoverable.
-- [x] **Phase 4: Workflow Control Cutover** - Complete the transition so planning and execution proceed through GSD artifacts instead of the legacy control plane.
-
-## Phase Details
-
-### Phase 1: Canonical SBF Guidance
-**Goal**: Maintainers can find the minimum SBF-specific boundary rules, active architecture facts, experiment evidence, and training guardrails without relying on archived workflow scaffolding.
-**Depends on**: Nothing (first phase)
-**Requirements**: GUID-01, GUID-02, GUID-03, GUID-04
-**Success Criteria** (what must be TRUE):
-  1. Maintainer can find the SBF-vs-Pointcept boundary rules in a minimal canonical guide.
-  2. Maintainer can confirm the current Stage-2 status and the active `axis + side + support` mainline facts without opening archived workflow files.
-  3. Maintainer can find the experiment evidence and conclusions that still govern future work in canonical guidance.
-  4. Maintainer can find the training entrypoint, config usage rules, and guardrails needed to avoid invalid runs in canonical guidance.
-**Plans**: 3 plans
-
-Plans:
-- [x] `01-01-PLAN.md` — Create the canonical facts/evidence source for repository boundary rules and current Stage-2 conclusions.
-- [x] `01-02-PLAN.md` — Create the canonical training guardrails source for entrypoints, configs, and fail-fast runtime rules.
-- [x] `01-03-PLAN.md` — Create the canonical guidance index and slim `AGENTS.md` plus the formal workflow doc to point to it.
-
-### Phase 2: GSD Default Entry
-**Goal**: Maintainers encounter GSD as the primary workflow system when they enter the repository through default-facing docs and thin wrappers.
-**Depends on**: Phase 1
-**Requirements**: FLOW-02, COMP-01
-**Success Criteria** (what must be TRUE):
-  1. Default-facing workflow docs identify GSD as the primary planning and execution system for the repository.
-  2. Any retained thin wrapper doc redirects maintainers to GSD instead of duplicating legacy orchestration logic.
-  3. A maintainer following the repository's default workflow entry no longer gets sent to a parallel hand-built control path.
-**Plans**: 3 plans
-
-Plans:
-- [x] `02-01-PLAN.md` — Rewrite root-facing repository docs so maintainers encounter GSD and canonical guidance first.
-- [x] `02-02-PLAN.md` — Reframe `AGENTS.md` and the formal workflow doc as GSD-first control surfaces with preserved Stage-2 guardrails.
-- [x] `02-03-PLAN.md` — Reduce retained thin wrappers and compatibility docs to explicit redirect-only legacy surfaces.
-
-### Phase 3: Legacy Workflow Archival
-**Goal**: Legacy orchestration scaffolding is archived or removed from the default path while useful historical knowledge remains discoverable.
-**Depends on**: Phase 2
-**Requirements**: LEGC-01, LEGC-02, LEGC-03, LEGC-04, COMP-02
-**Success Criteria** (what must be TRUE):
-  1. `.codex/agents/`, `handoff/`, and `project_memory/` are archived or otherwise removed from the default workflow path.
-  2. Repo-local skills, wrapper docs, hooks, and routing scripts whose main purpose was manual orchestration are archived or removed from active workflow surfaces.
-  3. Any legacy workflow material that remains in place is clearly labeled as archived or non-default when opened.
-  4. Useful technical project knowledge that is no longer part of the default workflow remains archived and discoverable instead of being lost.
-**Plans**: 4 plans
-
-Plans:
-- [x] `03-01-PLAN.md` — Create the archive framework and migration map before physical moves begin.
-- [x] `03-02-PLAN.md` — Archive the handoff and project-memory continuity trees while preserving history.
-- [x] `03-03-PLAN.md` — Archive legacy Codex-side orchestration tooling and record the retained GSD runtime subset.
-- [x] `03-04-PLAN.md` — Archive remaining wrapper bodies and reduce live wrappers to redirect-only compatibility surfaces.
-
-### Phase 4: Workflow Control Cutover
-**Goal**: Maintainers can run future repository planning and execution through GSD and the `.planning/` control surface without using the legacy workflow layer as the control plane.
-**Depends on**: Phase 3
-**Requirements**: FLOW-01, FLOW-03
-**Success Criteria** (what must be TRUE):
-  1. Maintainer can start repository planning and execution from a GSD-first default entry without consulting the legacy hand-built workflow layer.
-  2. Maintainer can move from entry to active planning artifacts under `.planning/` without relying on `handoff/` or `project_memory` as the control plane.
-  3. Future workflow planning for this repository can proceed through GSD artifacts and commands as the default operating path.
-**Plans**: 2 plans
-
-Plans:
-- [x] `04-01-PLAN.md` — Create the `.planning` operating guide and align the core planning artifacts to serve as the repository control plane.
-- [x] `04-02-PLAN.md` — Route default-facing workflow docs and compatibility wrappers through the `.planning` control surface.
-
-## Progress
-
-**Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Canonical SBF Guidance | 3/3 | Complete | 2026-04-02 |
-| 2. GSD Default Entry | 3/3 | Complete | 2026-04-02 |
-| 3. Legacy Workflow Archival | 4/4 | Complete | 2026-04-02 |
-| 4. Workflow Control Cutover | 2/2 | Complete | 2026-04-02 |
+Start the next milestone with `$gsd-new-milestone`.
