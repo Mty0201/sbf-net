@@ -4,7 +4,7 @@
 
 This document defines the evidence-aligned semantic-first route selection rules for milestone `v1.1`.
 
-As of Phase 7, the candidate route is implemented as the active implementation route. It is not yet full-train validated (Phase 8 scope). This document records:
+As of Phase 8, the candidate route is implemented and locally smoke-validated. Local validation confirms the route runs correctly (non-NaN losses, gradient flow, focus activation). Full-train validation is pending — see `docs/canonical/sbf_validation_and_experiment_handoff.md` for the experiment handoff. This document records:
 
 - the strongest current semantic-first reference baseline
 - the weaker side evidence that should not be promoted to the new mainline
@@ -42,6 +42,13 @@ The route explicitly prohibits these as mainline supervision targets:
 - no distance target
 - no coherence target that recreates geometric pressure indirectly
 - no ordinal shape pressure as the mainline objective
+
+## Validation Status
+
+- **Local smoke validation:** Complete (Phase 8). Confirms forward/backward/optimizer pass, non-NaN losses, focus activation.
+- **Full-train validation:** Not started. The comparison target is the support-only baseline (val_mIoU = 74.6).
+- **Evidence boundary:** Local validation proves "runs correctly." It does NOT prove "works well" or claim any performance improvement.
+- **Handoff:** `docs/canonical/sbf_validation_and_experiment_handoff.md`
 
 ## Route-Selection Rules
 

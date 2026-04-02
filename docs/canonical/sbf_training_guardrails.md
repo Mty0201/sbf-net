@@ -43,7 +43,7 @@ Use the configs with these roles in mind:
 - **Active implementation route** (Phase 7, support-guided semantic focus):
   `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train.py`
   Uses `SharedBackboneSemanticSupportModel`, `SupportGuidedSemanticFocusLoss`, `SupportGuidedSemanticFocusEvaluator`.
-  Trains from scratch (`weight = None`, `resume = False`). Not yet full-train validated (Phase 8 scope).
+  Trains from scratch (`weight = None`, `resume = False`). Locally smoke-validated (Phase 8). Full-train validation pending.
   Do not change `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py` — it is the stable entry, not the active route.
 
 - **Historical reference configs** (evidence only):
@@ -130,3 +130,16 @@ The following warnings must remain visible to maintainers:
 
 If one of these conditions is not satisfied, the correct behavior is an explicit failure rather
 than a compatibility shortcut.
+
+## Evidence Boundary
+
+Phase 8 local validation confirms the active route runs correctly:
+- Model forward produces `seg_logits` and `support_pred`
+- All three loss terms (`loss_semantic`, `loss_support`, `loss_focus`) are non-NaN
+- Backward pass and optimizer step succeed
+- Focus weighting activates in boundary regions
+
+**This is NOT full-train validation.** No performance claims are valid until the active route config is run in a full-training environment and compared against the support-only baseline (val_mIoU = 74.6). Do not cite local smoke results as evidence of improved semantic performance.
+
+Validation script: `scripts/train/check_active_route_train_step.py`
+Experiment handoff: `docs/canonical/sbf_validation_and_experiment_handoff.md`
