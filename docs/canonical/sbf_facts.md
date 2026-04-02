@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document is the canonical, repo-local source for the minimum SBF-specific facts that must survive workflow cleanup. It records the SBF-vs-Pointcept boundary, the current Stage-2 status, the active `axis + side + support` mainline semantics, the work boundaries that still apply, and the experiment evidence that still governs future work.
+This document is the canonical, repo-local source for the minimum SBF-specific facts that must survive workflow cleanup. It records the SBF-vs-Pointcept boundary, the current Stage-2 status, the active semantic-first boundary supervision direction, the historical geometric-field semantics that remain relevant as evidence, the work boundaries that still apply, and the experiment evidence that still governs future work.
 
 It is intentionally not a workflow document. A maintainer should be able to recover the core repository facts here without opening archived `project_memory/`, archived `handoff/`, or other workflow-state files.
 
@@ -18,12 +18,13 @@ It is intentionally not a workflow document. A maintainer should be able to reco
 ## Current Stage-2 Status
 
 - The repository is in `Stage-2 architecture rollout / verification phase`.
-- The active mainline is `axis + side + support`.
-- The active validation center is `semseg-pt-v3m1-0-base-bf-edge-axis-side-train` plus its smoke config.
+- The active direction is semantic-first boundary supervision.
+- Explicit geometric-field supervision is not the preferred mainline for milestone `v1.1`.
+- The previous `support`, `axis-side`, and `axis + side + support` routes remain historical/reference evidence only.
 - In current author shorthand, `magnitude` means `support`; it does not mean a separate landed branch.
-- The current Stage-2 goal is to replace the old explicit signed-direction formulation with the `axis + side + support` expression, not to reopen a broad support-parameter sweep.
+- The current Stage-2 goal is to define and implement a boundary-aware semantic supervision route without restating the historical geometric-field branches as the active path.
 
-## Active Mainline Semantics
+## Historical Mainline Semantics
 
 - `edge_pred = [axis(3), side_logit(1), support_logit(1)]`.
 - The model interface still exposes `seg_logits / edge_pred`, and `edge_pred` remains a 5-channel tensor.
@@ -31,11 +32,14 @@ It is intentionally not a workflow document. A maintainer should be able to reco
 - `side` supervision is derived at runtime from the historical direction ground truth; no extra sidecar label file is introduced for the mainline.
 - `dist` stays in ground truth for validity-domain checks and historical comparison, but `dist` is not an independent predicted channel on the current mainline.
 
+These semantics remain important for auditing landed code and interpreting older experiments, but they are not the preferred active route for milestone `v1.1`.
+
 ## Work Boundaries That Still Apply
 
 - Stay inside `semantic-boundary-field`; do not modify code outside this repository without explicit authorization.
 - Do not rewrite Pointcept registry, trainer, dataset, or host protocol behavior as part of SBF mainline work.
-- Do not overstate validation status: the `axis-side` route is implemented, but implementation alone is not proof of full-train success.
+- Do not overstate validation status: the semantic-first direction is the active milestone target, but it is not yet implemented or full-train verified.
+- Do not overstate historical route status: the `axis-side` route is implemented, but implementation alone is not proof of full-train success.
 - Prefer exposing real architectural or supervision problems over masking them with compatibility patches.
 - Treat historical signed-direction runs as evidence and comparison routes, not as the active mainline semantics.
 
@@ -49,7 +53,8 @@ It is intentionally not a workflow document. A maintainer should be able to reco
 
 ## Current Interpretation
 
-- `support-only (reg=1, cover=0.2) = 74.6` is the best confirmed result so far.
+- `support-only (reg=1, cover=0.2) = 74.6` is the best confirmed reference result so far.
+- Semantic-first boundary supervision is the active repository direction, but the replacement route is still pending later milestone phases rather than already landed in runtime/config.
 - The old signed-direction supervision route remains a failure/reference route rather than the current mainline.
 - `axis-side` smoke has passed, but `axis-side` full-train remains unverified.
 - The current rollout should be judged against the existing evidence above instead of being described as already validated end-to-end.
@@ -60,11 +65,11 @@ It is intentionally not a workflow document. A maintainer should be able to reco
 | Fact or rule | Source file path(s) used |
 | --- | --- |
 | SBF vs Pointcept boundary rules, read-only host posture, and no-fallback guardrail | `AGENTS.md`; `docs/pointcept_boundary.md` |
-| Current stage label `Stage-2 architecture rollout / verification phase`, active `axis + side + support` mainline, and `magnitude` = `support` terminology | `AGENTS.md`; `docs/archive/workflow-legacy/project_memory/current_state.md` |
-| Mainline tensor semantics, `edge_pred = [axis(3), side_logit(1), support_logit(1)]`, six-column `edge.npy`, and `dist` not being a predicted channel | `docs/archive/workflow-legacy/project_memory/01_current_architecture.md` |
-| Confirmed result `semantic-only = 73.8` | `AGENTS.md`; `docs/archive/workflow-legacy/project_memory/current_state.md` |
-| Confirmed result `support-only (reg=1, cover=0.2) = 74.6` | `AGENTS.md`; `docs/archive/workflow-legacy/project_memory/current_state.md` |
-| Confirmed result `support + dir + dist = 71` | `AGENTS.md`; `docs/archive/workflow-legacy/project_memory/current_state.md` |
+| Current stage label `Stage-2 architecture rollout / verification phase`, active semantic-first direction, historical/reference status of `axis + side + support`, and `magnitude` = `support` terminology | `.planning/PROJECT.md`; `.planning/ROADMAP.md`; `.planning/STATE.md`; `AGENTS.md`; `docs/archive/workflow-legacy/project_memory/current_state.md` |
+| Historical tensor semantics, `edge_pred = [axis(3), side_logit(1), support_logit(1)]`, six-column `edge.npy`, and `dist` not being a predicted channel | `docs/archive/workflow-legacy/project_memory/01_current_architecture.md` |
+| Confirmed result `semantic-only = 73.8` | `docs/archive/workflow-legacy/project_memory/current_state.md` |
+| Confirmed result `support-only (reg=1, cover=0.2) = 74.6` | `docs/archive/workflow-legacy/project_memory/current_state.md` |
+| Confirmed result `support + dir + dist = 71` | `docs/archive/workflow-legacy/project_memory/current_state.md` |
 | Confirmed result `Stage-2 v1 best 71.34 / final 68.31` | `docs/archive/workflow-legacy/project_memory/current_state.md`; `docs/archive/workflow-legacy/project_memory/01_current_architecture.md` |
 | Confirmed result `Stage-2 v2 best 72.38` | `docs/archive/workflow-legacy/project_memory/current_state.md`; `docs/archive/workflow-legacy/project_memory/01_current_architecture.md` |
 | `axis-side` smoke status and the fact that smoke evidence exists separately from full-train validation | `reports/log_summaries/semantic_boundary_axis_side_train_smoke_train.summary.md` |

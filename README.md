@@ -26,8 +26,11 @@ Repository-specific facts are not maintained in this README. For current SBF-vs-
 ## Current Technical Context
 
 - Current stage: `Stage-2 architecture rollout / verification phase`
-- Active mainline expression: `axis + side + support`
-- Current verification focus: `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train.py` and its smoke config
+- Active direction: semantic-first boundary supervision
+- Explicit geometric-field supervision is not the preferred mainline for milestone `v1.1`
+- Historical/reference evidence still includes `support`, `axis-side`, and the prior `axis + side + support` route, but those references do not describe the current active direction
+
+The replacement semantic-first route is the current milestone target, not an already implemented or fully validated runtime path.
 
 Those facts are canonicalized in [docs/canonical/sbf_facts.md](docs/canonical/sbf_facts.md) and indexed from [docs/canonical/README.md](docs/canonical/README.md).
 
@@ -41,7 +44,7 @@ Those facts are canonicalized in [docs/canonical/sbf_facts.md](docs/canonical/sb
 ## Repository Layout
 
 - `project/`: project-local datasets, transforms, models, losses, evaluator, and trainer
-- `configs/`: SBF configs, including the current axis-side verification configs
+- `configs/`: SBF configs, including stable runtime entry and historical reference configs
 - `scripts/`: runnable entrypoints, including `scripts/train/train.py`
 - `docs/`: canonical guidance, workflow references, and technical notes
 

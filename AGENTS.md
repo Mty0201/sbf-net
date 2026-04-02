@@ -26,9 +26,10 @@ Do not treat `handoff/`, `project_memory/`, context packets, `.codex/agents/`, r
 ## Current Stage Boundary
 
 - Current stage: `Stage-2 architecture rollout / verification phase`
-- Active mainline expression: `axis + side + support`
+- Active direction: semantic-first boundary supervision
 - In current code/document sync, the author's spoken `magnitude` maps to `support`; do not rewrite it as a separate landed branch
-- Current validation center: `semseg-pt-v3m1-0-base-bf-edge-axis-side-train` and its smoke config
+- Explicit geometric-field supervision is not the preferred mainline for milestone `v1.1`
+- Historical/reference routes still include `support`, `axis-side`, and the prior `axis + side + support` expression as evidence-only comparisons; do not restate them as the active route
 - Repository facts, experiment evidence, and runtime guardrails are canonicalized in `docs/canonical/README.md`, `docs/canonical/sbf_facts.md`, and `docs/canonical/sbf_training_guardrails.md`
 
 ## Canonical Repository Guidance
@@ -36,7 +37,7 @@ Do not treat `handoff/`, `project_memory/`, context packets, `.codex/agents/`, r
 Use the canonical docs set for repository-specific knowledge:
 
 - `docs/canonical/README.md`: entry index for SBF facts, evidence, and guardrails
-- `docs/canonical/sbf_facts.md`: SBF-vs-Pointcept boundary rules, Stage-2 status, active mainline semantics, and governing experiment evidence
+- `docs/canonical/sbf_facts.md`: SBF-vs-Pointcept boundary rules, Stage-2 status, active semantic-first direction, and governing experiment evidence
 - `docs/canonical/sbf_training_guardrails.md`: training entrypoint, config roles, command patterns, and fail-fast runtime rules
 
 Workflow control belongs to `GSD`, `.planning/README.md`, and the active `.planning/` artifacts. Repository facts belong to the canonical docs set above.
