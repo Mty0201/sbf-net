@@ -33,6 +33,7 @@ Those facts are canonicalized in [docs/canonical/sbf_facts.md](docs/canonical/sb
 - [install.md](install.md): environment and Pointcept setup only
 - [train.md](train.md): training entrypoint, config usage, and runtime command patterns
 - [docs/canonical/README.md](docs/canonical/README.md): canonical SBF facts, evidence, and guardrails
+- [docs/archive/workflow-legacy/README.md](docs/archive/workflow-legacy/README.md): legacy reference only for archived workflow material
 
 ## Repository Layout
 

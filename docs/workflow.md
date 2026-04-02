@@ -1,13 +1,13 @@
 # DEVELOPMENT_WORKFLOW
 
-> Legacy reference only. Default workflow entry is now `GSD` plus `.planning/PROJECT.md`, `.planning/ROADMAP.md`, and `.planning/STATE.md`. This file remains only as a redirect for old links.
+> Legacy reference only. This file remains only as a redirect for old links.
 
-## Redirect Map
+Use these active surfaces instead:
 
-- Active workflow control: `GSD` and local `.planning/` artifacts
-- Repository guardrails: `AGENTS.md`
-- Repository-specific facts and training guardrails: `docs/canonical/README.md`
-- Formal lifecycle reference: `docs/workflows/sbf_net_workflow_v1.md`
-- Thin compatibility wrappers: `CLAUDE.md` and `handoff/chat_entry.md`
+1. `GSD`
+2. `.planning/PROJECT.md`
+3. `.planning/ROADMAP.md`
+4. `.planning/STATE.md`
+5. `docs/workflows/sbf_net_workflow_v1.md`
 
-Do not rebuild or maintain a separate workflow-control path here.
+Archived historical wrapper text moved to `docs/archive/workflow-legacy/wrappers/docs-workflow.md`.

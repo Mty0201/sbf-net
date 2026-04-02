@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file is a compatibility-only thin wrapper for Claude-facing entry points. Do not maintain a second workflow here.
+> Legacy reference only. This file is a compatibility wrapper, not a workflow-control surface.
 
 ## Default Entry
 
@@ -12,10 +12,8 @@ For active repository work, start with:
 4. `.planning/STATE.md`
 5. `docs/canonical/README.md`
 
-## Compatibility Notes
+## Compatibility Note
 
-- Use `handoff/chat_entry.md` only when a new window or web handoff needs a thin redirect surface
-- Use `handoff/web_to_agent_contract.md` only when exchanging a structured web-to-local handoff
-- Use `CLAUDE_AGENTS.md` only if an old thread explicitly references historical Claude role terminology
+Historical Claude-facing wrapper material is archived in `docs/archive/workflow-legacy/README.md`.
 
-Everything else should follow the GSD-first path above.
+Use this file only as a redirect for old links.
