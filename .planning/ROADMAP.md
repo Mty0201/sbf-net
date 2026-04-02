@@ -12,7 +12,7 @@ This migration first extracts the minimum SBF-specific operational knowledge int
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Canonical SBF Guidance** - Preserve the minimum SBF-specific rules, facts, evidence, and training guardrails outside the legacy workflow scaffolding.
+- [x] **Phase 1: Canonical SBF Guidance** - Preserve the minimum SBF-specific rules, facts, evidence, and training guardrails outside the legacy workflow scaffolding.
 - [ ] **Phase 2: GSD Default Entry** - Make the repository's default-facing docs and thin wrappers point to GSD first.
 - [ ] **Phase 3: Legacy Workflow Archival** - Archive the manual orchestration surfaces out of the default workflow path while keeping useful history discoverable.
 - [ ] **Phase 4: Workflow Control Cutover** - Complete the transition so planning and execution proceed through GSD artifacts instead of the legacy control plane.
@@ -32,8 +32,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] `01-01-PLAN.md` — Create the canonical facts/evidence source for repository boundary rules and current Stage-2 conclusions.
-- [ ] `01-02-PLAN.md` — Create the canonical training guardrails source for entrypoints, configs, and fail-fast runtime rules.
-- [ ] `01-03-PLAN.md` — Create the canonical guidance index and slim `AGENTS.md` plus the formal workflow doc to point to it.
+- [x] `01-02-PLAN.md` — Create the canonical training guardrails source for entrypoints, configs, and fail-fast runtime rules.
+- [x] `01-03-PLAN.md` — Create the canonical guidance index and slim `AGENTS.md` plus the formal workflow doc to point to it.
 
 ### Phase 2: GSD Default Entry
 **Goal**: Maintainers encounter GSD as the primary workflow system when they enter the repository through default-facing docs and thin wrappers.
@@ -73,7 +73,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Canonical SBF Guidance | 1/3 | In Progress | - |
+| 1. Canonical SBF Guidance | 3/3 | Complete | 2026-04-02 |
 | 2. GSD Default Entry | 0/TBD | Not started | - |
 | 3. Legacy Workflow Archival | 0/TBD | Not started | - |
 | 4. Workflow Control Cutover | 0/TBD | Not started | - |
