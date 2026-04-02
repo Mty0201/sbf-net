@@ -20,7 +20,7 @@ Default planning and execution entry:
 5. the active plan or summary under `.planning/phases/`
 6. `docs/canonical/README.md` for repository-specific facts and training guardrails
 
-Do not treat `handoff/`, `project_memory/`, context packets, or legacy wrapper docs as the default control plane.
+Do not treat `handoff/`, `project_memory/`, context packets, `claude/`, or legacy wrapper docs as the default control plane.
 
 ## Current Stage Boundary
 
@@ -40,18 +40,26 @@ Use the canonical docs set for repository-specific knowledge:
 
 Workflow control belongs to GSD and `.planning/`. Repository facts belong to the canonical docs set above.
 
-## Non-Default Continuity Surfaces
+## Legacy Archive
 
-These surfaces may still be useful, but they are no longer the default operating path:
+Legacy workflow material is being archived under `docs/archive/workflow-legacy/`.
 
-- `project_memory/current_state.md` and current `TASK-*.md`: continuity for pre-migration task threads
-- `handoff/chat_entry.md`: thin compatibility wrapper for new-window or web handoff entry
-- `handoff/web_to_agent_contract.md`: structured web-to-local handoff format
-- `handoff/latest_round.md`: recent closeout summary, not the control plane
-- `reports/log_summaries/`, `reports/context_packets/`, `reports/round_updates/`, `reports/workflow_smokes/`: checkpoint artifacts, not canonical facts or workflow control
-- `docs/workflow.md`, `CLAUDE_AGENTS.md`, `handoff/handoff_for_chat.md`: compatibility-only legacy references
+Use:
 
-If a task specifically depends on a legacy continuity surface, read it narrowly and only after checking the GSD and canonical entry path above.
+- `docs/archive/workflow-legacy/README.md` for the archive landing page
+- `docs/archive/workflow-legacy/ARCHIVE_MAP.md` for old-path to archived-path mapping
+
+Archived or archive-bound material includes:
+
+- `handoff/`
+- `project_memory/`
+- repo-specific orchestration helpers under `scripts/agent/`
+- mirrored legacy guides under `claude/`
+- legacy wrapper docs such as `START_HERE.md`, `MEMORY_RULES.md`, `docs/agents.md`, `docs/workflow.md`, and `CLAUDE_AGENTS.md`
+
+Checkpoint artifacts under `reports/` may still be used as evidence when a task needs them, but they are not canonical facts or workflow control.
+
+If you need legacy continuity material, check the archive after the GSD and canonical entry path above.
 
 ## Guardrails
 

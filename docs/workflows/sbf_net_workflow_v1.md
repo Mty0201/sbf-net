@@ -13,7 +13,7 @@ Use this order when entering active work:
 5. the active plan or summary under `.planning/phases/`
 6. `docs/canonical/README.md` for repository-specific facts, Stage-2 status, experiment evidence, and training guardrails
 
-`project_memory/`, `handoff/`, and checkpoint artifacts may still be read when a task explicitly depends on them, but they are not the default planning/execution entry anymore.
+`project_memory/`, `handoff/`, `claude/`, and checkpoint artifacts are not the default planning/execution entry. Legacy workflow lookup belongs in `docs/archive/workflow-legacy/ARCHIVE_MAP.md`.
 
 ## Repository Layers
 
@@ -31,18 +31,15 @@ Use this order when entering active work:
 - `AGENTS.md`: repo boundary, GSD-first entry, and guardrails
 - `docs/workflows/sbf_net_workflow_v1.md` (this file): lifecycle, handoff, and closeout rules
 
-### Continuity and transition surfaces
+### Legacy archive lookup
 
-- `project_memory/current_state.md` and current `TASK-*.md`: legacy continuity for active pre-migration threads
-- `handoff/chat_entry.md`: thin compatibility entry for new-window or web handoff situations
-- `handoff/web_to_agent_contract.md`: structured web-to-local handoff contract
-- `handoff/latest_round.md`: recent synchronized closeout summary
+- `docs/archive/workflow-legacy/README.md`: archive landing page
+- `docs/archive/workflow-legacy/ARCHIVE_MAP.md`: old-path to archived-path map
+- archived continuity material: `handoff/`, `project_memory/`, `claude/`, repo-local orchestration helpers, and legacy entry docs
 
-### Compatibility-only legacy references
+### Compatibility-only survivors
 
-- `docs/workflow.md`
-- `CLAUDE_AGENTS.md`
-- `handoff/handoff_for_chat.md`
+- any retained wrapper doc must be minimal, explicitly non-default, and point back to GSD plus the archive
 
 ### Checkpoint artifacts
 
@@ -102,8 +99,8 @@ Closeout requires more than a checkpoint:
 
 ### Web to local agent
 
-- Prefer a single structured handoff that follows `handoff/web_to_agent_contract.md`
-- Use `handoff/chat_entry.md` only as a thin compatibility wrapper, not as a full workflow spec
+- Prefer a single structured handoff that follows the archived `handoff/web_to_agent_contract.md` location mapped by `docs/archive/workflow-legacy/ARCHIVE_MAP.md`
+- Use any retained handoff wrapper only as a thin compatibility redirect, not as a full workflow spec
 - Do not use long free-form web text as the default execution entry
 
 ### Local planning to implementation
@@ -135,5 +132,5 @@ Start a new task when:
 
 - Repository-specific facts, evidence, and training guardrails belong in `docs/canonical/README.md` and its linked canonical docs
 - Workflow boundaries and lifecycle rules belong in `AGENTS.md` and this file
-- Current continuity state may remain in `project_memory/current_state.md`, current `TASK-*.md`, and `handoff/latest_round.md` while migration is still in progress
+- Historical continuity state should live in the legacy archive rather than in active root workflow surfaces once Phase 3 is complete
 - Compatibility docs should redirect, not reintroduce an independent workflow-control path
