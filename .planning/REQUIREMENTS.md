@@ -21,7 +21,7 @@ Requirements for milestone `v1.1 semantic-first boundary supervision pivot`. Eac
 ### Validation
 
 - [x] **VAL-01**: A repo-local smoke or sample validation path exists for the new semantic-first supervision route and confirms the modified path runs successfully.
-- [ ] **VAL-02**: The milestone records the expected comparison baseline and the next full-train experiment direction for a separate environment.
+- [x] **VAL-02**: The milestone records the expected comparison baseline and the next full-train experiment direction for a separate environment.
 
 ### Compatibility And Guardrails
 
@@ -60,7 +60,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUX-02 | Phase 6 | Complete |
 | AUX-03 | Phase 7 | Complete |
 | VAL-01 | Phase 8 | Complete |
-| VAL-02 | Phase 8 | Pending |
+| VAL-02 | Phase 8 | Complete |
 | COMP-03 | Phase 7 | Complete |
 | COMP-04 | Phase 8 | Complete |
 
