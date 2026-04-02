@@ -1,44 +1,32 @@
 # Install
 
-This document describes how to prepare SBF-Net on top of Pointcept.  
-本文档说明如何在 Pointcept 之上准备 SBF-Net。
+This file is a runtime setup reference. Default planning and execution for this repository start with GSD and `.planning/`, not with the install guide. For repository-specific rules and current technical status, read [docs/canonical/README.md](docs/canonical/README.md).
 
 ## 1. Pointcept Is Required
 
-SBF-Net is not a standalone replacement for Pointcept.
+`semantic-boundary-field` is not a standalone replacement for Pointcept.
 
-You must prepare Pointcept first, because SBF-Net reuses Pointcept for:
+Prepare Pointcept first. This repository reuses Pointcept for:
 
 - PTv3 backbone implementation
 - point structure utilities
-- dataset and transform registries
+- registry and runtime interfaces
 
-SBF-Net only provides the project-specific incremental code.
+The maintenance boundary stays the same: this repository contains the SBF-specific code, while Pointcept remains an external host dependency.
 
-## 2. Recommended Setup
-
-Recommended workspace layout:
+## 2. Recommended Layout
 
 ```text
 workspace/
 ├── Pointcept/
-└── SBF-Net/
+└── semantic-boundary-field/
 ```
 
-This layout is recommended but not mandatory. If the two repositories are not placed side by side, pass `--pointcept-root /path/to/Pointcept` when running SBF-Net commands.
+If the repositories are not side by side, pass `--pointcept-root /path/to/Pointcept` when running commands.
 
-A typical setup sequence is:
+## 3. Environment
 
-```bash
-git clone <your-pointcept-repo> Pointcept
-git clone <your-sbf-net-repo> SBF-Net
-cd SBF-Net
-conda activate ptv3
-```
-
-## 3. Conda Environment
-
-Use the same environment as Pointcept.
+Use the same Conda environment as Pointcept.
 
 Recommended environment name:
 
@@ -58,18 +46,7 @@ Or run commands directly with:
 conda run --no-capture-output -n ptv3 <command>
 ```
 
-## 4. Pointcept Installation Note
-
-This document does not duplicate the full Pointcept installation guide.
-
-Before using SBF-Net, make sure:
-
-- Pointcept is available on disk
-- Pointcept dependencies are already installed
-- the Pointcept environment can import `torch`
-- the Pointcept environment can import `pointcept`
-
-## 5. Required Environment Variables
+## 4. Required Inputs
 
 Set the Pointcept root:
 
@@ -88,24 +65,11 @@ Expected BF split names:
 - `training`
 - `validation`
 
-Dataset format details are in [docs/data_format.md](docs/data_format.md).
+Dataset format details remain in [docs/data_format.md](docs/data_format.md).
 
-## 6. Optional Alternative To POINTCEPT_ROOT
+## 5. Minimal Verification
 
-Instead of exporting `POINTCEPT_ROOT`, you may pass it explicitly:
-
-```bash
-python scripts/train/train.py --pointcept-root /path/to/Pointcept
-```
-
-The same entry is used for:
-
-- dual-task training
-- semantic-only calibration training
-
-## 7. Minimal Environment Verification
-
-After activating the environment and setting variables, you can verify the setup with:
+After activating the environment and setting variables, verify the setup with:
 
 ```bash
 conda run --no-capture-output -n ptv3 python -c "import os, torch; print('torch_ok', torch.__version__); print('POINTCEPT_ROOT', os.environ.get('POINTCEPT_ROOT')); print('SBF_DATA_ROOT', os.environ.get('SBF_DATA_ROOT'))"
@@ -117,13 +81,10 @@ If you also want to confirm that the Pointcept path is usable:
 conda run --no-capture-output -n ptv3 python -c "import os, sys; sys.path.insert(0, os.environ['POINTCEPT_ROOT']); import pointcept; print('pointcept_ok')"
 ```
 
-## 8. What This Install Step Does Not Do
+## 6. Next Reference
 
-Current installation guidance does not include:
+Once the environment is ready:
 
-- `pip install -e .` packaging for SBF-Net
-- test pipeline setup
-- visualization tools
-- multi-dataset support
-
-The current goal is a clear, reproducible, trainable repository layout for the first public SBF-Net release.
+- go back to GSD and `.planning/` for workflow control
+- read [train.md](train.md) for runtime command patterns
+- read [docs/canonical/sbf_training_guardrails.md](docs/canonical/sbf_training_guardrails.md) for the canonical no-fallback training rules
