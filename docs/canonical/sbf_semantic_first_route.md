@@ -1,0 +1,66 @@
+# Semantic-First Route Definition
+
+## Purpose
+
+This document defines the evidence-aligned semantic-first route selection rules for milestone `v1.1`.
+
+It does not declare a fully implemented runtime default. It records:
+
+- the strongest current semantic-first reference baseline
+- the weaker side evidence that should not be promoted to the new mainline
+- the concrete support-centric candidate route Phase 6 is defining for later implementation
+
+## Current Reference Baseline
+
+- `support-only is the strongest current reference baseline`.
+- The current reference point is `support-only (reg=1, cover=0.2) = 74.6`.
+- The baseline matters because it improved semantic performance without forcing the model into explicit geometric-field learning.
+- This baseline is the comparison target the next semantic-first route should beat.
+
+## Side Evidence
+
+- `support-shape is weaker side evidence only`.
+- It is not the canonical semantic-first route.
+- The current interpretation is that its extra shape supervision pressure still hurts the semantic objective relative to the lighter-touch support-only baseline.
+
+## Candidate Route
+
+The Phase 6 candidate route is the **support-guided semantic focus route**.
+
+Its definition is:
+
+- support remains the only explicit boundary-side prediction target
+- the route must improve semantic behavior near boundaries relative to the support-only baseline
+- any added structure must serve semantic quality rather than learn a richer geometric field
+
+The route explicitly prohibits these as mainline supervision targets:
+
+- no direction target
+- no side target
+- no distance target
+- no coherence target that recreates geometric pressure indirectly
+- no ordinal shape pressure as the mainline objective
+
+## Route-Selection Rules
+
+Choose the semantic-first route by these rules:
+
+1. Start from the support-only baseline rather than from weaker exploratory routes.
+2. Preserve semantic segmentation as the governing objective.
+3. Add only support-centric or semantic-serving structure that can plausibly outperform support-only.
+4. Reject any route whose extra supervision pressure becomes a new geometric learning target.
+
+## Historical Reference Boundary
+
+The following remain comparison evidence only:
+
+- `axis-side`
+- `support + axis + side`
+- `support-shape`
+- other direction, coherence, or geometry-centered variants
+
+They remain useful for understanding failure modes, but they do not define the candidate semantic-first mainline.
+
+## Next Link
+
+For the exact Phase 6 candidate-route contract, read [docs/canonical/sbf_semantic_first_contract.md](./sbf_semantic_first_contract.md).

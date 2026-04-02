@@ -20,9 +20,11 @@ It is intentionally not a workflow document. A maintainer should be able to reco
 - The repository is in `Stage-2 architecture rollout / verification phase`.
 - The active direction is semantic-first boundary supervision.
 - Explicit geometric-field supervision is not the preferred mainline for milestone `v1.1`.
+- `support-only (reg=1, cover=0.2)` is the strongest current semantic-first reference baseline.
+- `support-shape` is weaker side evidence only and is not the canonical replacement route.
 - The previous `support`, `axis-side`, and `axis + side + support` routes remain historical/reference evidence only.
 - In current author shorthand, `magnitude` means `support`; it does not mean a separate landed branch.
-- The current Stage-2 goal is to define and implement a boundary-aware semantic supervision route without restating the historical geometric-field branches as the active path.
+- The current Stage-2 goal is to define and implement a better support-centric semantic-first supervision route that can improve on the `support-only` baseline without restating the historical geometric-field branches as the active path.
 
 ## Historical Mainline Semantics
 
@@ -55,6 +57,8 @@ These semantics remain important for auditing landed code and interpreting older
 
 - `support-only (reg=1, cover=0.2) = 74.6` is the best confirmed reference result so far.
 - Semantic-first boundary supervision is the active repository direction, but the replacement route is still pending later milestone phases rather than already landed in runtime/config.
+- `support-shape` remains side evidence rather than the replacement mainline because its extra shape supervision pressure is weaker than the `support-only` baseline.
+- Phase 6 is defining a `support-guided semantic focus route` intended to improve on `support-only` without adding direction, side, distance, coherence, or ordinal-shape pressure as the mainline target.
 - The old signed-direction supervision route remains a failure/reference route rather than the current mainline.
 - `axis-side` smoke has passed, but `axis-side` full-train remains unverified.
 - The current rollout should be judged against the existing evidence above instead of being described as already validated end-to-end.
