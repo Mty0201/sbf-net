@@ -55,7 +55,7 @@ Archived or archive-bound material includes:
 - `project_memory/`
 - repo-specific legacy agent definitions under `.codex/agents/`
 - repo-local orchestration skills that were used for manual continuity or packet refreshes
-- repo-specific orchestration helpers under `scripts/agent/`
+- repo-local orchestration helper scripts archived under `docs/archive/workflow-legacy/codex/scripts-agent/`
 - mirrored legacy guides under `claude/`
 - legacy wrapper docs such as `START_HERE.md`, `MEMORY_RULES.md`, `docs/agents.md`, `docs/workflow.md`, and `CLAUDE_AGENTS.md`
 
