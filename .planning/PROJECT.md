@@ -20,10 +20,11 @@ The repository must preserve correct, minimal, SBF-specific operational guidance
 - ✓ Minimal canonical SBF-specific guidance now exists under `docs/canonical/` for boundary rules, Stage-2/current-mainline facts, governing experiment evidence, and training/config guardrails — Phase 1
 - ✓ Default-facing docs and retained wrappers now route maintainers to GSD, local `.planning/`, and canonical guidance instead of an old parallel control path — Phase 2
 - ✓ The legacy workflow layer is now archived out of the default path, with historical material preserved under `docs/archive/workflow-legacy/` and live wrappers reduced to compatibility redirects — Phase 3
+- ✓ Future workflow planning and execution now route through GSD plus `.planning/` without relying on the archived workflow layer as the control plane — Phase 4
 
 ### Active
 
-- [ ] Complete the final workflow-control cutover so future planning and execution rely on GSD plus `.planning/` without consulting the archived workflow layer
+None.
 
 ### Out of Scope
 
@@ -54,7 +55,7 @@ The preferred migration posture is a clean cut where practical: physically archi
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| GSD is the primary workflow system for future planning and execution | The goal of this project is to retire the hand-built orchestration layer and simplify workflow control | Phase 2 established GSD-first entry across root docs, formal workflow surfaces, and retained wrappers; Phase 4 turns `.planning/` into the explicit repo-local operating path |
+| GSD is the primary workflow system for future planning and execution | The goal of this project is to retire the hand-built orchestration layer and simplify workflow control | Phase 2 established GSD-first entry across root docs, formal workflow surfaces, and retained wrappers; Phase 4 turned `.planning/` into the explicit repo-local operating path |
 | Legacy workflow scaffolding is a migration target, not a canonical control layer | `.codex/agents/`, `handoff/`, `project_memory/`, wrapper docs, and routing/context tools were mainly created to compensate for workflow limitations that GSD now covers | Phase 3 archived those surfaces or reduced them to compatibility redirects |
 | Minimal canonical guidance must remain repository-specific | SBF/Pointcept boundaries, current-mainline architecture facts, experiment evidence, and training/config guardrails still matter for safe future work | Phases 1-3 kept canonical docs active while moving workflow history into the archive |
 | Prefer physical archival over soft deprecation where practical | A clean cut is less ambiguous than leaving legacy material in default-facing paths | Phase 3 moved legacy continuity trees, manual tooling, and wrapper bodies into `docs/archive/workflow-legacy/` |
@@ -78,4 +79,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-02 after Phase 3 completion*
+*Last updated: 2026-04-02 after Phase 4 completion*
