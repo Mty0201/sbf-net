@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: ready
-stopped_at: Milestone v1.0 archived
-last_updated: "2026-04-02T10:55:00.000Z"
-last_activity: 2026-04-02 -- Milestone v1.0 archived and ready for next milestone definition
+milestone: v1.1
+milestone_name: semantic-first boundary supervision pivot
+status: active
+stopped_at: Requirements and roadmap defined for milestone v1.1
+last_updated: "2026-04-02T13:06:52.056Z"
+last_activity: 2026-04-02 -- Phase 05 complete; Phase 06 ready to plan
 progress:
-  total_phases: 0
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_phases: 4
+  completed_phases: 1
+  total_plans: 2
+  completed_plans: 2
+  percent: 25
 ---
 
 # Project State
@@ -20,23 +20,25 @@ progress:
 
 See: `.planning/PROJECT.md` (updated 2026-04-02)
 
-**Core value:** The repository must preserve correct, minimal, SBF-specific operational guidance while removing the hand-built orchestration layer as the default workflow control system.
-**Current focus:** Define the next milestone
+**Core value:** Semantic segmentation remains the primary objective, and any boundary-aware supervision must improve boundary-region semantic quality without dragging the semantic branch into explicit geometric-field learning.
+**Current focus:** Plan Phase 6 of v1.1 semantic-first boundary supervision pivot
 
 ## Current Position
 
-Phase: none
-Plan: none
-Status: Ready for next milestone setup
-Last activity: 2026-04-02 -- Milestone v1.0 archived
+Phase: 06 Semantic-First Route Definition
+Plan: Not started
+Status: Ready for phase planning
+Last activity: 2026-04-02 -- Phase 05 completed
 
-Progress: [----------] 0%
+Progress: [###-------] 25%
 
-## Recent Milestone
+## Recent Context
 
 - Archived milestone `v1.0` to `.planning/milestones/v1.0-ROADMAP.md` and `.planning/milestones/v1.0-REQUIREMENTS.md`
 - Preserved milestone audit in `.planning/v1.0-MILESTONE-AUDIT.md`
 - Collapsed live roadmap to milestone-level history so the next milestone starts with a clean planning surface
+- New active direction: semantic-first boundary supervision pivot away from direct `support` / `axis-side` field supervision
+- Research summary added under `.planning/research/` to define the semantic-first replacement direction before requirements and roadmap
 
 ## Decisions
 
@@ -45,6 +47,7 @@ Progress: [----------] 0%
 - Retained wrapper docs are compatibility-only redirect surfaces, not an active control plane
 - Legacy workflow scaffolding now lives under `docs/archive/workflow-legacy/` and only minimal compatibility stubs remain in active paths
 - Archived milestone history belongs under `.planning/milestones/`, while live `.planning/ROADMAP.md` remains small and milestone-scoped.
+- The active SBF mainline is no longer `support + axis + side`; new milestone work must stay semantic-first and avoid explicit geometric-field supervision as the main target.
 
 ## Blockers / Concerns
 
@@ -58,6 +61,6 @@ Progress: [----------] 0%
 
 ## Session Continuity
 
-Last session: 2026-04-02T10:19:41.090Z
-Stopped at: Milestone v1.0 archived
+Last session: 2026-04-02T11:25:00.000Z
+Stopped at: Requirements and roadmap defined for milestone v1.1
 Resume file: None
