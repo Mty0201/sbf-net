@@ -31,16 +31,18 @@ then instantiates `SemanticBoundaryTrainer` directly.
 
 Use the configs with these roles in mind:
 
-- Stable main config: `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py`
-  This remains the stable canonical full-train config for the repository.
-- Current verification focus: `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train.py`
-  This is the current Stage-2 `axis + side + support` verification target.
-- Current smoke verification config:
+- Stable runtime entry config: `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py`
+  This remains the stable canonical runtime entry config for the repository.
+- Historical reference configs:
+  `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train.py`
   `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train-smoke.py`
-  Use this to validate the current `axis-side` wiring before spending time on a longer run.
+  `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-semantic-train.py`
+  `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-semantic-train-smoke.py`
+  These remain auditable historical/reference configs for prior axis-side and semantic-only evidence.
+- Replacement semantic-first route:
+  pending later phases of milestone `v1.1`
 
-The current validation center is the `axis-side` train path and its smoke config. Do not rewrite
-that focus as if smoke or full-train verification has already been completed.
+The runtime entrypoint and fail-fast rules stay fixed while the replacement semantic-first route is defined in later phases. Do not rewrite the historical configs as if they were the preferred current verification target, and do not rewrite the semantic-first direction as already implemented.
 
 ## Guardrails That Must Not Be Relaxed
 
@@ -59,7 +61,7 @@ Use the exact command prefix:
 conda run --no-capture-output -n ptv3 python scripts/train/train.py
 ```
 
-Current axis-side smoke example:
+Historical axis-side smoke example:
 
 ```bash
 export POINTCEPT_ROOT=/path/to/Pointcept
@@ -69,7 +71,7 @@ conda run --no-capture-output -n ptv3 python scripts/train/train.py \
   --pointcept-root "${POINTCEPT_ROOT}"
 ```
 
-Current axis-side verification/full-train example:
+Historical axis-side verification/full-train example:
 
 ```bash
 export POINTCEPT_ROOT=/path/to/Pointcept
@@ -87,9 +89,10 @@ expensive run.
 - smoke success does not equal full-train validation.
 
 Use `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train-smoke.py` for a
-minimal axis-side smoke startup check, then use
-`configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train.py` for the current
-verification target when the environment is ready for the longer run.
+minimal historical axis-side smoke startup check, then use
+`configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train.py` for the matching
+historical longer-run reference when you need to audit that route. The semantic-first replacement
+route remains pending later phases of milestone `v1.1`.
 
 ## Invalid Run Patterns
 

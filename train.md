@@ -27,18 +27,17 @@ Missing values should fail explicitly. Do not rely on implicit Pointcept-path or
 
 ## 3. Current Config Roles
 
-- Stable main config:
+- Stable runtime entry config:
   `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py`
-- Current verification focus:
+- Historical reference configs:
   `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train.py`
-- Current smoke verification config:
   `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train-smoke.py`
-- Semantic-only calibration smoke:
   `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-semantic-train-smoke.py`
-- Semantic-only calibration full:
   `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-semantic-train.py`
+- Replacement semantic-first route:
+  pending later phases of milestone `v1.1`
 
-The current validation center is the axis-side train path and its smoke config. Do not rewrite that state as if axis-side smoke or full-train verification were already complete.
+The stable runtime entry remains unchanged. The axis-side and semantic-only configs remain auditable historical/reference paths, not the preferred current mainline. Do not rewrite that evidence as if the replacement semantic-first route were already implemented or fully validated.
 
 ## 4. Command Pattern
 
@@ -48,7 +47,7 @@ Use the exact command prefix:
 conda run --no-capture-output -n ptv3 python scripts/train/train.py
 ```
 
-Current axis-side smoke example:
+Historical axis-side smoke example:
 
 ```bash
 conda run --no-capture-output -n ptv3 python scripts/train/train.py \
@@ -56,7 +55,7 @@ conda run --no-capture-output -n ptv3 python scripts/train/train.py \
   --pointcept-root "${POINTCEPT_ROOT}"
 ```
 
-Current axis-side verification/full-train example:
+Historical axis-side verification/full-train example:
 
 ```bash
 conda run --no-capture-output -n ptv3 python scripts/train/train.py \
