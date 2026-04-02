@@ -73,13 +73,13 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] `08-01-PLAN.md` - Add or update the minimal smoke/sample validation path for the semantic-first route.
-- [ ] `08-02-PLAN.md` - Record validation results, evidence limits, and the recommended next full-train experiment direction.
+- [ ] `08-01-PLAN.md` - Create smoke config and validation script for the active route (forward + loss + backward + focus activation check).
+- [ ] `08-02-PLAN.md` - Record validation results, evidence boundary, and next full-train experiment directions (soft masking, calibration, alpha-sigma, adaptive inference).
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 5 → 6 → 7 → 8
+Phases execute in numeric order: 5 -> 6 -> 7 -> 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
