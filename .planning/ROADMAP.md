@@ -13,7 +13,7 @@ Milestone `v1.1 semantic-first boundary supervision pivot` changes the active SB
 
 - [x] **Phase 5: Mainline Analysis Pivot** - Update the repo-grounded analysis, canonical guidance, and active-route references so they reflect the semantic-first pivot instead of the old explicit-field mainline. (completed 2026-04-02)
 - [x] **Phase 6: Semantic-First Route Definition** - Define the support-only-first semantic-first candidate route and align the repo-local contract around it. (completed 2026-04-02)
-- [ ] **Phase 7: Active Route Implementation** - Implement the new active route, removing direct explicit-field supervision from the active mainline while preserving the main training architecture.
+- [x] **Phase 7: Active Route Implementation** - Implement the new active route, removing direct explicit-field supervision from the active mainline while preserving the main training architecture. (completed 2026-04-02)
 - [ ] **Phase 8: Local Validation And Experiment Handoff** - Run smoke/sample validation for the new route and produce the next full-train experiment direction with clear evidence boundaries.
 
 ## Phase Details
@@ -85,5 +85,5 @@ Phases execute in numeric order: 5 → 6 → 7 → 8
 |-------|----------------|--------|-----------|
 | 5. Mainline Analysis Pivot | 2/2 | Complete    | 2026-04-02 |
 | 6. Semantic-First Route Definition | 2/2 | Complete | 2026-04-02 |
-| 7. Active Route Implementation | 0/4 | Not started | - |
+| 7. Active Route Implementation | 4/4 | Complete   | 2026-04-02 |
 | 8. Local Validation And Experiment Handoff | 0/2 | Not started | - |
