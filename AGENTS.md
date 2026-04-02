@@ -20,7 +20,7 @@ Default planning and execution entry:
 5. the active plan or summary under `.planning/phases/`
 6. `docs/canonical/README.md` for repository-specific facts and training guardrails
 
-Do not treat `handoff/`, `project_memory/`, context packets, `claude/`, or legacy wrapper docs as the default control plane.
+Do not treat `handoff/`, `project_memory/`, context packets, `.codex/agents/`, repo-local orchestration skills, `claude/`, or legacy wrapper docs as the default control plane.
 
 ## Current Stage Boundary
 
@@ -53,6 +53,8 @@ Archived or archive-bound material includes:
 
 - `handoff/`
 - `project_memory/`
+- repo-specific legacy agent definitions under `.codex/agents/`
+- repo-local orchestration skills that were used for manual continuity or packet refreshes
 - repo-specific orchestration helpers under `scripts/agent/`
 - mirrored legacy guides under `claude/`
 - legacy wrapper docs such as `START_HERE.md`, `MEMORY_RULES.md`, `docs/agents.md`, `docs/workflow.md`, and `CLAUDE_AGENTS.md`

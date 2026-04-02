@@ -13,7 +13,7 @@ Use this order when entering active work:
 5. the active plan or summary under `.planning/phases/`
 6. `docs/canonical/README.md` for repository-specific facts, Stage-2 status, experiment evidence, and training guardrails
 
-`project_memory/`, `handoff/`, `claude/`, and checkpoint artifacts are not the default planning/execution entry. Legacy workflow lookup belongs in `docs/archive/workflow-legacy/ARCHIVE_MAP.md`.
+`project_memory/`, `handoff/`, `.codex/agents/`, repo-local orchestration skills, `claude/`, and checkpoint artifacts are not the default planning/execution entry. Legacy workflow lookup belongs in `docs/archive/workflow-legacy/ARCHIVE_MAP.md`.
 
 ## Repository Layers
 
@@ -35,7 +35,7 @@ Use this order when entering active work:
 
 - `docs/archive/workflow-legacy/README.md`: archive landing page
 - `docs/archive/workflow-legacy/ARCHIVE_MAP.md`: old-path to archived-path map
-- archived continuity material: `handoff/`, `project_memory/`, `claude/`, repo-local orchestration helpers, and legacy entry docs
+- archived continuity material: `handoff/`, `project_memory/`, repo-specific legacy `.codex/agents/`, repo-local orchestration skills, `claude/`, repo-local orchestration helpers, and legacy entry docs
 
 ### Compatibility-only survivors
 
