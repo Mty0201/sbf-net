@@ -7,10 +7,11 @@
 For active repository work, start with:
 
 1. `GSD` commands such as `$gsd-progress`, `$gsd-plan-phase N`, and `$gsd-execute-phase N`
-2. `.planning/PROJECT.md`
-3. `.planning/ROADMAP.md`
-4. `.planning/STATE.md`
-5. `docs/canonical/README.md`
+2. `.planning/README.md`
+3. `.planning/PROJECT.md`
+4. `.planning/ROADMAP.md`
+5. `.planning/STATE.md`
+6. `docs/canonical/README.md`
 
 ## Compatibility Note
 

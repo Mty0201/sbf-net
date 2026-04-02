@@ -14,11 +14,12 @@ This repository is now GSD-first.
 Default planning and execution entry:
 
 1. `GSD` commands such as `$gsd-progress`, `$gsd-plan-phase N`, and `$gsd-execute-phase N`
-2. `.planning/PROJECT.md`
-3. `.planning/ROADMAP.md`
-4. `.planning/STATE.md`
-5. the active plan or summary under `.planning/phases/`
-6. `docs/canonical/README.md` for repository-specific facts and training guardrails
+2. `.planning/README.md`
+3. `.planning/PROJECT.md`
+4. `.planning/ROADMAP.md`
+5. `.planning/STATE.md`
+6. the active plan or summary under `.planning/phases/`
+7. `docs/canonical/README.md` for repository-specific facts and training guardrails
 
 Do not treat `handoff/`, `project_memory/`, context packets, `.codex/agents/`, repo-local orchestration skills, `claude/`, or legacy wrapper docs as the default control plane.
 
@@ -38,7 +39,7 @@ Use the canonical docs set for repository-specific knowledge:
 - `docs/canonical/sbf_facts.md`: SBF-vs-Pointcept boundary rules, Stage-2 status, active mainline semantics, and governing experiment evidence
 - `docs/canonical/sbf_training_guardrails.md`: training entrypoint, config roles, command patterns, and fail-fast runtime rules
 
-Workflow control belongs to GSD and `.planning/`. Repository facts belong to the canonical docs set above.
+Workflow control belongs to `GSD`, `.planning/README.md`, and the active `.planning/` artifacts. Repository facts belong to the canonical docs set above.
 
 ## Legacy Archive
 
@@ -62,6 +63,14 @@ Archived or archive-bound material includes:
 Checkpoint artifacts under `reports/` may still be used as evidence when a task needs them, but they are not canonical facts or workflow control.
 
 If you need legacy continuity material, check the archive after the GSD and canonical entry path above.
+
+The active repo-local operating path is:
+
+1. `.planning/README.md`
+2. `.planning/PROJECT.md`
+3. `.planning/ROADMAP.md`
+4. `.planning/STATE.md`
+5. active phase files under `.planning/phases/`
 
 ## Guardrails
 

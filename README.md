@@ -1,16 +1,19 @@
 # semantic-boundary-field
 
-`semantic-boundary-field` is an SBF research repository built on top of Pointcept PTv3. The repository's default workflow is now GSD-first: use GSD plus local `.planning/` artifacts for planning and execution, and use the canonical docs set for repository-specific facts and training guardrails.
+`semantic-boundary-field` is an SBF research repository built on top of Pointcept PTv3. The repository's default workflow is now GSD-first: use `GSD` plus the `.planning` control surface for planning and execution, and use the canonical docs set for repository-specific facts and training guardrails.
 
 ## Workflow Entry
 
 Start here for active work:
 
 1. `GSD` commands such as `$gsd-progress`, `$gsd-plan-phase N`, and `$gsd-execute-phase N`
-2. `.planning/PROJECT.md`
-3. `.planning/ROADMAP.md`
-4. `.planning/STATE.md`
-5. the active plan or summary under `.planning/phases/`
+2. `.planning/README.md`
+3. `.planning/PROJECT.md`
+4. `.planning/ROADMAP.md`
+5. `.planning/STATE.md`
+6. the active plan or summary under `.planning/phases/`
+
+Use [.planning/README.md](.planning/README.md) as the operational guide for the repository control path.
 
 Repository-specific facts are not maintained in this README. For current SBF-vs-Pointcept boundaries, Stage-2 status, experiment evidence, and training guardrails, read [docs/canonical/README.md](docs/canonical/README.md).
 

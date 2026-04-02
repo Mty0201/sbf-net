@@ -7,11 +7,12 @@ This file is the formal lifecycle reference for the repository. Default planning
 Use this order when entering active work:
 
 1. `GSD` commands such as `$gsd-progress`, `$gsd-plan-phase N`, and `$gsd-execute-phase N`
-2. `.planning/PROJECT.md`
-3. `.planning/ROADMAP.md`
-4. `.planning/STATE.md`
-5. the active plan or summary under `.planning/phases/`
-6. `docs/canonical/README.md` for repository-specific facts, Stage-2 status, experiment evidence, and training guardrails
+2. `.planning/README.md`
+3. `.planning/PROJECT.md`
+4. `.planning/ROADMAP.md`
+5. `.planning/STATE.md`
+6. the active plan or summary under `.planning/phases/`
+7. `docs/canonical/README.md` for repository-specific facts, Stage-2 status, experiment evidence, and training guardrails
 
 `project_memory/`, `handoff/`, `.codex/agents/`, repo-local orchestration skills, `claude/`, and checkpoint artifacts are not the default planning/execution entry. Legacy workflow lookup belongs in `docs/archive/workflow-legacy/ARCHIVE_MAP.md`.
 
@@ -20,6 +21,7 @@ Use this order when entering active work:
 ### Default operating path
 
 - `GSD`
+- `.planning/README.md`
 - `.planning/PROJECT.md`
 - `.planning/ROADMAP.md`
 - `.planning/STATE.md`
@@ -30,6 +32,7 @@ Use this order when entering active work:
 
 - `AGENTS.md`: repo boundary, GSD-first entry, and guardrails
 - `docs/workflows/sbf_net_workflow_v1.md` (this file): lifecycle, handoff, and closeout rules
+- `.planning/README.md`: repo-local operating guide for plan and phase execution
 
 ### Legacy archive lookup
 
