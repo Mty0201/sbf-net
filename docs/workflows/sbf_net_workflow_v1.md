@@ -5,14 +5,16 @@
 - 把项目正式切换为“一个 task = 一轮假设闭环”的开发模型。
 - 统一 discussion、brief、implementation、validation、review、closeout 之间的边界。
 - 明确 summary、packet、workflow smoke、round draft、refresh / preview / apply 都只是 task 内 checkpoint，不默认代表新 task 或 closeout。
+- repo-specific 的边界、阶段事实、实验依据和训练 guardrails 统一从 `docs/canonical/README.md` 进入，而不是继续散落在 workflow 脚手架里。
 
 ## Repository Layers
 
 ### Canonical / source of truth
 
 - `AGENTS.md`：全局边界、最小启动链和 guardrails。
+- `docs/canonical/README.md`：repo-specific canonical facts 入口；索引当前边界、Stage-2 事实、证据与训练 guardrails。
 - `docs/workflows/sbf_net_workflow_v1.md`：正式 task lifecycle、角色分工与 closeout 规则。
-- `project_memory/current_state.md`：当前有效事实和 active task 指针。
+- `project_memory/current_state.md`：当前 workflow continuity 信息和 active task 指针，不替代 canonical repo facts。
 - 当前 `project_memory/tasks/TASK-*.md`：当前 task 的目标、边界、验证和 closeout 条件。
 - `handoff/latest_round.md`：最近一轮已完成或已同步 closeout 的最小结果摘要；用于收尾，不是默认启动入口。
 - `handoff/web_to_agent_contract.md`：web ChatGPT 到本地 agent 的结构化交付协议；只在产出或消费 web handoff 时生效，不替代 workflow。
@@ -40,6 +42,8 @@
 - `handoff/handoff_for_chat.md`
 
 这些文件保留给旧链接、旧窗口或旧术语做兼容引用，不属于默认启动集合。
+
+如果需要确认当前仓库边界、Stage-2 状态、实验结论或训练 guardrails，先读 `docs/canonical/README.md`，再按索引跳到对应 canonical 文档；不要把这些 repo facts 重新塞回 workflow 文档或 workflow-state 文件。
 
 ## Roles
 
@@ -193,6 +197,7 @@
 
 ## Documentation Placement
 
+- repo-specific 的长期事实、证据和训练 guardrails，优先写入 `docs/canonical/README.md` 及其链接的 canonical 文档。
 - 新的长期 workflow 规则，优先写入 `AGENTS.md` 或本文件。
 - 当前轮次的事实、结果和 closeout 状态，优先写入 `project_memory/current_state.md`、当前 `TASK-*.md` 和 `handoff/latest_round.md`。
 - summary / packet / round draft / workflow smoke 继续只放在 `reports/`，视为 checkpoint 产物。

@@ -12,21 +12,21 @@
 ## Current Stage Boundary
 
 - `2.5` 阶段探索性实验已完成并已收束。
-- 当前阶段状态是 `Stage-2 architecture rollout / verification phase`；架构更新已经开始并已落地到 `axis-side` 主线实现，当前处于新主线核证阶段。
+- 当前阶段状态仍是 `Stage-2 architecture rollout / verification phase`。
 - 当前 active 主线表达统一为 `axis + side + support`；作者口头中的 `magnitude` 在当前代码 / 文档同步中等价于 `support`，不要误写成独立 magnitude 分支已落地。
-- 当前验证中心是 `semseg-pt-v3m1-0-base-bf-edge-axis-side-train` 及其 smoke config。
-- 当前已确认实验事实是：`semantic-only=73.8`，`support-only(reg=1, cover=0.2)=74.6` 为最佳，`support + dir + dist = 71` 在旧 signed-direction 结构下失败。
-- `Stage-2` 的当前正式核心是通过 `axis + side + support` 重写旧的显式 signed direction 表达，而不是继续扫 support 参数。
+- 当前验证中心仍是 `semseg-pt-v3m1-0-base-bf-edge-axis-side-train` 及其 smoke config。
+- 当前 repo 事实、实验证据和训练 guardrails 统一从 `docs/canonical/README.md` 进入，再按需下钻 `docs/canonical/sbf_facts.md` 与 `docs/canonical/sbf_training_guardrails.md`。
 
 ## Information Layers
 
 - Canonical / source of truth：
   1. `AGENTS.md`：全局边界、默认启动链和 guardrails。
-  2. `docs/workflows/sbf_net_workflow_v1.md`：正式 workflow、角色分工和 closeout 规则。
-  3. `project_memory/current_state.md`：当前有效事实和 active task 指针。
-  4. 当前 `project_memory/tasks/TASK-*.md`：当前 task 的目标、边界、验证和 closeout 条件。
-  5. `handoff/latest_round.md`：最近一轮已同步的 closeout 摘要；用于收尾和下一窗口快速定位，不是默认启动入口。
-  6. `handoff/web_to_agent_contract.md`：web ChatGPT 到本地 agent 的结构化交付协议；只在产出或消费 web handoff 时读取，不替代 workflow。
+  2. `docs/canonical/README.md`：repo-specific canonical facts 入口；统一索引当前边界、Stage-2 事实、证据与训练 guardrails。
+  3. `docs/workflows/sbf_net_workflow_v1.md`：正式 workflow、角色分工和 closeout 规则。
+  4. `project_memory/current_state.md`：当前 workflow continuity 信息和 active task 指针，不替代 canonical repo facts。
+  5. 当前 `project_memory/tasks/TASK-*.md`：当前 task 的目标、边界、验证和 closeout 条件。
+  6. `handoff/latest_round.md`：最近一轮已同步的 closeout 摘要；用于收尾和下一窗口快速定位，不是默认启动入口，也不承担 canonical repo facts。
+  7. `handoff/web_to_agent_contract.md`：web ChatGPT 到本地 agent 的结构化交付协议；只在产出或消费 web handoff 时读取，不替代 workflow。
 - Checkpoint / generated：
   - `reports/log_summaries/*.summary.md|json`
   - `reports/context_packets/*.context_packet.md`
@@ -54,10 +54,11 @@
 - 若已有对应 target 的 context packet，优先读取；若缺失或过期，先用 `scripts/agent/build_context_packet.py` 生成。
 - 默认只读取以下最小上下文集合：
   1. `AGENTS.md`
-  2. `project_memory/current_state.md`
-  3. `project_memory/current_state.md` 中指向的当前 task 文件
-  4. 仅当当前会话是网页端 ChatGPT / Claude 新窗口 / 无本地上下文接手时，再读 `handoff/chat_entry.md`
-  5. 若当前输入来自网页端 ChatGPT 分析结果，优先消费符合 `handoff/web_to_agent_contract.md` 的单一结构化交付物，再按其中 `Read first` / `Read only` 精确补读
+  2. `docs/canonical/README.md`
+  3. `project_memory/current_state.md`
+  4. `project_memory/current_state.md` 中指向的当前 task 文件
+  5. 仅当当前会话是网页端 ChatGPT / Claude 新窗口 / 无本地上下文接手时，再读 `handoff/chat_entry.md`
+  6. 若当前输入来自网页端 ChatGPT 分析结果，优先消费符合 `handoff/web_to_agent_contract.md` 的单一结构化交付物，再按其中 `Read first` / `Read only` 精确补读
 - 默认禁止：
   - 读取完整 `handoff/`
   - 读取完整 `project_memory/`
@@ -90,7 +91,7 @@
 
 1. 新一轮讨论或执行开始前，优先生成或读取对应 target 的 context packet，再按 `Default Startup Set` 补齐其背后的最小事实源。
 2. 若本轮承接网页端 ChatGPT 分析，网页端应优先按 `handoff/web_to_agent_contract.md` 输出 `Discussion Handoff`、`Task Brief Draft` 或 `Agent Prompt` 三者之一；Codex / Claude 默认先消费该结构化产物，而不是重读整包 handoff 或长篇自由文本。
-3. 先确认当前处于 `Stage-2 architecture rollout / verification phase`，并明确当前 active 主线已切到 `axis + side + support`、验证中心是 `axis-side` train / smoke，再决定最小影响文件集合。
+3. 先通过 `docs/canonical/README.md` 确认当前处于 `Stage-2 architecture rollout / verification phase`，并明确当前 active 主线已切到 `axis + side + support`、验证中心是 `axis-side` train / smoke，再决定最小影响文件集合。
 4. 单轮执行默认以当前 task 文件为中心；若 task 与专题 memory 冲突，以作者裁定 + 本地实现 + 当前有效事实为准，再最小同步任务书或 memory。
 5. context packet 以“摘录 + 路径指引”为主，不替代 `AGENTS.md`、`project_memory/current_state.md`、当前 task 与日志摘要；当这些源发生变化时，应重新生成 packet，而不是手工修补旧 packet。
 6. 若当前任务需要查看训练证据，先读 `reports/log_summaries/*.summary.md` 或 `*.summary.json`；只有摘要不足时，才按需下钻对应原始日志片段。
