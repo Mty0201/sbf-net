@@ -10,12 +10,12 @@ Requirements for milestone `v1.1 semantic-first boundary supervision pivot`. Eac
 ### Mainline Pivot
 
 - [x] **MAIN-01**: The repository-grounded analysis and active-mainline docs reflect that `support + axis + side` is no longer the preferred mainline and that semantic-first boundary supervision is now the active direction.
-- [ ] **MAIN-02**: The active training path no longer treats explicit local geometric-field learning as the supervised target.
+- [x] **MAIN-02**: The active training path definition no longer treats explicit local geometric-field learning as the supervised target.
 
 ### Boundary-Aware Supervision
 
-- [ ] **AUX-01**: The repository defines one concrete boundary-aware supervision signal that is intended to improve semantic performance near edges without direct explicit field supervision.
-- [ ] **AUX-02**: The new supervision route keeps the backbone and main training architecture largely intact unless a supporting architectural change is clearly required by the new signal.
+- [x] **AUX-01**: The repository defines one concrete boundary-aware supervision signal that is intended to improve semantic performance near edges without direct explicit field supervision.
+- [x] **AUX-02**: The new supervision route keeps the backbone and main training architecture largely intact unless a supporting architectural change is clearly required by the new signal.
 - [ ] **AUX-03**: Direct `support` / `axis-side` field supervision is removed from the active mainline by code/config design rather than only neutralized by zero-valued legacy weights.
 
 ### Validation
@@ -55,9 +55,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | MAIN-01 | Phase 5 | Complete |
-| MAIN-02 | Phase 6 | Pending |
-| AUX-01 | Phase 6 | Pending |
-| AUX-02 | Phase 6 | Pending |
+| MAIN-02 | Phase 6 | Complete |
+| AUX-01 | Phase 6 | Complete |
+| AUX-02 | Phase 6 | Complete |
 | AUX-03 | Phase 7 | Pending |
 | VAL-01 | Phase 8 | Pending |
 | VAL-02 | Phase 8 | Pending |
@@ -71,4 +71,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-04-02*
-*Last updated: 2026-04-02 after Phase 5 completion*
+*Last updated: 2026-04-02 after Phase 6 completion*

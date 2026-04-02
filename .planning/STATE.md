@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: semantic-first boundary supervision pivot
-status: active
-stopped_at: Requirements and roadmap defined for milestone v1.1
-last_updated: "2026-04-02T13:06:52.056Z"
-last_activity: 2026-04-02 -- Phase 05 complete; Phase 06 ready to plan
+status: ready
+stopped_at: Phase 6 completed; Phase 7 is next
+last_updated: "2026-04-02T13:48:50.263Z"
+last_activity: 2026-04-02 -- Phase 06 completed
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
-  percent: 25
+  completed_phases: 2
+  total_plans: 8
+  completed_plans: 4
+  percent: 50
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-04-02)
 
 **Core value:** Semantic segmentation remains the primary objective, and any boundary-aware supervision must improve boundary-region semantic quality without dragging the semantic branch into explicit geometric-field learning.
-**Current focus:** Plan Phase 6 of v1.1 semantic-first boundary supervision pivot
+**Current focus:** Phase 07 — active-route-implementation
 
 ## Current Position
 
-Phase: 06 Semantic-First Route Definition
+Phase: 07 (active-route-implementation) — READY
 Plan: Not started
-Status: Ready for phase planning
-Last activity: 2026-04-02 -- Phase 05 completed
+Status: Ready for Phase 07 planning/execution
+Last activity: 2026-04-02 -- Phase 06 completed
 
-Progress: [###-------] 25%
+Progress: [#####-----] 50%
 
 ## Recent Context
 
@@ -38,7 +38,8 @@ Progress: [###-------] 25%
 - Preserved milestone audit in `.planning/v1.0-MILESTONE-AUDIT.md`
 - Collapsed live roadmap to milestone-level history so the next milestone starts with a clean planning surface
 - New active direction: semantic-first boundary supervision pivot away from direct `support` / `axis-side` field supervision
-- Research summary added under `.planning/research/` to define the semantic-first replacement direction before requirements and roadmap
+- Phase 6 established support-only as the strongest current reference baseline and support-shape as weaker side evidence only
+- Phase 6 defined the `support-guided semantic focus route` as the support-centric candidate route for Phase 7 implementation
 
 ## Decisions
 

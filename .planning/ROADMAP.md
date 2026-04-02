@@ -12,7 +12,7 @@ Milestone `v1.1 semantic-first boundary supervision pivot` changes the active SB
 ## Phases
 
 - [x] **Phase 5: Mainline Analysis Pivot** - Update the repo-grounded analysis, canonical guidance, and active-route references so they reflect the semantic-first pivot instead of the old explicit-field mainline. (completed 2026-04-02)
-- [ ] **Phase 6: Semantic-First Route Definition** - Define the replacement boundary-aware supervision signal and align the active model/loss/evaluator/config contract around it.
+- [x] **Phase 6: Semantic-First Route Definition** - Define the support-only-first semantic-first candidate route and align the repo-local contract around it. (completed 2026-04-02)
 - [ ] **Phase 7: Active Route Implementation** - Implement the new active route, removing direct explicit-field supervision from the active mainline while preserving the main training architecture.
 - [ ] **Phase 8: Local Validation And Experiment Handoff** - Run smoke/sample validation for the new route and produce the next full-train experiment direction with clear evidence boundaries.
 
@@ -33,18 +33,18 @@ Plans:
 - [x] `05-02-PLAN.md` - Align runtime guidance and active-config references with the new milestone direction while preserving historical evidence boundaries.
 
 ### Phase 6: Semantic-First Route Definition
-**Goal**: The repo defines one concrete semantic-first boundary-aware supervision signal and the minimal route contract needed to support it.
+**Goal**: The repo defines one support-only-first semantic-first candidate route and the minimal support-centric contract needed to support it.
 **Depends on**: Phase 5
 **Requirements**: MAIN-02, AUX-01, AUX-02
 **Success Criteria** (what must be TRUE):
-  1. The replacement supervision signal is concrete enough to implement and verify.
-  2. The signal uses boundary information to serve semantic performance near edges rather than supervising an explicit geometric field.
+  1. Support-only is established as the strongest current reference baseline and support-shape is demoted to side evidence only.
+  2. The candidate route is concrete enough to implement and verify without restoring explicit geometric-field supervision.
   3. The chosen route fits inside the existing architecture with only minimal supporting changes.
-**Plans**: 2 plans
+**Plans**: 2/2 plans complete
 
 Plans:
-- [ ] `06-01-PLAN.md` - Define the semantic-first boundary-aware supervision contract and the exact active-route semantics.
-- [ ] `06-02-PLAN.md` - Align loss/evaluator/config boundaries for the new route without broad architecture churn.
+- [x] `06-01-PLAN.md` - Define the support-only-first route semantics and canonical route-definition surfaces.
+- [x] `06-02-PLAN.md` - Define the support-centric candidate-route contract and align runtime guidance without broad architecture churn.
 
 ### Phase 7: Active Route Implementation
 **Goal**: The active training route implements the new semantic-first supervision path and removes direct explicit-field supervision from the mainline by design.
@@ -82,6 +82,6 @@ Phases execute in numeric order: 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 5. Mainline Analysis Pivot | 2/2 | Complete    | 2026-04-02 |
-| 6. Semantic-First Route Definition | 0/2 | Not started | - |
+| 6. Semantic-First Route Definition | 2/2 | Complete | 2026-04-02 |
 | 7. Active Route Implementation | 0/2 | Not started | - |
 | 8. Local Validation And Experiment Handoff | 0/2 | Not started | - |

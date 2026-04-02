@@ -16,7 +16,7 @@ Semantic segmentation remains the primary objective, and any boundary-aware supe
 - **Legacy historical lookup:** `docs/archive/workflow-legacy/README.md`
 - **Milestone archives:** `.planning/milestones/`
 - **Active milestone:** `v1.1 semantic-first boundary supervision pivot`
-- **Phase status:** Phase 5 complete; Phase 6 is next
+- **Phase status:** Phase 6 complete; Phase 7 is next
 
 ## Current Milestone: v1.1 semantic-first boundary supervision pivot
 
@@ -40,10 +40,10 @@ Semantic segmentation remains the primary objective, and any boundary-aware supe
 - ✓ Legacy workflow material is archived under `docs/archive/workflow-legacy/` and no longer serves as the active control plane — v1.0
 - ✓ Future workflow planning and execution route through GSD plus `.planning/` without relying on the archived workflow layer as the control plane — v1.0
 - ✓ The repo control surface, canonical facts, and runtime guidance now describe semantic-first boundary supervision as the active direction while preserving older geometric-field routes as historical/reference evidence — Phase 5 (`MAIN-01`)
+- ✓ The repo now defines a support-only-first semantic-first candidate route, records support-shape as weaker side evidence only, and documents the support-centric route contract without requiring Pointcept changes — Phase 6 (`MAIN-02`, `AUX-01`, `AUX-02`)
 
 ## Active
 
-- [ ] The repository defines a more suitable boundary-aware supervision signal that aims to improve semantic performance near boundaries without explicit geometric-field supervision.
 - [ ] The next minimal code changes for this semantic-first direction are implemented and locally smoke/sample validated.
 - [ ] The milestone leaves a clear next experiment direction for full training outside the local environment.
 
@@ -94,7 +94,7 @@ The preferred milestone posture is to keep the backbone and main training archit
 | Prefer physical archival over soft deprecation where practical | A clean cut is less ambiguous than leaving legacy material in default-facing paths | Phase 3 moved legacy continuity trees, manual tooling, and wrapper bodies into `docs/archive/workflow-legacy/` |
 | Thin wrappers are allowed only for compatibility or transition | Any remaining wrappers must be minimal and must point to GSD rather than reintroduce manual orchestration | Phase 2 reduced retained wrappers to redirect-only compatibility surfaces |
 | Live planning artifacts should stay milestone-scoped and compact | Archived roadmap and requirements history should not bloat the default control surface for future work | `v1.0` was moved into `.planning/milestones/`, leaving live `.planning/ROADMAP.md` ready for the next milestone |
-| Semantic performance is the governing objective for boundary supervision | Boundary-aware signals are useful only if they help semantic quality, especially near edges | `v1.1` will remove direct explicit-field supervision from the active mainline and search for a more suitable auxiliary signal |
+| Semantic performance is the governing objective for boundary supervision | Boundary-aware signals are useful only if they help semantic quality, especially near edges | `v1.1` removes support-shape from the candidate-mainline role, keeps support-only as the strongest current reference baseline, and advances a support-centric route for implementation |
 
 ## Evolution
 
@@ -114,4 +114,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-02 after Phase 5 completion*
+*Last updated: 2026-04-02 after Phase 6 completion*
