@@ -4,7 +4,7 @@
 
 This document is the canonical, repo-local source for the minimum SBF-specific facts that must survive workflow cleanup. It records the SBF-vs-Pointcept boundary, the current Stage-2 status, the active `axis + side + support` mainline semantics, the work boundaries that still apply, and the experiment evidence that still governs future work.
 
-It is intentionally not a workflow document. A maintainer should be able to recover the core repository facts here without opening `project_memory/`, `handoff/`, or other workflow-state files.
+It is intentionally not a workflow document. A maintainer should be able to recover the core repository facts here without opening archived `project_memory/`, archived `handoff/`, or other workflow-state files.
 
 ## SBF vs Pointcept Boundary
 
@@ -60,12 +60,12 @@ It is intentionally not a workflow document. A maintainer should be able to reco
 | Fact or rule | Source file path(s) used |
 | --- | --- |
 | SBF vs Pointcept boundary rules, read-only host posture, and no-fallback guardrail | `AGENTS.md`; `docs/pointcept_boundary.md` |
-| Current stage label `Stage-2 architecture rollout / verification phase`, active `axis + side + support` mainline, and `magnitude` = `support` terminology | `AGENTS.md`; `project_memory/current_state.md` |
-| Mainline tensor semantics, `edge_pred = [axis(3), side_logit(1), support_logit(1)]`, six-column `edge.npy`, and `dist` not being a predicted channel | `project_memory/01_current_architecture.md` |
-| Confirmed result `semantic-only = 73.8` | `AGENTS.md`; `project_memory/current_state.md` |
-| Confirmed result `support-only (reg=1, cover=0.2) = 74.6` | `AGENTS.md`; `project_memory/current_state.md` |
-| Confirmed result `support + dir + dist = 71` | `AGENTS.md`; `project_memory/current_state.md` |
-| Confirmed result `Stage-2 v1 best 71.34 / final 68.31` | `project_memory/current_state.md`; `project_memory/01_current_architecture.md` |
-| Confirmed result `Stage-2 v2 best 72.38` | `project_memory/current_state.md`; `project_memory/01_current_architecture.md` |
+| Current stage label `Stage-2 architecture rollout / verification phase`, active `axis + side + support` mainline, and `magnitude` = `support` terminology | `AGENTS.md`; `docs/archive/workflow-legacy/project_memory/current_state.md` |
+| Mainline tensor semantics, `edge_pred = [axis(3), side_logit(1), support_logit(1)]`, six-column `edge.npy`, and `dist` not being a predicted channel | `docs/archive/workflow-legacy/project_memory/01_current_architecture.md` |
+| Confirmed result `semantic-only = 73.8` | `AGENTS.md`; `docs/archive/workflow-legacy/project_memory/current_state.md` |
+| Confirmed result `support-only (reg=1, cover=0.2) = 74.6` | `AGENTS.md`; `docs/archive/workflow-legacy/project_memory/current_state.md` |
+| Confirmed result `support + dir + dist = 71` | `AGENTS.md`; `docs/archive/workflow-legacy/project_memory/current_state.md` |
+| Confirmed result `Stage-2 v1 best 71.34 / final 68.31` | `docs/archive/workflow-legacy/project_memory/current_state.md`; `docs/archive/workflow-legacy/project_memory/01_current_architecture.md` |
+| Confirmed result `Stage-2 v2 best 72.38` | `docs/archive/workflow-legacy/project_memory/current_state.md`; `docs/archive/workflow-legacy/project_memory/01_current_architecture.md` |
 | `axis-side` smoke status and the fact that smoke evidence exists separately from full-train validation | `reports/log_summaries/semantic_boundary_axis_side_train_smoke_train.summary.md` |
 | Current full-train evidence under the support-shape analysis trail, including authoritative scalar `best_val_mIoU = 0.7316` and `val_mIoU = 0.7085` used in ongoing interpretation | `reports/log_summaries/semseg-pt-v3m1-0-base-bf-edge-support-shape-train_train.summary.md` |

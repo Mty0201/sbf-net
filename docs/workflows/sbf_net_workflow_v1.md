@@ -99,7 +99,7 @@ Closeout requires more than a checkpoint:
 
 ### Web to local agent
 
-- Prefer a single structured handoff that follows the archived `handoff/web_to_agent_contract.md` location mapped by `docs/archive/workflow-legacy/ARCHIVE_MAP.md`
+- Prefer a single structured handoff that follows the archived continuity contract location mapped by `docs/archive/workflow-legacy/ARCHIVE_MAP.md`
 - Use any retained handoff wrapper only as a thin compatibility redirect, not as a full workflow spec
 - Do not use long free-form web text as the default execution entry
 
