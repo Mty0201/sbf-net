@@ -54,11 +54,13 @@ Plans:
   1. Direct `support` / `axis-side` field supervision is no longer the active route.
   2. The active code/config path implements the new semantic-first boundary-aware supervision signal.
   3. The implementation stays inside repo-local extension boundaries and does not require Pointcept changes.
-**Plans**: 2 plans
+**Plans**: 4 plans
 
 Plans:
-- [ ] `07-01-PLAN.md` - Implement the new loss/evaluator/config route for semantic-first boundary-aware supervision.
-- [ ] `07-02-PLAN.md` - Remove or demote the old explicit-field active path references so the new route is the clear mainline.
+- [ ] `07-01-PLAN.md` - Create the semantic-plus-support model path (SupportHead + SharedBackboneSemanticSupportModel + model config).
+- [ ] `07-02-PLAN.md` - Create the support-guided semantic focus loss and evaluator with explicit loss math and metric contract.
+- [ ] `07-03-PLAN.md` - Wire trainer plumbing and create the active-route train config with train-from-scratch and synthetic verification.
+- [ ] `07-04-PLAN.md` - Update canonical docs and runtime guidance with three-category config distinction and cross-file consistency.
 
 ### Phase 8: Local Validation And Experiment Handoff
 **Goal**: The new route is locally smoke/sample validated and leaves a clear next experiment direction for full training elsewhere.
@@ -83,5 +85,5 @@ Phases execute in numeric order: 5 → 6 → 7 → 8
 |-------|----------------|--------|-----------|
 | 5. Mainline Analysis Pivot | 2/2 | Complete    | 2026-04-02 |
 | 6. Semantic-First Route Definition | 2/2 | Complete | 2026-04-02 |
-| 7. Active Route Implementation | 0/2 | Not started | - |
+| 7. Active Route Implementation | 0/4 | Not started | - |
 | 8. Local Validation And Experiment Handoff | 0/2 | Not started | - |
