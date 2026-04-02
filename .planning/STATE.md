@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-02-PLAN.md
-last_updated: "2026-04-02T18:31:49.597Z"
+stopped_at: Completed 07-03-PLAN.md
+last_updated: "2026-04-02T18:38:58.185Z"
 last_activity: 2026-04-02
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 7
   percent: 50
 ---
 
@@ -26,7 +26,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-02)
 ## Current Position
 
 Phase: 07 (active-route-implementation) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-04-02
 
@@ -51,6 +51,7 @@ Progress: [#####-----] 50%
 - The active SBF mainline is no longer `support + axis + side`; new milestone work must stay semantic-first and avoid explicit geometric-field supervision as the main target.
 - [Phase 07]: SupportHead uses stem+linear pattern with single output channel; SharedBackboneSemanticSupportModel includes adapter pattern for future flexibility
 - [Phase 07]: Focus weighting uses ground-truth support_gt to avoid prediction feedback loops; CE overlap between loss_semantic and loss_focus is intentional additive boundary emphasis
+- [Phase 07]: support_pred checked before edge_pred in trainer dispatch for active route; train config uses weight=None for train-from-scratch
 
 ## Blockers / Concerns
 
@@ -64,8 +65,9 @@ Progress: [#####-----] 50%
 
 ## Session Continuity
 
-Last session: 2026-04-02T18:31:49.595Z
-Stopped at: Completed 07-02-PLAN.md
+Last session: 2026-04-02T18:38:58.183Z
+Stopped at: Completed 07-03-PLAN.md
 Resume file: None
 | Phase 07 P01 | 1min | 1 tasks | 4 files |
 | Phase 07 P02 | 3min | 2 tasks | 4 files |
+| Phase 07 P03 | 4min | 2 tasks | 2 files |
