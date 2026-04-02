@@ -20,13 +20,13 @@ Requirements for milestone `v1.1 semantic-first boundary supervision pivot`. Eac
 
 ### Validation
 
-- [ ] **VAL-01**: A repo-local smoke or sample validation path exists for the new semantic-first supervision route and confirms the modified path runs successfully.
+- [x] **VAL-01**: A repo-local smoke or sample validation path exists for the new semantic-first supervision route and confirms the modified path runs successfully.
 - [ ] **VAL-02**: The milestone records the expected comparison baseline and the next full-train experiment direction for a separate environment.
 
 ### Compatibility And Guardrails
 
 - [x] **COMP-03**: The new route stays within the `semantic-boundary-field` extension boundary and does not require Pointcept-side changes.
-- [ ] **COMP-04**: The new route does not introduce fallback behavior, hidden bypasses, or documentation that overstates local smoke/sample checks as full-train validation.
+- [x] **COMP-04**: The new route does not introduce fallback behavior, hidden bypasses, or documentation that overstates local smoke/sample checks as full-train validation.
 
 ## v2 Requirements
 
@@ -59,10 +59,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUX-01 | Phase 6 | Complete |
 | AUX-02 | Phase 6 | Complete |
 | AUX-03 | Phase 7 | Complete |
-| VAL-01 | Phase 8 | Pending |
+| VAL-01 | Phase 8 | Complete |
 | VAL-02 | Phase 8 | Pending |
 | COMP-03 | Phase 7 | Complete |
-| COMP-04 | Phase 8 | Pending |
+| COMP-04 | Phase 8 | Complete |
 
 **Coverage:**
 - v1 requirements: 9 total

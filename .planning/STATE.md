@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Phase 8 context gathered
-last_updated: "2026-04-02T21:07:12.694Z"
+status: executing
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-04-02T22:33:04.760Z"
 last_activity: 2026-04-02
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 10
+  completed_plans: 9
   percent: 50
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-04-02)
 
 **Core value:** Semantic segmentation remains the primary objective, and any boundary-aware supervision must improve boundary-region semantic quality without dragging the semantic branch into explicit geometric-field learning.
-**Current focus:** Phase 07 — active-route-implementation
+**Current focus:** Phase 08 — local-validation-and-experiment-handoff
 
 ## Current Position
 
-Phase: 8
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 08 (local-validation-and-experiment-handoff) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-04-02
 
 Progress: [#####-----] 50%
@@ -54,6 +54,8 @@ Progress: [#####-----] 50%
 - [Phase 07]: support_pred checked before edge_pred in trainer dispatch for active route; train config uses weight=None for train-from-scratch
 - [Phase 07]: Three-category config distinction (stable entry, reference baseline, active route) applied consistently across all canonical docs
 - [Phase 07]: All docs explicitly note validation is pending Phase 8 to prevent premature claims
+- [Phase 08]: Focus activation check uses support_gt > 0.2 threshold matching D-06 specification
+- [Phase 08]: Script prints explicit evidence boundary disclaimer per COMP-04
 
 ## Blockers / Concerns
 
@@ -67,10 +69,11 @@ Progress: [#####-----] 50%
 
 ## Session Continuity
 
-Last session: 2026-04-02T21:07:12.689Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-local-validation-and-experiment-handoff/08-CONTEXT.md
+Last session: 2026-04-02T22:33:04.758Z
+Stopped at: Completed 08-01-PLAN.md
+Resume file: None
 | Phase 07 P01 | 1min | 1 tasks | 4 files |
 | Phase 07 P02 | 3min | 2 tasks | 4 files |
 | Phase 07 P03 | 4min | 2 tasks | 2 files |
 | Phase 07 P04 | 4min | 2 tasks | 6 files |
+| Phase 08 P01 | 2min | 2 tasks | 2 files |
