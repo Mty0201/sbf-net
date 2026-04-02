@@ -291,12 +291,27 @@ class SemanticBoundaryTrainer:
             if "loss_coherence" in loss_dict:
                 keys.append("loss_coherence")
             return keys
+        if "loss_focus" in loss_dict:
+            # SupportGuidedSemanticFocusLoss
+            return [
+                "loss",
+                "loss_semantic",
+                "loss_support",
+                "loss_focus",
+                "valid_ratio",
+                "support_positive_ratio",
+            ]
         return ["loss", "loss_semantic"]
 
     @staticmethod
     def _build_loss_inputs(output: dict, batch: dict) -> dict:
         kwargs = dict(seg_logits=output["seg_logits"], segment=batch["segment"])
-        if "edge_pred" in output and "edge" in batch:
+        # NOTE: support_pred branch is for the active route (SharedBackboneSemanticSupportModel).
+        # edge_pred fallback is legacy compatibility only — the active route MUST use support_pred.
+        if "support_pred" in output and "edge" in batch:
+            kwargs["support_pred"] = output["support_pred"]
+            kwargs["edge"] = batch["edge"]
+        elif "edge_pred" in output and "edge" in batch:
             kwargs["edge_pred"] = output["edge_pred"]
             kwargs["edge"] = batch["edge"]
             if "coord" in batch:
@@ -310,7 +325,12 @@ class SemanticBoundaryTrainer:
     @staticmethod
     def _build_eval_inputs(output: dict, batch: dict) -> dict:
         kwargs = dict(seg_logits=output["seg_logits"], segment=batch["segment"])
-        if "edge_pred" in output and "edge" in batch:
+        # NOTE: support_pred branch is for the active route (SharedBackboneSemanticSupportModel).
+        # edge_pred fallback is legacy compatibility only — the active route MUST use support_pred.
+        if "support_pred" in output and "edge" in batch:
+            kwargs["support_pred"] = output["support_pred"]
+            kwargs["edge"] = batch["edge"]
+        elif "edge_pred" in output and "edge" in batch:
             kwargs["edge_pred"] = output["edge_pred"]
             kwargs["edge"] = batch["edge"]
         return kwargs
@@ -530,6 +550,17 @@ class SemanticBoundaryTrainer:
                     "dir_cosine",
                 ]
             )
+        elif self.cfg.get("loss", {}).get("type") == "SupportGuidedSemanticFocusLoss":
+            metrics.extend([
+                "val_loss_semantic",
+                "val_boundary_mIoU",
+                "val_boundary_mAcc",
+                "boundary_point_ratio",
+                "support_bce",
+                "support_cover",
+                "valid_ratio",
+                "support_positive_ratio",
+            ])
         else:
             metrics.append("val_loss_semantic")
         metric_meters = {key: AverageMeter() for key in metrics}
@@ -616,6 +647,29 @@ class SemanticBoundaryTrainer:
                                 dir_cosine=metric_meters["dir_cosine"].val,
                                 dist_error=metric_meters["dist_error"].val,
                                 support_error=metric_meters["support_error"].val,
+                                miou=metric_meters["val_mIoU"].val,
+                                macc=metric_meters["val_mAcc"].val,
+                                allacc=metric_meters["val_allAcc"].val,
+                            )
+                        )
+                    elif "val_boundary_mIoU" in metric_meters:
+                        self.logger.info(
+                            "Val/Test: [{iter}/{max_iter}] "
+                            "val_boundary_mIoU: {boundary_miou:.4f} "
+                            "val_boundary_mAcc: {boundary_macc:.4f} "
+                            "boundary_point_ratio: {boundary_ratio:.4f} "
+                            "support_bce: {support_bce:.4f} "
+                            "support_cover: {support_cover:.4f} "
+                            "valid_ratio: {valid_ratio:.4f} "
+                            "mIoU: {miou:.4f} mAcc: {macc:.4f} allAcc: {allacc:.4f}".format(
+                                iter=processed_iter,
+                                max_iter=min(len(self.val_loader), max_batches) if max_batches is not None else len(self.val_loader),
+                                boundary_miou=metric_meters["val_boundary_mIoU"].val,
+                                boundary_macc=metric_meters["val_boundary_mAcc"].val,
+                                boundary_ratio=metric_meters["boundary_point_ratio"].val,
+                                support_bce=metric_meters["support_bce"].val,
+                                support_cover=metric_meters["support_cover"].val,
+                                valid_ratio=metric_meters["valid_ratio"].val,
                                 miou=metric_meters["val_mIoU"].val,
                                 macc=metric_meters["val_mAcc"].val,
                                 allacc=metric_meters["val_allAcc"].val,
@@ -754,6 +808,12 @@ class SemanticBoundaryTrainer:
                     "optimizer_steps={optimizer_steps}".format(
                         **train_metrics
                     )
+                )
+            elif "loss_focus" in train_metrics:
+                self.logger.info(
+                    "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
+                    "loss_support={loss_support:.4f} loss_focus={loss_focus:.4f} "
+                    "optimizer_steps={optimizer_steps}".format(**train_metrics)
                 )
             else:
                 self.logger.info(
