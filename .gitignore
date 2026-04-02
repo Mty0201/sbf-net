@@ -35,3 +35,4 @@ samples/
 
 # Local planning artifacts
 .planning/
+.claude/worktrees/
