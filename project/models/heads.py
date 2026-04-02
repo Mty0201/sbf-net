@@ -41,6 +41,22 @@ class SemanticHead(nn.Module):
         return self.proj(feat)
 
 
+class SupportHead(nn.Module):
+    """Predict boundary support from shared features — no direction or distance."""
+
+    def __init__(self, in_channels):
+        super().__init__()
+        self.stem = nn.Sequential(
+            nn.Linear(in_channels, in_channels),
+            nn.ReLU(inplace=True),
+        )
+        self.support_head = nn.Linear(in_channels, 1)
+
+    def forward(self, feat):
+        feat = self.stem(feat)
+        return self.support_head(feat)
+
+
 class EdgeHead(nn.Module):
     """Predict boundary direction, distance, and support from shared features."""
 
