@@ -68,14 +68,18 @@ Plans:
 - [x] `03-04-PLAN.md` — Archive remaining wrapper bodies and reduce live wrappers to redirect-only compatibility surfaces.
 
 ### Phase 4: Workflow Control Cutover
-**Goal**: Maintainers can run future repository planning and execution through GSD and `.planning/` without using the legacy workflow layer as the control plane.
+**Goal**: Maintainers can run future repository planning and execution through GSD and the `.planning/` control surface without using the legacy workflow layer as the control plane.
 **Depends on**: Phase 3
 **Requirements**: FLOW-01, FLOW-03
 **Success Criteria** (what must be TRUE):
   1. Maintainer can start repository planning and execution from a GSD-first default entry without consulting the legacy hand-built workflow layer.
   2. Maintainer can move from entry to active planning artifacts under `.planning/` without relying on `handoff/` or `project_memory` as the control plane.
   3. Future workflow planning for this repository can proceed through GSD artifacts and commands as the default operating path.
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] `04-01-PLAN.md` — Create the `.planning` operating guide and align the core planning artifacts to serve as the repository control plane.
+- [ ] `04-02-PLAN.md` — Route default-facing workflow docs and compatibility wrappers through the `.planning` control surface.
 
 ## Progress
 
@@ -87,4 +91,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Canonical SBF Guidance | 3/3 | Complete | 2026-04-02 |
 | 2. GSD Default Entry | 3/3 | Complete | 2026-04-02 |
 | 3. Legacy Workflow Archival | 4/4 | Complete | 2026-04-02 |
-| 4. Workflow Control Cutover | 0/TBD | Not started | - |
+| 4. Workflow Control Cutover | 0/2 | In progress | - |

@@ -2,7 +2,7 @@
 
 ## What This Is
 
-`semantic-boundary-field` is a brownfield research/training repository for SBF experiments that extends an external Pointcept checkout through project-local datasets, models, losses, evaluators, configs, and trainer wiring. The repository also contains a hand-built workflow layer for agent coordination and experiment continuity; the current project scope is to simplify that workflow layer so GSD becomes the primary way future planning and execution happen in this repo.
+`semantic-boundary-field` is a brownfield research/training repository for SBF experiments that extends an external Pointcept checkout through project-local datasets, models, losses, evaluators, configs, and trainer wiring. The repository also contains a hand-built workflow layer for agent coordination and experiment continuity; the current project scope is to complete the cutover so GSD plus `.planning/` become the primary way future planning and execution happen in this repo.
 
 ## Core Value
 
@@ -23,7 +23,7 @@ The repository must preserve correct, minimal, SBF-specific operational guidance
 
 ### Active
 
-- [ ] Complete the final workflow-control cutover so future planning and execution rely on GSD artifacts without consulting the archived workflow layer
+- [ ] Complete the final workflow-control cutover so future planning and execution rely on GSD plus `.planning/` without consulting the archived workflow layer
 
 ### Out of Scope
 
@@ -38,7 +38,7 @@ The repository is a brownfield ML research codebase executed locally through Pyt
 
 The current technical guardrails that must survive the workflow migration are repository-specific rather than orchestration-specific: SBF vs Pointcept boundary rules, Stage-2 current-mainline facts, experiment conclusions that still matter for future work, and training/config entrypoint rules that prevent invalid runs or accidental misuse.
 
-The repository also accumulated a second, manual workflow subsystem in `AGENTS.md`, `handoff/`, `project_memory/`, `reports/`, `.codex/agents/`, repo-local orchestration skills, and related scripts. That subsystem was built mainly to fight context pollution and coordinate agent work by hand. Phase 3 archived or demoted that layer so GSD is now the clear default entry, with the archive preserved only for historical lookup.
+The repository also accumulated a second, manual workflow subsystem in `AGENTS.md`, `handoff/`, `project_memory/`, `reports/`, `.codex/agents/`, repo-local orchestration skills, and related scripts. That subsystem was built mainly to fight context pollution and coordinate agent work by hand. Phase 3 archived or demoted that layer so GSD is now the clear default entry, with the archive preserved only for historical lookup. Phase 4 completes the cutover by making `.planning/README.md`, `.planning/PROJECT.md`, `.planning/ROADMAP.md`, `.planning/STATE.md`, and active phase records under `.planning/phases/` the explicit repository-local operating path.
 
 The preferred migration posture is a clean cut where practical: physically archive legacy workflow scaffolding out of the default path, keep only thin wrappers when needed for compatibility, and avoid leaving legacy material in place as the active control plane.
 
@@ -54,7 +54,7 @@ The preferred migration posture is a clean cut where practical: physically archi
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| GSD is the primary workflow system for future planning and execution | The goal of this project is to retire the hand-built orchestration layer and simplify workflow control | Phase 2 established GSD-first entry across root docs, formal workflow surfaces, and retained wrappers |
+| GSD is the primary workflow system for future planning and execution | The goal of this project is to retire the hand-built orchestration layer and simplify workflow control | Phase 2 established GSD-first entry across root docs, formal workflow surfaces, and retained wrappers; Phase 4 turns `.planning/` into the explicit repo-local operating path |
 | Legacy workflow scaffolding is a migration target, not a canonical control layer | `.codex/agents/`, `handoff/`, `project_memory/`, wrapper docs, and routing/context tools were mainly created to compensate for workflow limitations that GSD now covers | Phase 3 archived those surfaces or reduced them to compatibility redirects |
 | Minimal canonical guidance must remain repository-specific | SBF/Pointcept boundaries, current-mainline architecture facts, experiment evidence, and training/config guardrails still matter for safe future work | Phases 1-3 kept canonical docs active while moving workflow history into the archive |
 | Prefer physical archival over soft deprecation where practical | A clean cut is less ambiguous than leaving legacy material in default-facing paths | Phase 3 moved legacy continuity trees, manual tooling, and wrapper bodies into `docs/archive/workflow-legacy/` |
