@@ -16,7 +16,7 @@ Requirements for milestone `v1.1 semantic-first boundary supervision pivot`. Eac
 
 - [x] **AUX-01**: The repository defines one concrete boundary-aware supervision signal that is intended to improve semantic performance near edges without direct explicit field supervision.
 - [x] **AUX-02**: The new supervision route keeps the backbone and main training architecture largely intact unless a supporting architectural change is clearly required by the new signal.
-- [ ] **AUX-03**: Direct `support` / `axis-side` field supervision is removed from the active mainline by code/config design rather than only neutralized by zero-valued legacy weights.
+- [x] **AUX-03**: Direct `support` / `axis-side` field supervision is removed from the active mainline by code/config design rather than only neutralized by zero-valued legacy weights.
 
 ### Validation
 
@@ -25,7 +25,7 @@ Requirements for milestone `v1.1 semantic-first boundary supervision pivot`. Eac
 
 ### Compatibility And Guardrails
 
-- [ ] **COMP-03**: The new route stays within the `semantic-boundary-field` extension boundary and does not require Pointcept-side changes.
+- [x] **COMP-03**: The new route stays within the `semantic-boundary-field` extension boundary and does not require Pointcept-side changes.
 - [ ] **COMP-04**: The new route does not introduce fallback behavior, hidden bypasses, or documentation that overstates local smoke/sample checks as full-train validation.
 
 ## v2 Requirements
@@ -58,10 +58,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MAIN-02 | Phase 6 | Complete |
 | AUX-01 | Phase 6 | Complete |
 | AUX-02 | Phase 6 | Complete |
-| AUX-03 | Phase 7 | Pending |
+| AUX-03 | Phase 7 | Complete |
 | VAL-01 | Phase 8 | Pending |
 | VAL-02 | Phase 8 | Pending |
-| COMP-03 | Phase 7 | Pending |
+| COMP-03 | Phase 7 | Complete |
 | COMP-04 | Phase 8 | Pending |
 
 **Coverage:**
