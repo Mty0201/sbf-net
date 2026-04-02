@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Canonical SBF Guidance** - Preserve the minimum SBF-specific rules, facts, evidence, and training guardrails outside the legacy workflow scaffolding.
 - [x] **Phase 2: GSD Default Entry** - Make the repository's default-facing docs and thin wrappers point to GSD first.
 - [x] **Phase 3: Legacy Workflow Archival** - Archive the manual orchestration surfaces out of the default workflow path while keeping useful history discoverable.
-- [ ] **Phase 4: Workflow Control Cutover** - Complete the transition so planning and execution proceed through GSD artifacts instead of the legacy control plane.
+- [x] **Phase 4: Workflow Control Cutover** - Complete the transition so planning and execution proceed through GSD artifacts instead of the legacy control plane.
 
 ## Phase Details
 
@@ -78,8 +78,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] `04-01-PLAN.md` — Create the `.planning` operating guide and align the core planning artifacts to serve as the repository control plane.
-- [ ] `04-02-PLAN.md` — Route default-facing workflow docs and compatibility wrappers through the `.planning` control surface.
+- [x] `04-01-PLAN.md` — Create the `.planning` operating guide and align the core planning artifacts to serve as the repository control plane.
+- [x] `04-02-PLAN.md` — Route default-facing workflow docs and compatibility wrappers through the `.planning` control surface.
 
 ## Progress
 
@@ -91,4 +91,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Canonical SBF Guidance | 3/3 | Complete | 2026-04-02 |
 | 2. GSD Default Entry | 3/3 | Complete | 2026-04-02 |
 | 3. Legacy Workflow Archival | 4/4 | Complete | 2026-04-02 |
-| 4. Workflow Control Cutover | 0/2 | In progress | - |
+| 4. Workflow Control Cutover | 2/2 | Complete | 2026-04-02 |

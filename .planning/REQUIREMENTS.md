@@ -9,9 +9,9 @@ Requirements for the initial workflow-migration release. Each maps to roadmap ph
 
 ### Workflow Entry
 
-- [ ] **FLOW-01**: Maintainer can start repository planning and execution from a GSD-first default entry without consulting the legacy hand-built workflow layer.
+- [x] **FLOW-01**: Maintainer can start repository planning and execution from a GSD-first default entry without consulting the legacy hand-built workflow layer.
 - [x] **FLOW-02**: Default-facing workflow docs identify GSD as the primary workflow system for this repository.
-- [ ] **FLOW-03**: Future workflow planning for this repository can proceed through GSD artifacts and commands without relying on `handoff/` or `project_memory/` as the control plane.
+- [x] **FLOW-03**: Future workflow planning for this repository can proceed through GSD artifacts and commands without relying on `handoff/` or `project_memory/` as the control plane.
 
 ### Legacy Cleanup
 
@@ -58,9 +58,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FLOW-01 | Phase 4 | Pending |
+| FLOW-01 | Phase 4 | Complete |
 | FLOW-02 | Phase 2 | Complete |
-| FLOW-03 | Phase 4 | Pending |
+| FLOW-03 | Phase 4 | Complete |
 | LEGC-01 | Phase 3 | Complete |
 | LEGC-02 | Phase 3 | Complete |
 | LEGC-03 | Phase 3 | Complete |
@@ -79,4 +79,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-04-02*
-*Last updated: 2026-04-02 after Phase 3 completion*
+*Last updated: 2026-04-02 after Phase 4 completion*
