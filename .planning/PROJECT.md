@@ -16,7 +16,7 @@ Semantic segmentation remains the primary objective, and any boundary-aware supe
 - **Legacy historical lookup:** `docs/archive/workflow-legacy/README.md`
 - **Milestone archives:** `.planning/milestones/`
 - **Active milestone:** `v1.1 semantic-first boundary supervision pivot`
-- **Phase status:** Phase 6 complete; Phase 7 is next
+- **Phase status:** Phase 7 complete; Phase 8 is next
 
 ## Current Milestone: v1.1 semantic-first boundary supervision pivot
 
@@ -41,10 +41,11 @@ Semantic segmentation remains the primary objective, and any boundary-aware supe
 - ✓ Future workflow planning and execution route through GSD plus `.planning/` without relying on the archived workflow layer as the control plane — v1.0
 - ✓ The repo control surface, canonical facts, and runtime guidance now describe semantic-first boundary supervision as the active direction while preserving older geometric-field routes as historical/reference evidence — Phase 5 (`MAIN-01`)
 - ✓ The repo now defines a support-only-first semantic-first candidate route, records support-shape as weaker side evidence only, and documents the support-centric route contract without requiring Pointcept changes — Phase 6 (`MAIN-02`, `AUX-01`, `AUX-02`)
+- ✓ The support-guided semantic focus active route is fully implemented — model (SharedBackboneSemanticSupportModel), loss (SupportGuidedSemanticFocusLoss), evaluator, trainer wiring, train config, and canonical docs all in place — Phase 7 (`AUX-03`, `COMP-03`)
 
 ## Active
 
-- [ ] The next minimal code changes for this semantic-first direction are implemented and locally smoke/sample validated.
+- [ ] The implemented route is locally smoke/sample validated and the milestone leaves a clear next experiment direction.
 - [ ] The milestone leaves a clear next experiment direction for full training outside the local environment.
 
 ## Next Milestone Goals
@@ -114,4 +115,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-02 after Phase 6 completion*
+*Last updated: 2026-04-03 after Phase 7 completion*
