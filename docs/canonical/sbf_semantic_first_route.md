@@ -4,11 +4,11 @@
 
 This document defines the evidence-aligned semantic-first route selection rules for milestone `v1.1`.
 
-It does not declare a fully implemented runtime default. It records:
+As of Phase 7, the candidate route is implemented as the active implementation route. It is not yet full-train validated (Phase 8 scope). This document records:
 
 - the strongest current semantic-first reference baseline
 - the weaker side evidence that should not be promoted to the new mainline
-- the concrete support-centric candidate route Phase 6 is defining for later implementation
+- the active implementation route and its prohibition rules
 
 ## Current Reference Baseline
 
@@ -23,9 +23,11 @@ It does not declare a fully implemented runtime default. It records:
 - It is not the canonical semantic-first route.
 - The current interpretation is that its extra shape supervision pressure still hurts the semantic objective relative to the lighter-touch support-only baseline.
 
-## Candidate Route
+## Active Implementation Route
 
-The Phase 6 candidate route is the **support-guided semantic focus route**.
+The active implementation route is the **support-guided semantic focus route**, implemented in Phase 7.
+
+Implementation: `SharedBackboneSemanticSupportModel` + `SupportGuidedSemanticFocusLoss` + `SupportGuidedSemanticFocusEvaluator`. Config: `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train.py`.
 
 Its definition is:
 

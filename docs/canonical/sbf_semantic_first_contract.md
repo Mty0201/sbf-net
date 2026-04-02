@@ -2,9 +2,9 @@
 
 ## Purpose
 
-This document defines the exact Phase 6 contract for the **support-guided semantic focus route**.
+This document defines the contract for the **support-guided semantic focus route**, originally defined in Phase 6 and implemented in Phase 7.
 
-It is a route-definition artifact, not a claim that the route is already the runtime default or full-train verified.
+It is a route-definition artifact, not a claim that the route is full-train verified.
 
 ## Baseline And Goal
 
@@ -44,9 +44,19 @@ The route definition assumes:
 
 - stable runtime entry config remains `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py`
 - historical reference configs remain historical only
-- the candidate route will later receive its own repo-local loss/evaluator/config definition in Phase 7
+- The route now has its own repo-local model, loss, evaluator, and config implemented in Phase 7: `SharedBackboneSemanticSupportModel`, `SupportGuidedSemanticFocusLoss`, `SupportGuidedSemanticFocusEvaluator`, `semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train.py`. The stable runtime entry config remains unchanged.
 
-That future implementation must still satisfy the semantic-first prohibitions above.
+The implementation satisfies the semantic-first prohibitions above.
+
+## Three-Category Config Distinction
+
+Maintainers must distinguish three config roles:
+
+1. **Stable runtime entry config**: `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py` — unchanged by Phase 7.
+2. **Strongest reference baseline**: `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-support-only-train.py` — the comparison target, not the active route.
+3. **Active implementation route**: `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train.py` — Phase 7 implementation.
+
+These are intentionally separate. The stable entry config is the repository's default runtime path. The reference baseline is the evidence comparison target. The active implementation route is the new semantic-first path being evaluated.
 
 ## Relationship To Support-Shape
 

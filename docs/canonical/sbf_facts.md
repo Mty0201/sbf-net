@@ -24,7 +24,7 @@ It is intentionally not a workflow document. A maintainer should be able to reco
 - `support-shape` is weaker side evidence only and is not the canonical replacement route.
 - The previous `support`, `axis-side`, and `axis + side + support` routes remain historical/reference evidence only.
 - In current author shorthand, `magnitude` means `support`; it does not mean a separate landed branch.
-- The current Stage-2 goal is to define and implement a better support-centric semantic-first supervision route that can improve on the `support-only` baseline without restating the historical geometric-field branches as the active path.
+- The support-guided semantic focus route is the active implementation route as of Phase 7. It uses `SharedBackboneSemanticSupportModel`, `SupportGuidedSemanticFocusLoss`, and `SupportGuidedSemanticFocusEvaluator`. Local smoke/full-train validation is pending Phase 8.
 
 ## Historical Mainline Semantics
 
@@ -56,9 +56,9 @@ These semantics remain important for auditing landed code and interpreting older
 ## Current Interpretation
 
 - `support-only (reg=1, cover=0.2) = 74.6` is the best confirmed reference result so far.
-- Semantic-first boundary supervision is the active repository direction, but the replacement route is still pending later milestone phases rather than already landed in runtime/config.
+- The support-guided semantic focus route is now implemented as the active implementation route. Local smoke/full-train validation is pending Phase 8.
 - `support-shape` remains side evidence rather than the replacement mainline because its extra shape supervision pressure is weaker than the `support-only` baseline.
-- Phase 6 is defining a `support-guided semantic focus route` intended to improve on `support-only` without adding direction, side, distance, coherence, or ordinal-shape pressure as the mainline target.
+- Phase 6 defined the support-guided semantic focus route; Phase 7 implemented it using a semantic-plus-support model where support is the only explicit auxiliary boundary prediction target.
 - The old signed-direction supervision route remains a failure/reference route rather than the current mainline.
 - `axis-side` smoke has passed, but `axis-side` full-train remains unverified.
 - The current rollout should be judged against the existing evidence above instead of being described as already validated end-to-end.
