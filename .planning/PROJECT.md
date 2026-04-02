@@ -2,11 +2,11 @@
 
 ## What This Is
 
-`semantic-boundary-field` is a brownfield research and training repository for SBF experiments that extends an external Pointcept checkout through project-local datasets, models, losses, evaluators, configs, and trainer wiring. The repository has now completed its workflow-control migration to `GSD` plus `.planning/`, while preserving repository-specific facts and training guardrails in canonical docs and retaining legacy workflow material only as historical archive.
+`semantic-boundary-field` is a brownfield research and training repository for SBF experiments that extends an external Pointcept checkout through project-local datasets, models, losses, evaluators, configs, and trainer wiring. The current work is no longer workflow migration; it is active SBF direction-setting and implementation under a semantic-first objective where boundary information should improve edge-region semantic quality without forcing the model to learn an explicit geometric field.
 
 ## Core Value
 
-The repository must preserve correct, minimal, SBF-specific operational guidance while removing the hand-built orchestration layer as the default workflow control system.
+Semantic segmentation remains the primary objective, and any boundary-aware supervision must improve boundary-region semantic quality without dragging the semantic branch into explicit geometric-field learning.
 
 ## Current State
 
@@ -15,6 +15,20 @@ The repository must preserve correct, minimal, SBF-specific operational guidance
 - **Canonical repo facts:** `docs/canonical/README.md`
 - **Legacy historical lookup:** `docs/archive/workflow-legacy/README.md`
 - **Milestone archives:** `.planning/milestones/`
+- **Active milestone:** `v1.1 semantic-first boundary supervision pivot`
+- **Phase status:** Phase 5 complete; Phase 6 is next
+
+## Current Milestone: v1.1 semantic-first boundary supervision pivot
+
+**Goal:** Improve semantic-side performance by using boundary information more effectively near edges without forcing the model to learn an explicit geometric field.
+
+**Target features:**
+- remove direct `support` / `axis-side` field supervision from the active mainline
+- stop treating explicit local field learning as a supervised target
+- define and implement a better boundary-aware supervision signal under a semantic-first objective
+- keep the backbone and main training architecture largely intact unless the new supervision signal clearly justifies a supporting architectural adjustment
+- add repository-grounded analysis plus local smoke/sample validation for the modified path
+- produce a clear next experiment direction for full training in a separate environment
 
 ## Validated
 
@@ -25,43 +39,50 @@ The repository must preserve correct, minimal, SBF-specific operational guidance
 - ✓ Default-facing docs and wrappers route maintainers to GSD, local `.planning/`, and canonical guidance instead of an old parallel control path — v1.0
 - ✓ Legacy workflow material is archived under `docs/archive/workflow-legacy/` and no longer serves as the active control plane — v1.0
 - ✓ Future workflow planning and execution route through GSD plus `.planning/` without relying on the archived workflow layer as the control plane — v1.0
+- ✓ The repo control surface, canonical facts, and runtime guidance now describe semantic-first boundary supervision as the active direction while preserving older geometric-field routes as historical/reference evidence — Phase 5 (`MAIN-01`)
 
 ## Active
 
-None. The next milestone has not been defined yet.
+- [ ] The repository defines a more suitable boundary-aware supervision signal that aims to improve semantic performance near boundaries without explicit geometric-field supervision.
+- [ ] The next minimal code changes for this semantic-first direction are implemented and locally smoke/sample validated.
+- [ ] The milestone leaves a clear next experiment direction for full training outside the local environment.
 
 ## Next Milestone Goals
 
-- Decide whether to address accepted workflow debt first or return to repository feature and verification work.
-- If workflow debt is prioritized, evaluate Nyquist validation coverage and canonical provenance cleanup.
-- If feature work resumes, define the next milestone explicitly with new requirements instead of reusing archived `v1.0` scope.
+- Establish the new active SBF direction from experiment evidence rather than continuing the old `support + axis + side` mainline.
+- Remove direct explicit-field supervision from the active path and replace it with a better semantic-first boundary-aware supervision design.
+- Land the smallest credible implementation and validation slice that can inform the next full-training experiment.
 
 ## Out of Scope
 
-- New model architecture work or feature-development on SBF training routes — this phase is workflow migration only
+- Reintroducing `support + axis + side` as the active mainline — experiment evidence no longer supports it as the preferred direction
+- Treating explicit local geometric-field learning as the supervised target — this now conflicts with the semantic-first objective
 - Pointcept runtime, registry, trainer, or dataset protocol redesign outside this repository's allowed extension boundary — preserve host boundary
-- Broad repository redesign unrelated to workflow migration — keep scope on cleanup, archival, migration boundaries, and canonical guidance minimization
-- Compatibility layers, fallback routing, or new manual orchestration patches that preserve the old framework as a shadow default — this would defeat the migration goal
+- Compatibility layers, fallback routing, or silent bypasses that hide training/runtime failures — fail fast instead
+- Full-train claims from the local environment — this milestone stops at repository-grounded implementation, smoke/sample validation, and the next experiment recommendation
 
 ## Context
 
-The repository remains a brownfield ML research codebase executed locally through Python and Conda, with Pointcept treated as an external dependency rather than something vendored or edited in place. Training and runtime behavior are still assembled from Python config fragments in `configs/`, launched from `scripts/train/train.py`, and implemented through project-local registry extensions in `project/`.
+The repository remains a brownfield ML research codebase executed locally through Python and Conda, with Pointcept treated as an external dependency rather than something vendored or edited in place. Training and runtime behavior are assembled from Python config fragments in `configs/`, launched from `scripts/train/train.py`, and implemented through project-local registry extensions in `project/`.
 
-The workflow migration milestone is complete. The active control path is now small and explicit, while repository-specific knowledge remains separated from workflow policy:
+The workflow migration milestone is complete and now forms validated repository infrastructure rather than the main problem. The active technical question is different: how to use boundary information to help semantic segmentation, especially near edges, without forcing the model to solve an explicit geometric prediction task that harms the main objective.
 
-- workflow control in `.planning/`
-- canonical SBF facts and guardrails in `docs/canonical/`
-- historical workflow continuity in `docs/archive/workflow-legacy/`
+The current source of truth for this pivot is the user-confirmed experiment interpretation from this milestone kickoff:
 
-The current post-migration posture is to keep that separation intact while defining the next milestone.
+- the old `support + axis + side` route is no longer considered viable as the mainline
+- `support` only worked as a weak hint partly because it did not force explicit geometric-field learning
+- `axis + side` supervision tends to create a stronger explicit geometric task that hurts semantic performance
+- local boundary attraction behavior should now be treated as a possible byproduct of semantic and boundary supervision, not the direct supervised target
+
+The preferred milestone posture is to keep the backbone and main training architecture largely intact while removing direct explicit-field supervision and exploring a better-suited boundary-aware supervision signal.
 
 ## Constraints
 
 - **Repository Boundary**: Keep Pointcept as an external host dependency and avoid modifying code outside `semantic-boundary-field` without explicit authorization — preserves the SBF/host interface boundary
-- **Workflow Scope**: Phase 1 is workflow cleanup and migration only — avoids conflating process migration with model or feature development
-- **Canonical Guidance**: Essential SBF-specific knowledge must remain available in minimal canonical form — future work still needs accurate architecture facts, experiment evidence, and guardrails
-- **Archive Bias**: Legacy orchestration materials should be physically archived out of the default path when practical — the repo should read as GSD-centered after this phase
-- **No Shadow Default**: Thin wrappers may remain temporarily, but they must not continue acting as a parallel default workflow system — prevents partial migration drift
+- **Semantic-First Objective**: Semantic segmentation remains the primary objective — auxiliary supervision cannot be allowed to dominate the learning problem
+- **No Explicit Field Target**: Do not treat local geometric-field learning as the direct supervised target of the active mainline — current evidence says that objective pulls the model away from semantics
+- **Architecture Stability**: Keep the backbone and main training architecture largely intact unless the new supervision signal clearly requires a supporting architectural change — keeps the milestone minimal and attributable
+- **Validation Boundary**: Local work should stop at smoke/sample validation and experiment-direction definition — full training belongs to the separate training environment
 
 ## Key Decisions
 
@@ -73,6 +94,7 @@ The current post-migration posture is to keep that separation intact while defin
 | Prefer physical archival over soft deprecation where practical | A clean cut is less ambiguous than leaving legacy material in default-facing paths | Phase 3 moved legacy continuity trees, manual tooling, and wrapper bodies into `docs/archive/workflow-legacy/` |
 | Thin wrappers are allowed only for compatibility or transition | Any remaining wrappers must be minimal and must point to GSD rather than reintroduce manual orchestration | Phase 2 reduced retained wrappers to redirect-only compatibility surfaces |
 | Live planning artifacts should stay milestone-scoped and compact | Archived roadmap and requirements history should not bloat the default control surface for future work | `v1.0` was moved into `.planning/milestones/`, leaving live `.planning/ROADMAP.md` ready for the next milestone |
+| Semantic performance is the governing objective for boundary supervision | Boundary-aware signals are useful only if they help semantic quality, especially near edges | `v1.1` will remove direct explicit-field supervision from the active mainline and search for a more suitable auxiliary signal |
 
 ## Evolution
 
@@ -92,4 +114,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-02 after v1.0 milestone completion*
+*Last updated: 2026-04-02 after Phase 5 completion*
