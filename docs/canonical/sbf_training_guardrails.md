@@ -31,7 +31,7 @@ then instantiates `SemanticBoundaryTrainer` directly.
 
 Use the configs with these roles in mind:
 
-- Stable runtime entry config: `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py`
+- stable runtime entry config: `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py`
   This remains the stable canonical runtime entry config for the repository.
 - Historical reference configs:
   `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train.py`
@@ -39,10 +39,14 @@ Use the configs with these roles in mind:
   `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-semantic-train.py`
   `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-semantic-train-smoke.py`
   These remain auditable historical/reference configs for prior axis-side and semantic-only evidence.
-- Replacement semantic-first route:
-  pending later phases of milestone `v1.1`
+- support-only reference baseline:
+  `support-only (reg=1, cover=0.2) = 74.6`
+- support-shape side evidence:
+  weaker than the support-only baseline and not the semantic-first mainline
+- Phase 6 semantic-first candidate route:
+  `support-guided semantic focus route` defined in `docs/canonical/sbf_semantic_first_contract.md`
 
-The runtime entrypoint and fail-fast rules stay fixed while the replacement semantic-first route is defined in later phases. Do not rewrite the historical configs as if they were the preferred current verification target, and do not rewrite the semantic-first direction as already implemented.
+The runtime entrypoint and fail-fast rules stay fixed while the support-only-first semantic-first candidate route is defined in Phase 6. Do not rewrite the historical configs as if they were the preferred current verification target, do not elevate support-shape to the mainline, and do not rewrite the candidate route as already implemented.
 
 ## Guardrails That Must Not Be Relaxed
 
