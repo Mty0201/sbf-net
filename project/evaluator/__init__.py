@@ -2,6 +2,7 @@ from .semantic_boundary_evaluator import SemanticBoundaryEvaluator
 from .semantic_evaluator import SemanticEvaluator
 from .axis_side_evaluator import AxisSideEvaluator
 from .support_guided_semantic_focus_evaluator import SupportGuidedSemanticFocusEvaluator
+from .redesigned_support_focus_evaluator import RedesignedSupportFocusEvaluator
 
 
 def build_evaluator(cfg: dict | None):
@@ -21,6 +22,9 @@ def build_evaluator(cfg: dict | None):
     if evaluator_type == "SupportGuidedSemanticFocusEvaluator":
         kwargs = {key: value for key, value in cfg.items() if key != "type"}
         return SupportGuidedSemanticFocusEvaluator(**kwargs)
+    if evaluator_type == "RedesignedSupportFocusEvaluator":
+        kwargs = {key: value for key, value in cfg.items() if key != "type"}
+        return RedesignedSupportFocusEvaluator(**kwargs)
     raise ValueError(f"Unsupported evaluator type: {evaluator_type}")
 
 
@@ -29,5 +33,6 @@ __all__ = [
     "SemanticEvaluator",
     "AxisSideEvaluator",
     "SupportGuidedSemanticFocusEvaluator",
+    "RedesignedSupportFocusEvaluator",
     "build_evaluator",
 ]

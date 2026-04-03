@@ -4,6 +4,7 @@ from .route_a_loss import RouteASemanticBoundaryLoss
 from .axis_side_loss import AxisSideSemanticBoundaryLoss
 from .support_shape_loss import SupportShapeLoss
 from .support_guided_semantic_focus_loss import SupportGuidedSemanticFocusLoss
+from .redesigned_support_focus_loss import RedesignedSupportFocusLoss
 
 
 def build_loss(cfg: dict | None):
@@ -29,6 +30,9 @@ def build_loss(cfg: dict | None):
     if loss_type == "SupportGuidedSemanticFocusLoss":
         kwargs = {key: value for key, value in cfg.items() if key != "type"}
         return SupportGuidedSemanticFocusLoss(**kwargs)
+    if loss_type == "RedesignedSupportFocusLoss":
+        kwargs = {key: value for key, value in cfg.items() if key != "type"}
+        return RedesignedSupportFocusLoss(**kwargs)
     raise ValueError(f"Unsupported loss type: {loss_type}")
 
 
@@ -39,5 +43,6 @@ __all__ = [
     "AxisSideSemanticBoundaryLoss",
     "SupportShapeLoss",
     "SupportGuidedSemanticFocusLoss",
+    "RedesignedSupportFocusLoss",
     "build_loss",
 ]
