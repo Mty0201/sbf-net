@@ -104,7 +104,7 @@ Plans:
 **Goal:** Redesign the active route loss to fix three confirmed Phase 9 problems: replace BCE with SmoothL1+Tversky for support, remove the broken focus term, and create ablation (Variant C) and boundary-focus (Variant A) training configs.
 **Requirements**: LOSS-01, LOSS-02, LOSS-03, LOSS-04, LOSS-05, LOSS-06, LOSS-07
 **Depends on:** Phase 9
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
 - [ ] `10-01-PLAN.md` — Create RedesignedSupportFocusLoss class + evaluator + registry wiring (SmoothL1+Tversky support, optional Lovasz focus).

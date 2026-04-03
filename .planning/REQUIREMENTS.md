@@ -47,10 +47,10 @@ Deferred follow-on work after the semantic-first pivot lands.
 
 ### Loss Redesign (Phase 10)
 
-- [ ] **LOSS-01**: Support supervision uses SmoothL1 + Tversky (not BCE) with parameters matching the support-only baseline: support_reg_weight=1.0, support_cover_weight=0.2, support_tversky_alpha=0.3, support_tversky_beta=0.7.
-- [ ] **LOSS-02**: The focus term is removed in the ablation variant (Variant C) — total loss = loss_semantic + loss_support only.
-- [ ] **LOSS-03**: The loss class applies sigmoid to the raw support logit before SmoothL1 and Tversky, matching the baseline pattern.
-- [ ] **LOSS-04**: The evaluator reports SmoothL1 regression error and Tversky coverage (not BCE) for support metrics.
+- [x] **LOSS-01**: Support supervision uses SmoothL1 + Tversky (not BCE) with parameters matching the support-only baseline: support_reg_weight=1.0, support_cover_weight=0.2, support_tversky_alpha=0.3, support_tversky_beta=0.7.
+- [x] **LOSS-02**: The focus term is removed in the ablation variant (Variant C) — total loss = loss_semantic + loss_support only.
+- [x] **LOSS-03**: The loss class applies sigmoid to the raw support logit before SmoothL1 and Tversky, matching the baseline pattern.
+- [x] **LOSS-04**: The evaluator reports SmoothL1 regression error and Tversky coverage (not BCE) for support metrics.
 - [ ] **LOSS-05**: A Variant C training config exists with support-only-baseline loss parameters, no focus term, and ~300 eval epochs.
 - [ ] **LOSS-06**: A Variant A training config exists with Lovasz-on-boundary focus (boundary_threshold=0.1, focus_weight=0.5) on top of Variant C.
 - [ ] **LOSS-07**: Both configs use SharedBackboneSemanticSupportModel (not legacy EdgeHead) and inherit optimizer/scheduler from the active route.
