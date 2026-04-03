@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 09-01-PLAN.md
-last_updated: "2026-04-03T12:56:34.760Z"
+status: verifying
+stopped_at: Completed 09-02-PLAN.md
+last_updated: "2026-04-03T13:03:40.171Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 12
-  completed_plans: 11
+  completed_plans: 12
   percent: 50
 ---
 
@@ -27,7 +27,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-02)
 
 Phase: 09 (phase-7-full-training-results-analysis-and-tuning) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-03
 
 Progress: [#####-----] 50%
@@ -59,6 +59,8 @@ Progress: [#####-----] 50%
 - [Phase 08]: Evidence boundary explicit in all three canonical docs per D-12 and COMP-04
 - [Phase 08]: Experiment directions framed as questions per D-11; soft masking ablation is top priority per D-07
 - [Phase 09]: Train result backfill pattern: rows created at Val result time, train metrics filled when Train result appears afterward
+- [Phase 09]: Support loss dominance (70%+ of total) identified as critical problem; rebalancing via support_loss_weight reduction is top tuning priority
+- [Phase 09]: Tuning variant priority: A (support downweight) > C (extended training) > B (focus amplification) > D (soft masking)
 
 ## Blockers / Concerns
 
@@ -76,8 +78,8 @@ Progress: [#####-----] 50%
 
 ## Session Continuity
 
-Last session: 2026-04-03T12:56:34.757Z
-Stopped at: Completed 09-01-PLAN.md
+Last session: 2026-04-03T13:03:40.169Z
+Stopped at: Completed 09-02-PLAN.md
 Resume file: None
 | Phase 07 P01 | 1min | 1 tasks | 4 files |
 | Phase 07 P02 | 3min | 2 tasks | 4 files |
@@ -86,3 +88,4 @@ Resume file: None
 | Phase 08 P01 | 2min | 2 tasks | 2 files |
 | Phase 08 P02 | 239s | 2 tasks | 3 files |
 | Phase 09 P01 | 3min | 1 tasks | 1 files |
+| Phase 09 P02 | 4min | 2 tasks | 1 files |

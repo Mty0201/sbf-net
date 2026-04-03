@@ -42,8 +42,8 @@ Deferred follow-on work after the semantic-first pivot lands.
 
 - [x] **ANALYSIS-01**: A log-parsing script extracts per-eval-epoch metrics from both the active route and support-only baseline train.log files into structured CSV files.
 - [x] **ANALYSIS-02**: The parsing script handles both SupportGuidedSemanticFocusLoss and SemanticBoundaryLoss log formats and does not read entire log files into memory.
-- [ ] **ANALYSIS-03**: A structured analysis report compares active route results against the support-only baseline (val_mIoU = 74.6) across overall mIoU, per-class breakdown, boundary-region metrics, and training dynamics.
-- [ ] **ANALYSIS-04**: The analysis report contains concrete tuning config variant proposals with specific parameter values and expected effects, grounded in Phase 8 experiment directions.
+- [x] **ANALYSIS-03**: A structured analysis report compares active route results against the support-only baseline (val_mIoU = 74.6) across overall mIoU, per-class breakdown, boundary-region metrics, and training dynamics.
+- [x] **ANALYSIS-04**: The analysis report contains concrete tuning config variant proposals with specific parameter values and expected effects, grounded in Phase 8 experiment directions.
 
 ## Out of Scope
 
