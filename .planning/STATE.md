@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 10-01-PLAN.md
-last_updated: "2026-04-03T14:47:48.535Z"
+status: verifying
+stopped_at: Completed 10-02-PLAN.md
+last_updated: "2026-04-03T14:50:59.871Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 6
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 14
-  completed_plans: 13
+  completed_plans: 14
   percent: 50
 ---
 
@@ -27,7 +27,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-02)
 
 Phase: 10 (loss-redesign-fix-support-supervision-and-boundary-focus) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-03
 
 Progress: [#####-----] 50%
@@ -63,6 +63,7 @@ Progress: [#####-----] 50%
 - [Phase 09]: Tuning variant priority: A (support downweight) > C (extended training) > B (focus amplification) > D (soft masking)
 - [Phase 10]: Single loss class with focus_mode flag (none/lovasz) instead of two separate classes
 - [Phase 10]: Evaluator reports support_reg_error replacing support_bce for consistency with new loss
+- [Phase 10]: Both variant configs inherit model/optimizer/scheduler/data from active route verbatim; only loss dict and work_dir differ
 
 ## Blockers / Concerns
 
@@ -81,8 +82,8 @@ Progress: [#####-----] 50%
 
 ## Session Continuity
 
-Last session: 2026-04-03T14:47:48.533Z
-Stopped at: Completed 10-01-PLAN.md
+Last session: 2026-04-03T14:50:59.868Z
+Stopped at: Completed 10-02-PLAN.md
 Resume file: None
 | Phase 07 P01 | 1min | 1 tasks | 4 files |
 | Phase 07 P02 | 3min | 2 tasks | 4 files |
@@ -93,3 +94,4 @@ Resume file: None
 | Phase 09 P01 | 3min | 1 tasks | 1 files |
 | Phase 09 P02 | 4min | 2 tasks | 1 files |
 | Phase 10 P01 | 4min | 2 tasks | 4 files |
+| Phase 10 P02 | 1min | 2 tasks | 2 files |
