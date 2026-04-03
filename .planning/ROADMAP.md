@@ -98,3 +98,14 @@ Phases execute in numeric order: 5 -> 6 -> 7 -> 8
 Plans:
 - [ ] `09-01-PLAN.md` - Create log parsing script that extracts per-eval-epoch metrics from both run logs into reusable CSV files.
 - [ ] `09-02-PLAN.md` - Run CSV extraction and write structured analysis report with mIoU comparison, per-class breakdown, training dynamics, and tuning config variant proposals.
+
+### Phase 10: Loss redesign — fix support supervision and boundary focus
+
+**Goal:** Redesign the active route loss to fix three confirmed Phase 9 problems: replace BCE with SmoothL1+Tversky for support, remove the broken focus term, and create ablation (Variant C) and boundary-focus (Variant A) training configs.
+**Requirements**: LOSS-01, LOSS-02, LOSS-03, LOSS-04, LOSS-05, LOSS-06, LOSS-07
+**Depends on:** Phase 9
+**Plans:** 2 plans
+
+Plans:
+- [ ] `10-01-PLAN.md` — Create RedesignedSupportFocusLoss class + evaluator + registry wiring (SmoothL1+Tversky support, optional Lovasz focus).
+- [ ] `10-02-PLAN.md` — Create Variant C ablation and Variant A boundary-focus training configs.
