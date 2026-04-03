@@ -87,3 +87,14 @@ Phases execute in numeric order: 5 -> 6 -> 7 -> 8
 | 6. Semantic-First Route Definition | 2/2 | Complete | 2026-04-02 |
 | 7. Active Route Implementation | 4/4 | Complete   | 2026-04-02 |
 | 8. Local Validation And Experiment Handoff | 0/2 | Not started | - |
+
+### Phase 9: Phase 7 full training results analysis and tuning
+
+**Goal:** Analyze full-training results of the support-guided semantic focus route against the support-only baseline and produce a structured report with concrete tuning recommendations.
+**Requirements**: ANALYSIS-01, ANALYSIS-02, ANALYSIS-03, ANALYSIS-04
+**Depends on:** Phase 8
+**Plans:** 2 plans
+
+Plans:
+- [ ] `09-01-PLAN.md` - Create log parsing script that extracts per-eval-epoch metrics from both run logs into reusable CSV files.
+- [ ] `09-02-PLAN.md` - Run CSV extraction and write structured analysis report with mIoU comparison, per-class breakdown, training dynamics, and tuning config variant proposals.
