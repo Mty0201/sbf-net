@@ -16,7 +16,7 @@ Semantic segmentation remains the primary objective, and any boundary-aware supe
 - **Legacy historical lookup:** `docs/archive/workflow-legacy/README.md`
 - **Milestone archives:** `.planning/milestones/`
 - **Active milestone:** `v1.1 semantic-first boundary supervision pivot`
-- **Phase status:** Phase 7 complete; Phase 8 is next
+- **Phase status:** Phase 10 complete — loss redesign with SmoothL1+Tversky support and optional Lovasz-on-boundary focus
 
 ## Current Milestone: v1.1 semantic-first boundary supervision pivot
 
@@ -42,11 +42,13 @@ Semantic segmentation remains the primary objective, and any boundary-aware supe
 - ✓ The repo control surface, canonical facts, and runtime guidance now describe semantic-first boundary supervision as the active direction while preserving older geometric-field routes as historical/reference evidence — Phase 5 (`MAIN-01`)
 - ✓ The repo now defines a support-only-first semantic-first candidate route, records support-shape as weaker side evidence only, and documents the support-centric route contract without requiring Pointcept changes — Phase 6 (`MAIN-02`, `AUX-01`, `AUX-02`)
 - ✓ The support-guided semantic focus active route is fully implemented — model (SharedBackboneSemanticSupportModel), loss (SupportGuidedSemanticFocusLoss), evaluator, trainer wiring, train config, and canonical docs all in place — Phase 7 (`AUX-03`, `COMP-03`)
+- ✓ The implemented route is locally smoke/sample validated with a full pipeline check script covering forward + loss + backward + optimizer steps and focus activation verification — Phase 8 (`VAL-01`, `VAL-02`)
+- ✓ The milestone leaves a clear next experiment direction for full training outside the local environment, with four documented directions (soft masking, negative sample calibration, alpha–σ coupling, adaptive inference) and support-only 74.6 mIoU as comparison baseline — Phase 8 (`COMP-04`)
+- ✓ The loss redesign replaces BCE with SmoothL1+Tversky for support supervision and adds optional Lovasz-on-boundary focus, with Variant C (ablation) and Variant A (boundary focus) training configs ready — Phase 10 (`LOSS-01` through `LOSS-07`)
 
 ## Active
 
-- [ ] The implemented route is locally smoke/sample validated and the milestone leaves a clear next experiment direction.
-- [ ] The milestone leaves a clear next experiment direction for full training outside the local environment.
+(No active requirements — all v1.1 requirements validated)
 
 ## Next Milestone Goals
 
@@ -115,4 +117,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-03 after Phase 7 completion*
+*Last updated: 2026-04-03 after Phase 10 completion (loss redesign)*
