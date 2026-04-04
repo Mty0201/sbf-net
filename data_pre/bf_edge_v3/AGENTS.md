@@ -3,8 +3,8 @@
 ## 作用范围
 
 - 本文件只补充 `data_pre/bf_edge_v3/` 子目录的本地约束。
-- 全局协作协议以项目根目录 `semantic-boundary-field/AGENTS.md` 为准。
-- 角色职责不再在本文件中模拟；统一由 `semantic-boundary-field/.codex/agents/` 与 `semantic-boundary-field/.codex/skills/` 承担。
+- 全局协作协议以项目根目录 `sbf-net/AGENTS.md` 为准。
+- 角色职责不再在本文件中模拟；统一由 `sbf-net/.codex/agents/` 与 `sbf-net/.codex/skills/` 承担。
 
 ## 本地目标
 

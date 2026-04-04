@@ -11,7 +11,7 @@ Instantly restore full project context so "Where were we?" has an immediate, com
 </purpose>
 
 <required_reading>
-@/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/references/continuation-format.md
+@/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/references/continuation-format.md
 </required_reading>
 
 <process>
@@ -20,7 +20,7 @@ Instantly restore full project context so "Where were we?" has an immediate, com
 Load all context in one call:
 
 ```bash
-INIT=$(node "/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/bin/gsd-tools.cjs" init resume)
+INIT=$(node "/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/bin/gsd-tools.cjs" init resume)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 

@@ -15,10 +15,10 @@ Provides situational awareness before continuing work.
 </objective>
 
 <execution_context>
-@/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/workflows/progress.md
+@/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/workflows/progress.md
 </execution_context>
 
 <process>
-Execute the progress workflow from @/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/workflows/progress.md end-to-end.
+Execute the progress workflow from @/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/workflows/progress.md end-to-end.
 Preserve all routing logic (Routes A through F) and edge case handling.
 </process>

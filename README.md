@@ -1,6 +1,6 @@
-# semantic-boundary-field
+# sbf-net
 
-`semantic-boundary-field` is an SBF research repository built on top of Pointcept PTv3. The repository's default workflow is now GSD-first: use `GSD` plus the `.planning` control surface for planning and execution, and use the canonical docs set for repository-specific facts and training guardrails.
+`sbf-net` is an SBF research repository built on top of Pointcept PTv3. The repository's default workflow is now GSD-first: use `GSD` plus the `.planning` control surface for planning and execution, and use the canonical docs set for repository-specific facts and training guardrails.
 
 ## Workflow Entry
 
@@ -19,7 +19,7 @@ Repository-specific facts are not maintained in this README. For current SBF-vs-
 
 ## Repository Boundary
 
-- Active maintenance scope is this repository only: `semantic-boundary-field`
+- Active maintenance scope is this repository only: `sbf-net`
 - Pointcept is a host dependency and interface boundary, not the project being rewritten here
 - If an issue appears to come from Pointcept or the host interface, stop and report it instead of patching around it locally
 

@@ -54,8 +54,8 @@ Use when you know what you want but don't know which `/gsd:*` command to run.
 </objective>
 
 <execution_context>
-@/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/do.md
-@/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/references/ui-brand.md
+@/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/do.md
+@/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <context>
@@ -63,6 +63,6 @@ Use when you know what you want but don't know which `/gsd:*` command to run.
 </context>
 
 <process>
-Execute the do workflow from @/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/do.md end-to-end.
+Execute the do workflow from @/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/do.md end-to-end.
 Route user intent to the best GSD command and invoke it.
 </process>

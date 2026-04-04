@@ -201,8 +201,8 @@ training/020101/
 
 围绕 BF 基础字段接入，后续默认落点应保持如下：
 
-- BF 数据集相关配置：`semantic-boundary-field/configs/bf/`
-- dataset 扩展代码：`semantic-boundary-field/project/datasets/`
-- 数据检查脚本：`semantic-boundary-field/scripts/check_data/`
+- BF 数据集相关配置：`sbf-net/configs/bf/`
+- dataset 扩展代码：`sbf-net/project/datasets/`
+- 数据检查脚本：`sbf-net/scripts/check_data/`
 
 当前文档只完成格式定义，不包含这些位置上的实现内容。

@@ -20,7 +20,7 @@ Output: .planning/codebase/ folder with 7 structured documents about the codebas
 </objective>
 
 <execution_context>
-@/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/workflows/map-codebase.md
+@/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/workflows/map-codebase.md
 </execution_context>
 
 <context>

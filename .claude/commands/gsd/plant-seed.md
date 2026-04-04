@@ -20,9 +20,9 @@ Consumed by: /gsd:new-milestone (scans seeds and presents matches)
 </objective>
 
 <execution_context>
-@/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/workflows/plant-seed.md
+@/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/workflows/plant-seed.md
 </execution_context>
 
 <process>
-Execute the plant-seed workflow from @/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/workflows/plant-seed.md end-to-end.
+Execute the plant-seed workflow from @/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/workflows/plant-seed.md end-to-end.
 </process>

@@ -4,7 +4,7 @@ This file is a runtime setup reference. Default planning and execution for this 
 
 ## 1. Pointcept Is Required
 
-`semantic-boundary-field` is not a standalone replacement for Pointcept.
+`sbf-net` is not a standalone replacement for Pointcept.
 
 Prepare Pointcept first. This repository reuses Pointcept for:
 
@@ -19,7 +19,7 @@ The maintenance boundary stays the same: this repository contains the SBF-specif
 ```text
 workspace/
 ├── Pointcept/
-└── semantic-boundary-field/
+└── sbf-net/
 ```
 
 If the repositories are not side by side, pass `--pointcept-root /path/to/Pointcept` when running commands.

@@ -52,8 +52,8 @@ Flow: Validate → Research UI → Verify UI-SPEC → Done
 </objective>
 
 <execution_context>
-@/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/ui-phase.md
-@/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/references/ui-brand.md
+@/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/ui-phase.md
+@/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <context>
@@ -61,6 +61,6 @@ Phase number: {{GSD_ARGS}} — optional, auto-detects next unplanned phase if om
 </context>
 
 <process>
-Execute @/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/ui-phase.md end-to-end.
+Execute @/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/ui-phase.md end-to-end.
 Preserve all workflow gates.
 </process>

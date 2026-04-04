@@ -8,7 +8,7 @@ It is intentionally not a workflow document. A maintainer should be able to reco
 
 ## SBF vs Pointcept Boundary
 
-- Only `semantic-boundary-field` is actively maintained in this repository workflow.
+- Only `sbf-net` is actively maintained in this repository workflow.
 - `Pointcept` is an external host dependency and remains read-only unless the author explicitly authorizes a host-side change.
 - If a failure appears to come from the Pointcept host interface, stop and report the boundary issue instead of patching around it inside this repo or inventing a host-side fallback.
 - Do not add compatibility layers, silent bypasses, swallowed errors, or other fallback behavior that hides training or integration problems.
@@ -38,7 +38,7 @@ These semantics remain important for auditing landed code and interpreting older
 
 ## Work Boundaries That Still Apply
 
-- Stay inside `semantic-boundary-field`; do not modify code outside this repository without explicit authorization.
+- Stay inside `sbf-net`; do not modify code outside this repository without explicit authorization.
 - Do not rewrite Pointcept registry, trainer, dataset, or host protocol behavior as part of SBF mainline work.
 - Do not overstate validation status: the semantic-first direction is the active milestone target, but it is not yet implemented or full-train verified.
 - Do not overstate historical route status: the `axis-side` route is implemented, but implementation alone is not proof of full-train success.

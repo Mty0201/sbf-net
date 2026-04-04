@@ -62,7 +62,7 @@ Create a new thread:
 
 1. Generate slug from description:
    ```bash
-   SLUG=$(node "/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/bin/gsd-tools.cjs" generate-slug "$ARGUMENTS")
+   SLUG=$(node "/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/bin/gsd-tools.cjs" generate-slug "$ARGUMENTS")
    ```
 
 2. Create the threads directory if needed:
@@ -101,7 +101,7 @@ Create a new thread:
 
 5. Commit:
    ```bash
-   node "/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/bin/gsd-tools.cjs" commit "docs: create thread — ${ARGUMENTS}" --files ".planning/threads/${SLUG}.md"
+   node "/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/bin/gsd-tools.cjs" commit "docs: create thread — ${ARGUMENTS}" --files ".planning/threads/${SLUG}.md"
    ```
 
 6. Report:

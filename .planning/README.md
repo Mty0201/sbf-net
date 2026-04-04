@@ -43,6 +43,6 @@ Use `GSD` plus this directory in a tight loop:
 
 ## Repository Scope Reminder
 
-This control path is repository-scope only for `semantic-boundary-field`.
+This control path is repository-scope only for `sbf-net`.
 
 Do not use it to justify Pointcept-side changes, fallback workflow layers, or host-side workaround behavior.

@@ -7,7 +7,7 @@
 ## 你在哪里
 
 - IDE 工作区根：`Pointcept`（宿主，**只读**）
-- 唯一主动维护项目根：`semantic-boundary-field/`
+- 唯一主动维护项目根：`sbf-net/`
 - Pointcept 只作为宿主依赖存在，禁止主动修改
 
 ---

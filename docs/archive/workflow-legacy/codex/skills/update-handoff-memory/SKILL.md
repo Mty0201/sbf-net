@@ -1,6 +1,6 @@
 ---
 name: update-handoff-memory
-description: Sync confirmed changes into project_memory and handoff for semantic-boundary-field. Use when implementation or process changes need a minimal, factual memory update without mixing in speculation.
+description: Sync confirmed changes into project_memory and handoff for sbf-net. Use when implementation or process changes need a minimal, factual memory update without mixing in speculation.
 ---
 
 # Update Handoff Memory
@@ -36,5 +36,5 @@ description: Sync confirmed changes into project_memory and handoff for semantic
 - 不把 handoff 扩写成 project_memory 的镜像副本。
 - 不遗漏阶段边界同步，避免文档内继续出现“还在准备进入 Stage-2”的过时表述。
 - 不得把 fallback、兼容层、宿主补丁或临时绕过美化为正式解决。
-- 不得把超出 `semantic-boundary-field` 的修改写成常规维护行为。
+- 不得把超出 `sbf-net` 的修改写成常规维护行为。
 - handoff / memory 的更新必须保持“问题显性化”，不能用摘要语言掩盖真实问题。

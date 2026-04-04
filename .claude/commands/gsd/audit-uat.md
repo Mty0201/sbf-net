@@ -12,7 +12,7 @@ Scan all phases for pending, skipped, blocked, and human_needed UAT items. Cross
 </objective>
 
 <execution_context>
-@/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/workflows/audit-uat.md
+@/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/workflows/audit-uat.md
 </execution_context>
 
 <context>

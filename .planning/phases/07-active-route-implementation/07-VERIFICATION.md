@@ -74,7 +74,7 @@ must_haves:
 |---|-------|--------|----------|
 | 1 | Direct support/axis-side field supervision is no longer the active route | VERIFIED | `SharedBackboneSemanticSupportModel.forward()` returns only `seg_logits` and `support_pred`. No `dir_pred`, `dist_pred`, or `edge_pred` anywhere in model, loss, evaluator, or train config. |
 | 2 | The active code/config path implements the new semantic-first boundary-aware supervision signal | VERIFIED | `SupportGuidedSemanticFocusLoss` has three terms (global semantic CE+Lovasz, support BCE, support-guided focus). `SupportGuidedSemanticFocusEvaluator` reports `val_mIoU`, `val_boundary_mIoU`, `support_bce`, `support_cover`. Train config wires all three primitives. Trainer forwards `support_pred`+`edge` to loss/evaluator. |
-| 3 | The implementation stays inside repo-local extension boundaries and does not require Pointcept changes | VERIFIED | All new code under `project/` and `configs/`. Pointcept imports are read-only: `MODELS` registry, `build_model`, `Point`, `LovaszLoss`. No files modified outside the `semantic-boundary-field` extension. |
+| 3 | The implementation stays inside repo-local extension boundaries and does not require Pointcept changes | VERIFIED | All new code under `project/` and `configs/`. Pointcept imports are read-only: `MODELS` registry, `build_model`, `Point`, `LovaszLoss`. No files modified outside the `sbf-net` extension. |
 
 **Score:** 3/3 truths verified
 
@@ -127,7 +127,7 @@ must_haves:
 | Requirement | Source Plan | Description | Status | Evidence |
 |-------------|------------|-------------|--------|----------|
 | AUX-03 | 07-01, 07-02, 07-03, 07-04 | Direct support/axis-side field supervision removed from active mainline by code/config design | SATISFIED | Model emits only `seg_logits`+`support_pred`. Loss/evaluator consume `support_pred`+`edge`, not `edge_pred`. No dir/dist anywhere in active route. Train config uses new primitives exclusively. |
-| COMP-03 | 07-01, 07-02, 07-03, 07-04 | New route stays within semantic-boundary-field extension boundary, no Pointcept-side changes | SATISFIED | All new code under `project/` and `configs/`. Pointcept imports are read-only (registry, builder, Point, LovaszLoss). Trainer is project-local. No Pointcept files modified. |
+| COMP-03 | 07-01, 07-02, 07-03, 07-04 | New route stays within sbf-net extension boundary, no Pointcept-side changes | SATISFIED | All new code under `project/` and `configs/`. Pointcept imports are read-only (registry, builder, Point, LovaszLoss). Trainer is project-local. No Pointcept files modified. |
 
 ### Anti-Patterns Found
 

@@ -216,7 +216,7 @@ get-shit-done/
 
 **New Workflow:**
 - Implementation: `get-shit-done/workflows/{name}.md`
-- Usage: Reference from command with `@/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/{name}.md`
+- Usage: Reference from command with `@/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/{name}.md`
 
 **New Reference Document:**
 - Implementation: `get-shit-done/references/{name}.md`
@@ -229,12 +229,12 @@ get-shit-done/
 ## Special Directories
 
 **get-shit-done/**
-- Purpose: Resources installed to /home/mty0201/Pointcept/semantic-boundary-field/.codex/
+- Purpose: Resources installed to /home/mty0201/Pointcept/sbf-net/.codex/
 - Source: Copied by bin/install.js during installation
 - Committed: Yes (source of truth)
 
 **commands/**
-- Purpose: Slash commands installed to /home/mty0201/Pointcept/semantic-boundary-field/.codex/commands/
+- Purpose: Slash commands installed to /home/mty0201/Pointcept/sbf-net/.codex/commands/
 - Source: Copied by bin/install.js during installation
 - Committed: Yes (source of truth)
 

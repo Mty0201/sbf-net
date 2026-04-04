@@ -31,8 +31,8 @@ Context budget: ~15% orchestrator, 100% fresh per subagent.
 </objective>
 
 <execution_context>
-@/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/workflows/execute-phase.md
-@/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/references/ui-brand.md
+@/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/workflows/execute-phase.md
+@/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <context>
@@ -54,6 +54,6 @@ Context files are resolved inside the workflow via `gsd-tools init execute-phase
 </context>
 
 <process>
-Execute the execute-phase workflow from @/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/workflows/execute-phase.md end-to-end.
+Execute the execute-phase workflow from @/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/workflows/execute-phase.md end-to-end.
 Preserve all workflow gates (wave execution, checkpoint handling, verification, state updates, routing).
 </process>

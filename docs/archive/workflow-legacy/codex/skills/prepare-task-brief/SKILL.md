@@ -1,6 +1,6 @@
 ---
 name: prepare-task-brief
-description: Draft the next minimal task file for semantic-boundary-field from TASK_TEMPLATE.md. Use when a new round needs a bounded task proposal instead of a long handoff replay.
+description: Draft the next minimal task file for sbf-net from TASK_TEMPLATE.md. Use when a new round needs a bounded task proposal instead of a long handoff replay.
 ---
 
 # Prepare Task Brief

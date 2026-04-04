@@ -7,7 +7,7 @@
 
 ## 当前有效事实
 
-- 唯一允许主动维护的项目根是 `semantic-boundary-field`；`Pointcept` 只是宿主依赖，默认只读。
+- 唯一允许主动维护的项目根是 `sbf-net`；`Pointcept` 只是宿主依赖，默认只读。
 - 当前阶段状态是 `Stage-2 architecture rollout / verification phase`。
 - 当前 active 主线统一为 `axis + side + support`；作者口头中的 `magnitude` 在当前代码 / 文档同步中等价于 `support`。
 - 当前分析中心保留 `semseg-pt-v3m1-0-base-bf-edge-support-shape-train` 的 full train 结果作为失败旁证；当前 active rollout 仍是 `axis + side + support`，`axis-side` smoke 作为前置准入证据保留。

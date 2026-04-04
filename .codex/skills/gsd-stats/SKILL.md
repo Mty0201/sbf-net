@@ -50,9 +50,9 @@ Display comprehensive project statistics including phase progress, plan executio
 </objective>
 
 <execution_context>
-@/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/stats.md
+@/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/stats.md
 </execution_context>
 
 <process>
-Execute the stats workflow from @/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/stats.md end-to-end.
+Execute the stats workflow from @/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/stats.md end-to-end.
 </process>

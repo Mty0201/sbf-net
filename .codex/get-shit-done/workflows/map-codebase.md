@@ -31,9 +31,9 @@ Documents are reference material for the agent when planning/executing. Always i
 Load codebase mapping context:
 
 ```bash
-INIT=$(node "/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/bin/gsd-tools.cjs" init map-codebase)
+INIT=$(node "/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/bin/gsd-tools.cjs" init map-codebase)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
-AGENT_SKILLS_MAPPER=$(node "/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/bin/gsd-tools.cjs" agent-skills gsd-codebase-mapper 2>/dev/null)
+AGENT_SKILLS_MAPPER=$(node "/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/bin/gsd-tools.cjs" agent-skills gsd-codebase-mapper 2>/dev/null)
 ```
 
 Extract from init JSON: `mapper_model`, `commit_docs`, `codebase_dir`, `existing_maps`, `has_maps`, `codebase_dir_exists`.
@@ -312,7 +312,7 @@ Continue to commit_codebase_map.
 Commit the codebase map:
 
 ```bash
-node "/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/bin/gsd-tools.cjs" commit "docs: map existing codebase" --files .planning/codebase/*.md
+node "/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/bin/gsd-tools.cjs" commit "docs: map existing codebase" --files .planning/codebase/*.md
 ```
 
 Continue to offer_next.

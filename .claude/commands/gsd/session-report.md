@@ -11,9 +11,9 @@ Generate a structured SESSION_REPORT.md document capturing session outcomes, wor
 </objective>
 
 <execution_context>
-@/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/workflows/session-report.md
+@/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/workflows/session-report.md
 </execution_context>
 
 <process>
-Execute the session-report workflow from @/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/workflows/session-report.md end-to-end.
+Execute the session-report workflow from @/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/workflows/session-report.md end-to-end.
 </process>

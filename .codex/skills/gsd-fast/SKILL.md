@@ -56,9 +56,9 @@ you could describe in one sentence and execute in under 2 minutes.
 </objective>
 
 <execution_context>
-@/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/fast.md
+@/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/fast.md
 </execution_context>
 
 <process>
-Execute the fast workflow from @/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/fast.md end-to-end.
+Execute the fast workflow from @/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/fast.md end-to-end.
 </process>

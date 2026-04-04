@@ -12,7 +12,7 @@ Default: `balanced` if not set or config missing.
 
 ## Lookup Table
 
-@/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/references/model-profiles.md
+@/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/references/model-profiles.md
 
 Look up the agent in the table for the resolved profile. Pass the model parameter to Task calls:
 

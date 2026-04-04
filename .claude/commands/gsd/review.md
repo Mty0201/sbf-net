@@ -19,7 +19,7 @@ planning via /gsd:plan-phase --reviews.
 </objective>
 
 <execution_context>
-@/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/workflows/review.md
+@/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/workflows/review.md
 </execution_context>
 
 <context>
@@ -33,5 +33,5 @@ Phase number: extracted from $ARGUMENTS (required)
 </context>
 
 <process>
-Execute the review workflow from @/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/workflows/review.md end-to-end.
+Execute the review workflow from @/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/workflows/review.md end-to-end.
 </process>

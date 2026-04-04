@@ -58,11 +58,11 @@ Routes to the update workflow which handles:
 </objective>
 
 <execution_context>
-@/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/update.md
+@/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/update.md
 </execution_context>
 
 <process>
-**Follow the update workflow** from `@/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/update.md`.
+**Follow the update workflow** from `@/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/update.md`.
 
 The workflow handles all logic including:
 1. Installed version detection (local/global)

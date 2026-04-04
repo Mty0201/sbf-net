@@ -2,7 +2,7 @@
 
 ## Basic Info
 
-- File: `/home/mty0201/Pointcept/semantic-boundary-field/outputs/semseg-pt-v3m1-0-base-bf-edge-support-shape-train/train.log`
+- File: `/home/mty0201/Pointcept/sbf-net/outputs/semseg-pt-v3m1-0-base-bf-edge-support-shape-train/train.log`
 - Size: `42.92 MB` (45006615 bytes)
 - Lines: `120957`
 - Time range: `2026-03-30T11:12:08` -> `2026-03-30T20:39:57`

@@ -55,10 +55,10 @@ Remove a workspace directory after confirmation. For worktree strategy, runs `gi
 </objective>
 
 <execution_context>
-@/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/remove-workspace.md
-@/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/references/ui-brand.md
+@/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/remove-workspace.md
+@/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <process>
-Execute the remove-workspace workflow from @/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/remove-workspace.md end-to-end.
+Execute the remove-workspace workflow from @/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/remove-workspace.md end-to-end.
 </process>

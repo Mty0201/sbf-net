@@ -19,8 +19,8 @@ Output: Milestone archived (roadmap + requirements), PROJECT.md evolved, git tag
 <execution_context>
 **Load these files NOW (before proceeding):**
 
-- @/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/workflows/complete-milestone.md (main workflow)
-- @/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/templates/milestone-archive.md (archive template)
+- @/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/workflows/complete-milestone.md (main workflow)
+- @/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/templates/milestone-archive.md (archive template)
   </execution_context>
 
 <context>

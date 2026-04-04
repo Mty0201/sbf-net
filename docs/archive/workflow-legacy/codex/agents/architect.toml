@@ -15,7 +15,7 @@ read_first = [
 ]
 
 must_do = [
-  "先确认唯一允许主动维护的项目根是 semantic-boundary-field；Pointcept 仅作为宿主依赖默认只读。",
+  "先确认唯一允许主动维护的项目根是 sbf-net；Pointcept 仅作为宿主依赖默认只读。",
   "先确认 2.5 阶段已结束，当前处于 Stage-2 architecture rollout / verification phase。",
   "先确认当前 active 主线已切到 axis + side + support，axis-side train/smoke 是当前验证中心。",
   "优先从 project_memory 提炼当前事实、边界、禁改项与最小影响文件集合。",

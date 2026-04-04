@@ -57,11 +57,11 @@ Routes to the settings workflow which handles:
 </objective>
 
 <execution_context>
-@/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/settings.md
+@/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/settings.md
 </execution_context>
 
 <process>
-**Follow the settings workflow** from `@/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/settings.md`.
+**Follow the settings workflow** from `@/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/settings.md`.
 
 The workflow handles all logic including:
 1. Config file creation with defaults if missing

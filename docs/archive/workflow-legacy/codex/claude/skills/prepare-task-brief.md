@@ -28,7 +28,7 @@
 
 **Step 1：边界确认**
 - 从 `AGENTS.md` 和 `current_state.md` 确认当前阶段边界、当前 task 指针和禁改项
-- 确认唯一允许主动维护的项目根是 `semantic-boundary-field/`；`Pointcept` 默认只读
+- 确认唯一允许主动维护的项目根是 `sbf-net/`；`Pointcept` 默认只读
 - 若问题疑似来自宿主接口或边界语义冲突，停止继续生成 task 草案，输出停止声明
 
 **Step 2：事实提炼**

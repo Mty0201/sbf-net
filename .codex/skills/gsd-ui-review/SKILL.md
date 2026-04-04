@@ -52,8 +52,8 @@ Output: {phase_num}-UI-REVIEW.md
 </objective>
 
 <execution_context>
-@/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/ui-review.md
-@/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/references/ui-brand.md
+@/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/ui-review.md
+@/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <context>
@@ -61,6 +61,6 @@ Phase: {{GSD_ARGS}} — optional, defaults to last completed phase.
 </context>
 
 <process>
-Execute @/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/ui-review.md end-to-end.
+Execute @/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/ui-review.md end-to-end.
 Preserve all workflow gates.
 </process>

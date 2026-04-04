@@ -53,7 +53,7 @@ Output: Conversational output only (no file creation) - ends with "What do you t
 </objective>
 
 <execution_context>
-@/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/list-phase-assumptions.md
+@/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/list-phase-assumptions.md
 </execution_context>
 
 <context>

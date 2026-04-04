@@ -1,8 +1,8 @@
-# Roadmap: semantic-boundary-field
+# Roadmap: sbf-net
 
 ## Milestones
 
-- [x] [`v1.0` workflow migration](/home/mty0201/Pointcept/semantic-boundary-field/.planning/milestones/v1.0-ROADMAP.md) - shipped 2026-04-02, 4 phases, 12 plans, GSD plus `.planning/` cutover complete
+- [x] [`v1.0` workflow migration](/home/mty0201/Pointcept/sbf-net/.planning/milestones/v1.0-ROADMAP.md) - shipped 2026-04-02, 4 phases, 12 plans, GSD plus `.planning/` cutover complete
 - [ ] `v1.1 semantic-first boundary supervision pivot` - active, phases 5-8, semantic-first supervision replacement for the old explicit field route
 
 ## Overview

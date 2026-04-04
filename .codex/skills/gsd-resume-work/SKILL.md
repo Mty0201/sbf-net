@@ -58,11 +58,11 @@ Routes to the resume-project workflow which handles:
   </objective>
 
 <execution_context>
-@/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/resume-project.md
+@/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/resume-project.md
 </execution_context>
 
 <process>
-**Follow the resume-project workflow** from `@/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/resume-project.md`.
+**Follow the resume-project workflow** from `@/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/resume-project.md`.
 
 The workflow handles all resumption logic including:
 

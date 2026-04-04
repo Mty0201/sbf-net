@@ -54,9 +54,9 @@ changes that are irrelevant to code review.
 </objective>
 
 <execution_context>
-@/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/pr-branch.md
+@/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/pr-branch.md
 </execution_context>
 
 <process>
-Execute the pr-branch workflow from @/home/mty0201/Pointcept/semantic-boundary-field/.codex/get-shit-done/workflows/pr-branch.md end-to-end.
+Execute the pr-branch workflow from @/home/mty0201/Pointcept/sbf-net/.codex/get-shit-done/workflows/pr-branch.md end-to-end.
 </process>

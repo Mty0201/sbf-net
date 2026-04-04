@@ -2,9 +2,9 @@
 
 ## Scope
 
-- The IDE workspace root may be `Pointcept`, but the only repository you should actively maintain here is `semantic-boundary-field`.
+- The IDE workspace root may be `Pointcept`, but the only repository you should actively maintain here is `sbf-net`.
 - `Pointcept` is a host dependency and interface boundary. Treat it as read-only unless the user explicitly authorizes host-side work.
-- Do not modify code outside `semantic-boundary-field` without explicit approval.
+- Do not modify code outside `sbf-net` without explicit approval.
 - If an issue appears to come from Pointcept or the host interface, stop and report it instead of patching around it.
 
 ## Default Workflow Entry
@@ -75,7 +75,7 @@ The active repo-local operating path is:
 
 ## Guardrails
 
-- Do not modify `semantic-boundary-field` directory code outside the current task scope.
+- Do not modify `sbf-net` directory code outside the current task scope.
 - Do not modify Pointcept internals, registries, trainers, or dataset contracts unless explicitly authorized.
 - Do not change `scripts/train/train.py`.
 - Do not change `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py`.

@@ -1,6 +1,6 @@
 ---
 name: refresh-round-artifacts
-description: Refresh log summaries, context packets, and round update drafts for semantic-boundary-field through the shared single-entry chain. Use when evidence changes, a round is ending, or before preview/apply to avoid stale artifacts.
+description: Refresh log summaries, context packets, and round update drafts for sbf-net through the shared single-entry chain. Use when evidence changes, a round is ending, or before preview/apply to avoid stale artifacts.
 ---
 
 # Refresh Round Artifacts

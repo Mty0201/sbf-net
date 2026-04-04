@@ -1,7 +1,7 @@
 {
   "generated_at": "2026-03-31T09:11:06Z",
   "input": {
-    "path": "/home/mty0201/Pointcept/semantic-boundary-field/outputs/semseg-pt-v3m1-0-base-bf-edge-support-shape-train/train.log",
+    "path": "/home/mty0201/Pointcept/sbf-net/outputs/semseg-pt-v3m1-0-base-bf-edge-support-shape-train/train.log",
     "name": "train.log",
     "size_bytes": 45006615,
     "size_human": "42.92 MB",

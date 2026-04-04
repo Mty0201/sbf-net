@@ -19,8 +19,8 @@ Routes to the profile-user workflow which orchestrates the full flow: consent ga
 </objective>
 
 <execution_context>
-@/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/workflows/profile-user.md
-@/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/references/ui-brand.md
+@/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/workflows/profile-user.md
+@/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <context>

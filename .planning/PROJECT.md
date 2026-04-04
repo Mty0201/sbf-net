@@ -1,8 +1,8 @@
-# semantic-boundary-field
+# sbf-net
 
 ## What This Is
 
-`semantic-boundary-field` is a brownfield research and training repository for SBF experiments that extends an external Pointcept checkout through project-local datasets, models, losses, evaluators, configs, and trainer wiring. The current work is no longer workflow migration; it is active SBF direction-setting and implementation under a semantic-first objective where boundary information should improve edge-region semantic quality without forcing the model to learn an explicit geometric field.
+`sbf-net` is a brownfield research and training repository for SBF experiments that extends an external Pointcept checkout through project-local datasets, models, losses, evaluators, configs, and trainer wiring. The current work is no longer workflow migration; it is active SBF direction-setting and implementation under a semantic-first objective where boundary information should improve edge-region semantic quality without forcing the model to learn an explicit geometric field.
 
 ## Core Value
 
@@ -81,7 +81,7 @@ The preferred milestone posture is to keep the backbone and main training archit
 
 ## Constraints
 
-- **Repository Boundary**: Keep Pointcept as an external host dependency and avoid modifying code outside `semantic-boundary-field` without explicit authorization — preserves the SBF/host interface boundary
+- **Repository Boundary**: Keep Pointcept as an external host dependency and avoid modifying code outside `sbf-net` without explicit authorization — preserves the SBF/host interface boundary
 - **Semantic-First Objective**: Semantic segmentation remains the primary objective — auxiliary supervision cannot be allowed to dominate the learning problem
 - **No Explicit Field Target**: Do not treat local geometric-field learning as the direct supervised target of the active mainline — current evidence says that objective pulls the model away from semantics
 - **Architecture Stability**: Keep the backbone and main training architecture largely intact unless the new supervision signal clearly requires a supporting architectural change — keeps the milestone minimal and attributable

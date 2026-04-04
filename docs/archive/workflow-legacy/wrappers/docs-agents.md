@@ -17,9 +17,9 @@
 
 ## Hard Constraints
 
-- IDE 工作区根可能是 `Pointcept`，但唯一允许主动维护的项目根是 `semantic-boundary-field`
+- IDE 工作区根可能是 `Pointcept`，但唯一允许主动维护的项目根是 `sbf-net`
 - `Pointcept` 仅作为宿主依赖存在，默认只读
-- 未经明确授权，禁止修改 `semantic-boundary-field` 目录之外的代码
+- 未经明确授权，禁止修改 `sbf-net` 目录之外的代码
 - 若问题疑似来自 `Pointcept` 或宿主接口，必须停止并汇报，不得自行兜底修补
 - 当前处于原型/研究验证阶段，优先目标是暴露问题，而不是掩盖问题
 - 禁止为了“跑通 / 通过率 / 兼容性”擅自加入 fallback、默认兼容层、自动绕过、吞错、保守修补

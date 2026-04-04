@@ -1,6 +1,6 @@
 ---
 name: workflow-consistency-smoke
-description: Inspect the current semantic-boundary-field task chain for missing, stale, or conflicting canonical and derived artifacts. Use before handoff, before apply, or when packet/draft alignment is uncertain.
+description: Inspect the current sbf-net task chain for missing, stale, or conflicting canonical and derived artifacts. Use before handoff, before apply, or when packet/draft alignment is uncertain.
 ---
 
 # Workflow Consistency Smoke

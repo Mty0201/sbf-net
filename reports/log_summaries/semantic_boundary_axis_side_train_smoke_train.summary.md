@@ -2,7 +2,7 @@
 
 ## Basic Info
 
-- File: `/home/mty0201/Pointcept/semantic-boundary-field/outputs/semantic_boundary_axis_side_train_smoke/train.log`
+- File: `/home/mty0201/Pointcept/sbf-net/outputs/semantic_boundary_axis_side_train_smoke/train.log`
 - Size: `9.53 KB` (9755 bytes)
 - Lines: `142`
 - Time range: `2026-03-29T19:11:01` -> `2026-03-30T01:08:03`
@@ -14,13 +14,13 @@
 ## Sessions
 
 - Session 1: status `startup_only`, device `cpu`, smoke `True`, train records `0`, val records `0`, checkpoints `0`
-  Start `2026-03-29T19:11:01`, end `2026-03-29T19:11:01`, save path `/home/mty0201/Pointcept/semantic-boundary-field/outputs/semantic_boundary_axis_side_train_smoke`
+  Start `2026-03-29T19:11:01`, end `2026-03-29T19:11:01`, save path `/home/mty0201/Pointcept/sbf-net/outputs/semantic_boundary_axis_side_train_smoke`
 - Session 2: status `startup_only`, device `cpu`, smoke `True`, train records `0`, val records `0`, checkpoints `0`
-  Start `2026-03-29T21:50:02`, end `2026-03-29T21:50:03`, save path `/home/mty0201/Pointcept/semantic-boundary-field/outputs/semantic_boundary_axis_side_train_smoke`
+  Start `2026-03-29T21:50:02`, end `2026-03-29T21:50:03`, save path `/home/mty0201/Pointcept/sbf-net/outputs/semantic_boundary_axis_side_train_smoke`
 - Session 3: status `startup_only`, device `cpu`, smoke `True`, train records `0`, val records `0`, checkpoints `0`
-  Start `2026-03-29T21:51:32`, end `2026-03-29T21:51:32`, save path `/home/mty0201/Pointcept/semantic-boundary-field/outputs/semantic_boundary_axis_side_train_smoke`
+  Start `2026-03-29T21:51:32`, end `2026-03-29T21:51:32`, save path `/home/mty0201/Pointcept/sbf-net/outputs/semantic_boundary_axis_side_train_smoke`
 - Session 4: status `validated_with_checkpoints`, device `cuda`, smoke `True`, train records `2`, val records `1`, checkpoints `4`
-  Start `2026-03-30T01:07:52`, end `2026-03-30T01:08:03`, save path `/home/mty0201/Pointcept/semantic-boundary-field/outputs/semantic_boundary_axis_side_train_smoke`
+  Start `2026-03-30T01:07:52`, end `2026-03-30T01:08:03`, save path `/home/mty0201/Pointcept/sbf-net/outputs/semantic_boundary_axis_side_train_smoke`
 
 ## Last Values
 

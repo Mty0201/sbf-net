@@ -1,4 +1,4 @@
-# Requirements: semantic-boundary-field
+# Requirements: sbf-net
 
 **Defined:** 2026-04-02
 **Core Value:** Semantic segmentation remains the primary objective, and any boundary-aware supervision must improve boundary-region semantic quality without dragging the semantic branch into explicit geometric-field learning.
@@ -25,7 +25,7 @@ Requirements for milestone `v1.1 semantic-first boundary supervision pivot`. Eac
 
 ### Compatibility And Guardrails
 
-- [x] **COMP-03**: The new route stays within the `semantic-boundary-field` extension boundary and does not require Pointcept-side changes.
+- [x] **COMP-03**: The new route stays within the `sbf-net` extension boundary and does not require Pointcept-side changes.
 - [x] **COMP-04**: The new route does not introduce fallback behavior, hidden bypasses, or documentation that overstates local smoke/sample checks as full-train validation.
 
 ## v2 Requirements

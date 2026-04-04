@@ -35,7 +35,7 @@ The candidate route must keep the repo-local architecture minimal:
 - keep the backbone and main training architecture largely intact
 - keep the existing trainer entrypoint at `scripts/train/train.py`
 - keep the existing dataset contract and `edge.npy` format unchanged during route definition
-- keep all changes inside `semantic-boundary-field`
+- keep all changes inside `sbf-net`
 - no Pointcept changes
 
 ## Runtime Contract Shape

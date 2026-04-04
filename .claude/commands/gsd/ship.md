@@ -17,7 +17,7 @@ Closes the plan → execute → verify → ship loop.
 </objective>
 
 <execution_context>
-@/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/workflows/ship.md
+@/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/workflows/ship.md
 </execution_context>
 
-Execute the ship workflow from @/home/mty0201/Pointcept/semantic-boundary-field/.claude/get-shit-done/workflows/ship.md end-to-end.
+Execute the ship workflow from @/home/mty0201/Pointcept/sbf-net/.claude/get-shit-done/workflows/ship.md end-to-end.
