@@ -132,7 +132,7 @@ class RedesignedSupportFocusLoss(nn.Module):
         # === Term 3: Focus (conditional on focus_mode) ===
         if self.focus_mode == "lovasz":
             # D-09, D-10: Lovasz on boundary subset only
-            boundary_mask = support_gt > self.boundary_threshold
+            boundary_mask = (support_gt > self.boundary_threshold) & (segment != -1)
             if boundary_mask.sum() > 0:
                 seg_logits_boundary = seg_logits[boundary_mask]
                 segment_boundary = segment[boundary_mask]
