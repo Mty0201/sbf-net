@@ -16,7 +16,7 @@ Semantic segmentation remains the primary objective, and any boundary-aware supe
 - **Legacy historical lookup:** `docs/archive/workflow-legacy/README.md`
 - **Milestone archives:** `.planning/milestones/`
 - **Active milestone:** `v1.1 semantic-first boundary supervision pivot`
-- **Phase status:** Phase 10 complete — loss redesign with SmoothL1+Tversky support and optional Lovasz-on-boundary focus
+- **Phase status:** Phase 11 complete — boundary metric logging fix and Variant A2 config (focus_weight=0.15, 300 eval epochs)
 
 ## Current Milestone: v1.1 semantic-first boundary supervision pivot
 
@@ -117,4 +117,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-03 after Phase 10 completion (loss redesign)*
+*Last updated: 2026-04-04 after Phase 11 completion (boundary metrics fix and focus tuning)*

@@ -672,6 +672,7 @@ class SemanticBoundaryTrainer:
                             "support_reg_error: {support_reg_error:.4f} "
                             "support_cover: {support_cover:.4f} "
                             "valid_ratio: {valid_ratio:.4f} "
+                            "support_positive_ratio: {support_positive_ratio:.4f} "
                             "mIoU: {miou:.4f} mAcc: {macc:.4f} allAcc: {allacc:.4f}".format(
                                 iter=processed_iter,
                                 max_iter=min(len(self.val_loader), max_batches) if max_batches is not None else len(self.val_loader),
@@ -681,6 +682,7 @@ class SemanticBoundaryTrainer:
                                 support_reg_error=metric_meters["support_reg_error"].val,
                                 support_cover=metric_meters["support_cover"].val,
                                 valid_ratio=metric_meters["valid_ratio"].val,
+                                support_positive_ratio=metric_meters["support_positive_ratio"].val,
                                 miou=metric_meters["val_mIoU"].val,
                                 macc=metric_meters["val_mAcc"].val,
                                 allacc=metric_meters["val_allAcc"].val,
