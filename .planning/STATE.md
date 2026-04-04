@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 10-02-PLAN.md
-last_updated: "2026-04-03T14:54:58.655Z"
-last_activity: 2026-04-03
+status: executing
+stopped_at: Completed 11-01-PLAN.md
+last_updated: "2026-04-04T13:48:15.908Z"
+last_activity: 2026-04-04
 progress:
-  total_phases: 6
+  total_phases: 7
   completed_phases: 6
-  total_plans: 14
-  completed_plans: 14
+  total_plans: 16
+  completed_plans: 15
   percent: 50
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-04-02)
 
 **Core value:** Semantic segmentation remains the primary objective, and any boundary-aware supervision must improve boundary-region semantic quality without dragging the semantic branch into explicit geometric-field learning.
-**Current focus:** Phase 10 — loss-redesign-fix-support-supervision-and-boundary-focus
+**Current focus:** Phase 11 — boundary-metrics-fix-and-focus-tuning
 
 ## Current Position
 
-Phase: 10
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-04-03
+Phase: 11 (boundary-metrics-fix-and-focus-tuning) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-04-04
 
 Progress: [#####-----] 50%
 
@@ -64,6 +64,7 @@ Progress: [#####-----] 50%
 - [Phase 10]: Single loss class with focus_mode flag (none/lovasz) instead of two separate classes
 - [Phase 10]: Evaluator reports support_reg_error replacing support_bce for consistency with new loss
 - [Phase 10]: Both variant configs inherit model/optimizer/scheduler/data from active route verbatim; only loss dict and work_dir differ
+- [Phase 11]: support_reg_error key used instead of support_bce to match redesigned evaluator; log parser detects redesigned runs by loss_support_reg= in Train result lines
 
 ## Blockers / Concerns
 
@@ -74,6 +75,7 @@ Progress: [#####-----] 50%
 
 - Phase 9 added: Phase 7 full training results analysis and tuning
 - Phase 10 added: Loss redesign — fix support supervision and boundary focus
+- Phase 11 added: Boundary metrics fix and focus tuning
 
 ## Performance Metrics
 
@@ -82,8 +84,8 @@ Progress: [#####-----] 50%
 
 ## Session Continuity
 
-Last session: 2026-04-03T14:50:59.868Z
-Stopped at: Completed 10-02-PLAN.md
+Last session: 2026-04-04T13:48:15.905Z
+Stopped at: Completed 11-01-PLAN.md
 Resume file: None
 | Phase 07 P01 | 1min | 1 tasks | 4 files |
 | Phase 07 P02 | 3min | 2 tasks | 4 files |
@@ -95,3 +97,4 @@ Resume file: None
 | Phase 09 P02 | 4min | 2 tasks | 1 files |
 | Phase 10 P01 | 4min | 2 tasks | 4 files |
 | Phase 10 P02 | 1min | 2 tasks | 2 files |
+| Phase 11 P01 | 3min | 2 tasks | 2 files |

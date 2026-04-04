@@ -57,9 +57,9 @@ Deferred follow-on work after the semantic-first pivot lands.
 
 ### Boundary Metrics Fix and Focus Tuning (Phase 11)
 
-- [ ] **METRIC-01**: The trainer registers and logs val_boundary_mIoU, val_boundary_mAcc, support_reg_error, support_cover, valid_ratio, boundary_point_ratio, and support_positive_ratio during validation when loss type is RedesignedSupportFocusLoss.
-- [ ] **METRIC-02**: Val batch log lines contain all boundary+support metrics in a parseable key-value format matching existing log conventions.
-- [ ] **METRIC-03**: The log parser (parse_train_log.py) detects redesigned loss runs and extracts boundary metric columns into CSV, including support_reg_error instead of support_bce.
+- [x] **METRIC-01**: The trainer registers and logs val_boundary_mIoU, val_boundary_mAcc, support_reg_error, support_cover, valid_ratio, boundary_point_ratio, and support_positive_ratio during validation when loss type is RedesignedSupportFocusLoss.
+- [x] **METRIC-02**: Val batch log lines contain all boundary+support metrics in a parseable key-value format matching existing log conventions.
+- [x] **METRIC-03**: The log parser (parse_train_log.py) detects redesigned loss runs and extracts boundary metric columns into CSV, including support_reg_error instead of support_bce.
 - [ ] **METRIC-04**: A Variant A2 training config exists with focus_weight=0.15, boundary_threshold=0.1, and 300 eval epochs (total_epoch=6000, eval_epoch=300).
 - [ ] **METRIC-05**: Variant A2 inherits model, optimizer, scheduler, data, and support loss parameters identically from the active route, with only focus_weight, epoch count, and work_dir changed.
 
