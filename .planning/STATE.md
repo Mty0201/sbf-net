@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 11-01-PLAN.md
-last_updated: "2026-04-04T13:48:15.908Z"
+status: verifying
+stopped_at: Completed 11-02-PLAN.md
+last_updated: "2026-04-04T13:51:05.833Z"
 last_activity: 2026-04-04
 progress:
   total_phases: 7
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 16
-  completed_plans: 15
+  completed_plans: 16
   percent: 50
 ---
 
@@ -27,7 +27,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-02)
 
 Phase: 11 (boundary-metrics-fix-and-focus-tuning) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-04
 
 Progress: [#####-----] 50%
@@ -65,6 +65,7 @@ Progress: [#####-----] 50%
 - [Phase 10]: Evaluator reports support_reg_error replacing support_bce for consistency with new loss
 - [Phase 10]: Both variant configs inherit model/optimizer/scheduler/data from active route verbatim; only loss dict and work_dir differ
 - [Phase 11]: support_reg_error key used instead of support_bce to match redesigned evaluator; log parser detects redesigned runs by loss_support_reg= in Train result lines
+- [Phase 11]: focus_weight=0.15 keeps Lovasz gradient ~1.07x semantic CE at convergence; 300 eval epochs via total_epoch=6000 and eval_epoch=300 matches baseline duration
 
 ## Blockers / Concerns
 
@@ -84,8 +85,8 @@ Progress: [#####-----] 50%
 
 ## Session Continuity
 
-Last session: 2026-04-04T13:48:15.905Z
-Stopped at: Completed 11-01-PLAN.md
+Last session: 2026-04-04T13:51:05.830Z
+Stopped at: Completed 11-02-PLAN.md
 Resume file: None
 | Phase 07 P01 | 1min | 1 tasks | 4 files |
 | Phase 07 P02 | 3min | 2 tasks | 4 files |
@@ -98,3 +99,4 @@ Resume file: None
 | Phase 10 P01 | 4min | 2 tasks | 4 files |
 | Phase 10 P02 | 1min | 2 tasks | 2 files |
 | Phase 11 P01 | 3min | 2 tasks | 2 files |
+| Phase 11 P02 | 1min | 1 tasks | 1 files |

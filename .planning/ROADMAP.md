@@ -115,7 +115,7 @@ Plans:
 **Goal:** Fix broken boundary metric logging for RedesignedSupportFocusLoss so val_boundary_mIoU and related metrics are emitted during validation, update the log parser, and create Variant A2 config with tuned focus_weight=0.15 and 300 eval epochs.
 **Requirements**: METRIC-01, METRIC-02, METRIC-03, METRIC-04, METRIC-05
 **Depends on:** Phase 10
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] `11-01-PLAN.md` — Fix trainer boundary metric registration/logging for RedesignedSupportFocusLoss and add redesigned run type to parse_train_log.py.
