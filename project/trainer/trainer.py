@@ -561,6 +561,17 @@ class SemanticBoundaryTrainer:
                 "valid_ratio",
                 "support_positive_ratio",
             ])
+        elif self.cfg.get("loss", {}).get("type") == "RedesignedSupportFocusLoss":
+            metrics.extend([
+                "val_loss_semantic",
+                "val_boundary_mIoU",
+                "val_boundary_mAcc",
+                "boundary_point_ratio",
+                "support_reg_error",
+                "support_cover",
+                "valid_ratio",
+                "support_positive_ratio",
+            ])
         else:
             metrics.append("val_loss_semantic")
         metric_meters = {key: AverageMeter() for key in metrics}
@@ -647,6 +658,29 @@ class SemanticBoundaryTrainer:
                                 dir_cosine=metric_meters["dir_cosine"].val,
                                 dist_error=metric_meters["dist_error"].val,
                                 support_error=metric_meters["support_error"].val,
+                                miou=metric_meters["val_mIoU"].val,
+                                macc=metric_meters["val_mAcc"].val,
+                                allacc=metric_meters["val_allAcc"].val,
+                            )
+                        )
+                    elif "support_reg_error" in metric_meters:
+                        self.logger.info(
+                            "Val/Test: [{iter}/{max_iter}] "
+                            "val_boundary_mIoU: {boundary_miou:.4f} "
+                            "val_boundary_mAcc: {boundary_macc:.4f} "
+                            "boundary_point_ratio: {boundary_ratio:.4f} "
+                            "support_reg_error: {support_reg_error:.4f} "
+                            "support_cover: {support_cover:.4f} "
+                            "valid_ratio: {valid_ratio:.4f} "
+                            "mIoU: {miou:.4f} mAcc: {macc:.4f} allAcc: {allacc:.4f}".format(
+                                iter=processed_iter,
+                                max_iter=min(len(self.val_loader), max_batches) if max_batches is not None else len(self.val_loader),
+                                boundary_miou=metric_meters["val_boundary_mIoU"].val,
+                                boundary_macc=metric_meters["val_boundary_mAcc"].val,
+                                boundary_ratio=metric_meters["boundary_point_ratio"].val,
+                                support_reg_error=metric_meters["support_reg_error"].val,
+                                support_cover=metric_meters["support_cover"].val,
+                                valid_ratio=metric_meters["valid_ratio"].val,
                                 miou=metric_meters["val_mIoU"].val,
                                 macc=metric_meters["val_mAcc"].val,
                                 allacc=metric_meters["val_allAcc"].val,
@@ -810,11 +844,21 @@ class SemanticBoundaryTrainer:
                     )
                 )
             elif "loss_focus" in train_metrics:
-                self.logger.info(
-                    "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
-                    "loss_support={loss_support:.4f} loss_focus={loss_focus:.4f} "
-                    "optimizer_steps={optimizer_steps}".format(**train_metrics)
-                )
+                if "loss_support_reg" in train_metrics:
+                    # Redesigned loss: has separate support_reg and support_cover
+                    self.logger.info(
+                        "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
+                        "loss_support={loss_support:.4f} loss_support_reg={loss_support_reg:.4f} "
+                        "loss_support_cover={loss_support_cover:.4f} loss_focus={loss_focus:.4f} "
+                        "optimizer_steps={optimizer_steps}".format(**train_metrics)
+                    )
+                else:
+                    # Old Phase 7 loss: no separate reg/cover breakdown
+                    self.logger.info(
+                        "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
+                        "loss_support={loss_support:.4f} loss_focus={loss_focus:.4f} "
+                        "optimizer_steps={optimizer_steps}".format(**train_metrics)
+                    )
             else:
                 self.logger.info(
                     "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
