@@ -55,6 +55,14 @@ Deferred follow-on work after the semantic-first pivot lands.
 - [x] **LOSS-06**: A Variant A training config exists with Lovasz-on-boundary focus (boundary_threshold=0.1, focus_weight=0.5) on top of Variant C.
 - [x] **LOSS-07**: Both configs use SharedBackboneSemanticSupportModel (not legacy EdgeHead) and inherit optimizer/scheduler from the active route.
 
+### Boundary Metrics Fix and Focus Tuning (Phase 11)
+
+- [ ] **METRIC-01**: The trainer registers and logs val_boundary_mIoU, val_boundary_mAcc, support_reg_error, support_cover, valid_ratio, boundary_point_ratio, and support_positive_ratio during validation when loss type is RedesignedSupportFocusLoss.
+- [ ] **METRIC-02**: Val batch log lines contain all boundary+support metrics in a parseable key-value format matching existing log conventions.
+- [ ] **METRIC-03**: The log parser (parse_train_log.py) detects redesigned loss runs and extracts boundary metric columns into CSV, including support_reg_error instead of support_bce.
+- [ ] **METRIC-04**: A Variant A2 training config exists with focus_weight=0.15, boundary_threshold=0.1, and 300 eval epochs (total_epoch=6000, eval_epoch=300).
+- [ ] **METRIC-05**: Variant A2 inherits model, optimizer, scheduler, data, and support loss parameters identically from the active route, with only focus_weight, epoch count, and work_dir changed.
+
 ## Out of Scope
 
 | Feature | Reason |
@@ -67,6 +75,7 @@ Deferred follow-on work after the semantic-first pivot lands.
 | Implementing tuning config changes in Phase 9 | Phase 9 is analysis only; tuning implementation belongs in a follow-on phase (per D-08) |
 | Variant B: Support-weighted Lovasz with per-point weighting | Deferred — only pursue if Variant A shows promise |
 | Updating docs/canonical/ for Phase 10 | Only after a new config variant is validated through full training |
+| Class-weighted Lovasz (D-11/D-12/D-13) | Deferred per CONTEXT — only if A2 shows balustrade regression > 3 pp |
 
 ## Traceability
 
@@ -94,13 +103,19 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LOSS-05 | Phase 10 | Planned |
 | LOSS-06 | Phase 10 | Planned |
 | LOSS-07 | Phase 10 | Planned |
+| METRIC-01 | Phase 11 | Planned |
+| METRIC-02 | Phase 11 | Planned |
+| METRIC-03 | Phase 11 | Planned |
+| METRIC-04 | Phase 11 | Planned |
+| METRIC-05 | Phase 11 | Planned |
 
 **Coverage:**
 - v1 requirements: 9 total (all complete)
 - v2/analysis requirements: 4 total (Phase 9, complete)
 - v2/loss-redesign requirements: 7 total (Phase 10, planned)
+- v2/boundary-metrics requirements: 5 total (Phase 11, planned)
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-02*
-*Last updated: 2026-04-03 after Phase 10 planning*
+*Last updated: 2026-04-04 after Phase 11 planning*

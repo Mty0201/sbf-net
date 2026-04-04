@@ -109,3 +109,14 @@ Plans:
 Plans:
 - [ ] `10-01-PLAN.md` — Create RedesignedSupportFocusLoss class + evaluator + registry wiring (SmoothL1+Tversky support, optional Lovasz focus).
 - [ ] `10-02-PLAN.md` — Create Variant C ablation and Variant A boundary-focus training configs.
+
+### Phase 11: Boundary metrics fix and focus tuning
+
+**Goal:** Fix broken boundary metric logging for RedesignedSupportFocusLoss so val_boundary_mIoU and related metrics are emitted during validation, update the log parser, and create Variant A2 config with tuned focus_weight=0.15 and 300 eval epochs.
+**Requirements**: METRIC-01, METRIC-02, METRIC-03, METRIC-04, METRIC-05
+**Depends on:** Phase 10
+**Plans:** 2 plans
+
+Plans:
+- [ ] `11-01-PLAN.md` — Fix trainer boundary metric registration/logging for RedesignedSupportFocusLoss and add redesigned run type to parse_train_log.py.
+- [ ] `11-02-PLAN.md` — Create Variant A2 training config with focus_weight=0.15 and 300 eval epochs.
