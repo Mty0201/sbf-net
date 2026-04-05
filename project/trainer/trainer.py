@@ -306,12 +306,11 @@ class SemanticBoundaryTrainer:
     @staticmethod
     def _build_loss_inputs(output: dict, batch: dict) -> dict:
         kwargs = dict(seg_logits=output["seg_logits"], segment=batch["segment"])
-        # NOTE: support_pred branch is for the active route (SharedBackboneSemanticSupportModel).
-        # edge_pred fallback is legacy compatibility only — the active route MUST use support_pred.
-        if "support_pred" in output and "edge" in batch:
-            kwargs["support_pred"] = output["support_pred"]
-            kwargs["edge"] = batch["edge"]
-        elif "edge_pred" in output and "edge" in batch:
+        # edge_pred branch: SemanticBoundaryLoss expects the full 5-channel edge_pred tensor.
+        # support_pred branch: RedesignedSupportFocusLoss / SupportGuidedSemanticFocusLoss.
+        # Check edge_pred first because SharedBackboneSemanticBoundaryModel outputs BOTH keys
+        # but its loss (SemanticBoundaryLoss) requires edge_pred.
+        if "edge_pred" in output and "edge" in batch:
             kwargs["edge_pred"] = output["edge_pred"]
             kwargs["edge"] = batch["edge"]
             if "coord" in batch:
@@ -320,18 +319,21 @@ class SemanticBoundaryTrainer:
                 kwargs["offset"] = batch["offset"]
             if "support_id" in batch:
                 kwargs["support_id"] = batch["support_id"]
+        elif "support_pred" in output and "edge" in batch:
+            kwargs["support_pred"] = output["support_pred"]
+            kwargs["edge"] = batch["edge"]
         return kwargs
 
     @staticmethod
     def _build_eval_inputs(output: dict, batch: dict) -> dict:
         kwargs = dict(seg_logits=output["seg_logits"], segment=batch["segment"])
-        # NOTE: support_pred branch is for the active route (SharedBackboneSemanticSupportModel).
-        # edge_pred fallback is legacy compatibility only — the active route MUST use support_pred.
-        if "support_pred" in output and "edge" in batch:
-            kwargs["support_pred"] = output["support_pred"]
-            kwargs["edge"] = batch["edge"]
-        elif "edge_pred" in output and "edge" in batch:
+        # Same priority as _build_loss_inputs: edge_pred first for SemanticBoundaryLoss,
+        # support_pred fallback for RedesignedSupportFocusLoss.
+        if "edge_pred" in output and "edge" in batch:
             kwargs["edge_pred"] = output["edge_pred"]
+            kwargs["edge"] = batch["edge"]
+        elif "support_pred" in output and "edge" in batch:
+            kwargs["support_pred"] = output["support_pred"]
             kwargs["edge"] = batch["edge"]
         return kwargs
 
