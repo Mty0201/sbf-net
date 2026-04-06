@@ -27,7 +27,7 @@ Plans:
 
 *Goal: Make the current algorithm explicit, modular, configurable, and verifiable — without changing what it produces.*
 
-### Phase 2: Behavioral audit and module restructure
+### Phase 2: Behavioral audit and module restructure ✅
 
 **Goal:** Audit the current pipeline to surface hidden compatibility logic, heuristics, and cross-stage behavioral contracts. Restructure into modular, independently runnable stages with clear I/O contracts, explicit behavioral documentation, and separation of core algorithm from compatibility/adaptation logic.
 **Requires:** REF-01, REF-02, REF-03
@@ -46,6 +46,12 @@ Plans:
 **Goal:** Implement per-stage configuration system with density-adaptive parameter injection points, add intermediate validation hooks, and verify behavioral equivalence — refactored pipeline produces identical output under default parameters.
 **Requires:** REF-04, REF-05, REF-06
 **Depends on:** Phase 2
+**Plans:** 3 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Reference data generation, test infrastructure, config dataclasses, script integration (REF-04)
+- [ ] 03-02-PLAN.md — Validation hooks implementation and script integration (REF-05)
+- [ ] 03-03-PLAN.md — Equivalence gate pytest suite with human verification (REF-06)
 
 ---
 
