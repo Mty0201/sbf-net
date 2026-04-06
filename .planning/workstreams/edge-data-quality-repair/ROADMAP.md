@@ -2,9 +2,11 @@
 
 ## v1.0 — Edge Data Pipeline Refactor and Quality Repair
 
-**Goal:** Refactor `data_pre/bf_edge_v3` into a clean, instrumentable, verifiable pipeline structure, then fix edge data quality issues (NET-01, NET-02, NET-03) on top of the refactored foundation. Deliver repaired data with coverage, continuity, and geometric fidelity improvements.
+**Goal:** Refactor `data_pre/bf_edge_v3` into a clean, instrumentable, verifiable pipeline structure, then improve the algorithm and fix edge data quality issues (NET-01, NET-02, NET-03) on top of the refactored foundation. Deliver repaired data with coverage, continuity, and geometric fidelity improvements.
 
-**Approach:** Refactor first, repair second. The existing Phase 1 baseline diagnosis provides evidence input for both the refactoring and the subsequent repair phases.
+**Approach:** Two-part refactor then repair. Part A (Phases 2-3) makes the current algorithm explicit, modular, and stable without changing behavior. Part B (Phase 4) iterates on the algorithm itself — density-aware parameters, improved splitting/fitting, intentional semantic changes treated as redesign. Quality repair phases (5-8) build on both.
+
+**A/B boundary rule:** Any change that alters current default output semantics belongs in Part B or later, not Part A. Part A may only restructure, document, and instrument — never silently change what the algorithm produces.
 
 ### Phase 1: NET-01 baseline diagnosis ✅
 
@@ -12,39 +14,70 @@
 **Requires:** DEN-01
 **Depends on:** Nothing — first phase
 **Status:** Complete (2026-04-06). Primary: Stage 2 (18.7pp survival gap). Secondary: Stage 4 (1.3-7.0pp valid gap).
-**Role in new milestone:** Baseline evidence input for refactoring design and post-refactor repair.
+**Role in milestone:** Baseline evidence input for refactoring design and post-refactor repair.
 **Plans:** 2 plans
 
 Plans:
 - [x] 01-01-PLAN.md — Regenerate intermediates and run stratified density-bucketed diagnosis
 - [x] 01-02-PLAN.md — Synthesize formal diagnosis conclusion with primary/secondary ranking
 
-### Phase 2: data_pre pipeline refactor
+---
 
-**Goal:** Restructure `data_pre/bf_edge_v3` into a clean, modular, instrumentable pipeline that supports per-stage configuration, intermediate validation, and density-adaptive parameter injection without entangling structural concerns with quality fixes.
-**Requires:** REF-01, REF-02, REF-03, REF-04
+### — Part A: Algorithm-Preserving Refactor (Phases 2–3) —
+
+*Goal: Make the current algorithm explicit, modular, configurable, and verifiable — without changing what it produces.*
+
+### Phase 2: Behavioral audit and module restructure
+
+**Goal:** Audit the current pipeline to surface hidden compatibility logic, heuristics, and cross-stage behavioral contracts. Restructure into modular, independently runnable stages with clear I/O contracts, explicit behavioral documentation, and separation of core algorithm from compatibility/adaptation logic.
+**Requires:** REF-01, REF-02, REF-03
 **Depends on:** Phase 1 (diagnosis informs which extension points the refactored structure must support)
+**Canonical refs:** `data_pre/bf_edge_v3/REFACTOR_TARGET.md`
 
-### Phase 3: NET-01 fix and verify (on refactored pipeline)
+### Phase 3: Config injection, validation hooks, and equivalence gate
 
-**Goal:** Implement density-adaptive fix at identified bottleneck(s), verify coverage improvement without dense-region regression.
-**Requires:** DEN-02, DEN-03
+**Goal:** Implement per-stage configuration system with density-adaptive parameter injection points, add intermediate validation hooks, and verify behavioral equivalence — refactored pipeline produces identical output under default parameters.
+**Requires:** REF-04, REF-05, REF-06
 **Depends on:** Phase 2
 
-### Phase 4: NET-02 diagnosis fix and verify
+---
+
+### — Part B: Algorithm Improvement (Phase 4) —
+
+*Goal: Iterate on the algorithm itself — intentional semantic changes treated explicitly as redesign, not folded into refactor.*
+
+### Phase 4: Algorithm evolution — density-aware parameters and improved splitting/fitting
+
+**Goal:** Introduce density-adaptive behavior at identified bottleneck stages (Stage 2 eps, Stage 4 sigma), improve clustering/splitting/fitting logic, and redesign compatibility strategies where the current heuristics are inadequate. Every behavioral change is explicitly marked as algorithm redesign.
+**Requires:** ALG-01, ALG-02, ALG-03
+**Depends on:** Phase 3 (equivalence gate must pass before algorithm changes begin)
+
+---
+
+### — Quality Repair (Phases 5–8) —
+
+*Goal: Fix NET-01/02/03 on top of the refactored and improved pipeline.*
+
+### Phase 5: NET-01 fix and verify (on improved pipeline)
+
+**Goal:** Apply density-adaptive fix at identified bottleneck(s), verify coverage improvement without dense-region regression.
+**Requires:** DEN-02, DEN-03
+**Depends on:** Phase 4
+
+### Phase 6: NET-02 diagnosis fix and verify
 
 **Goal:** Diagnose single-side boundary failure patterns, implement boundary recovery and support gap repair, verify.
 **Requires:** SSB-01, SSB-02, SSB-03, SSB-04
-**Depends on:** Phase 3
+**Depends on:** Phase 5
 
-### Phase 5: NET-03 diagnosis fix and verify
+### Phase 7: NET-03 diagnosis fix and verify
 
 **Goal:** Diagnose snake/zigzag primary cause, implement targeted fix, verify direction quality improvement.
 **Requires:** SNK-01, SNK-02, SNK-03
-**Depends on:** Phase 3
+**Depends on:** Phase 5
 
-### Phase 6: Re-generation and final verification
+### Phase 8: Re-generation and final verification
 
 **Goal:** Apply all fixes to re-generate edge data, produce comprehensive quality report, document conclusions.
 **Requires:** VER-01, VER-02, VER-03
-**Depends on:** Phases 3, 4, 5
+**Depends on:** Phases 5, 6, 7
