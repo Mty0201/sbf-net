@@ -33,12 +33,13 @@ Plans:
 **Requires:** REF-01, REF-02, REF-03
 **Depends on:** Phase 1 (diagnosis informs which extension points the refactored structure must support)
 **Canonical refs:** `data_pre/bf_edge_v3/REFACTOR_TARGET.md`
-**Plans:** 1/3 plans executed
+**Plans:** 3/3 plans executed
+**Status:** Complete (2026-04-07). Pipeline audited, restructured, parameters centralized, docs updated.
 
 Plans:
 - [x] 02-01-PLAN.md — Behavioral audit: per-module classification docs and cross-stage contracts
-- [ ] 02-02-PLAN.md — Module restructure: decompose supports_core.py into fitting/trigger_regroup/export sub-modules
-- [ ] 02-03-PLAN.md — Parameter extraction to params.py, behavioral spot-check, pipeline docs update
+- [x] 02-02-PLAN.md — Module restructure: decompose supports_core.py into fitting/trigger_regroup/export sub-modules
+- [x] 02-03-PLAN.md — Parameter extraction to params.py, behavioral spot-check, pipeline docs update
 
 ### Phase 3: Config injection, validation hooks, and equivalence gate
 
