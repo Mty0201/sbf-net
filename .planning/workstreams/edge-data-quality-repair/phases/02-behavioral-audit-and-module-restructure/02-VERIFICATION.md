@@ -1,8 +1,9 @@
 ---
 phase: 02-behavioral-audit-and-module-restructure
 verified: 2026-04-06T17:02:35Z
-status: human_needed
+status: passed
 score: 10/10 must-haves verified
+human_verified: 2026-04-07T01:45:00Z
 human_verification:
   - test: "Run fit_local_supports.py on scene 020101 and compare supports.npz output fields/shapes against Phase 1 baseline"
     expected: "All 27 NPZ fields present with identical shapes and dtypes; floating-point values match within atol=1e-7"
@@ -16,7 +17,7 @@ human_verification:
 
 **Phase Goal:** Audit the current pipeline to surface hidden compatibility logic, heuristics, and cross-stage behavioral contracts. Restructure into modular, independently runnable stages with clear I/O contracts, explicit behavioral documentation, and separation of core algorithm from compatibility/adaptation logic.
 **Verified:** 2026-04-06T17:02:35Z
-**Status:** human_needed
+**Status:** passed (human verification completed 2026-04-07)
 **Re-verification:** No -- initial verification
 
 ## Goal Achievement
@@ -97,19 +98,22 @@ Not applicable -- this phase produces documentation and structural refactoring, 
 |------|------|---------|----------|--------|
 | (none) | - | - | - | No TODO, FIXME, PLACEHOLDER, or stub patterns found in any Phase 2 deliverable |
 
-### Human Verification Required
+### Human Verification — Completed 2026-04-07
 
-### 1. Behavioral Equivalence on Test Scenes
+### 1. Behavioral Equivalence on Test Scenes — PASSED
 
-**Test:** Run `python scripts/fit_local_supports.py --input samples/training/020101` and compare the resulting `supports.npz` against any pre-refactor baseline output.
-**Expected:** All 27 NPZ fields present with identical shapes and dtypes. Floating-point values match within atol=1e-7 (or bitwise identical).
-**Why human:** Baseline supports.npz is generated data not tracked in git. Summary claims informal spot-check passed (020101: 193 supports, 020102: 242 supports), but bitwise equivalence cannot be verified without running the pipeline and having a pre-refactor baseline available.
+**Test:** Ran `fit_local_supports.py` on scene 010101 with pre-refactor code (commit 52402de, monolithic supports_core.py) and refactored code (current HEAD, 4 split modules) on identical Stage 1/2 intermediates.
+**Result:** 27/27 NPZ fields bit-identical (np.array_equal). XYZ visualization file byte-identical. 155 supports (72 line, 83 polyline, 2401 segments, 2412 polyline vertices).
+**Method:** Pre-refactor code checked out via git worktree. Both runs used identical boundary_centers.npz and local_clusters.npz inputs.
 
-### 2. Dataset-Level In-Memory Path
+### 2. Dataset-Level In-Memory Path — PASSED
 
-**Test:** Run `python scripts/build_support_dataset_v3.py --input samples/` and verify it completes without errors on both training/020101 and validation/020102.
-**Expected:** Both scenes produce supports.npz and support_geometry.xyz; no import errors or runtime crashes; support counts match per-scene script output.
-**Why human:** Requires actual scene data files on disk and pipeline execution. The import chain was verified programmatically, but end-to-end execution requires running the actual pipeline.
+**Test:** Ran `build_support_dataset_v3.py` with pre-refactor and refactored code on scene 010101 (Stages 1→2→3 in-memory from raw coord.npy/segment.npy).
+**Result:** 27/27 NPZ fields bit-identical. support_geometry.xyz byte-identical. Both runs completed without errors. Identical summary stats: 155 supports, 72 line, 83 polyline.
+
+### Caveat
+
+The original UAT text referenced scenes `020101`/`020102`, which do not exist in this repository. The only available test scene is `010101` (under `data_pre/bf_edge_v3/samples/`). Both tests passed on `010101`. This is "tested scope passed" — not "all originally listed scenes re-tested". The scene IDs in the original verification were incorrect (likely inherited from the plan template).
 
 ### Gaps Summary
 
