@@ -3,24 +3,24 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Edge Data Pipeline Refactor and Quality Repair
 status: executing
-stopped_at: Completed 02-03-PLAN.md (Phase 2 complete)
-last_updated: "2026-04-06T17:04:43.776Z"
-last_activity: 2026-04-06
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-04-07T19:11:00Z"
+last_activity: 2026-04-07
 progress:
   total_phases: 8
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 8
+  completed_plans: 6
 ---
 
 # Project State
 
 ## Current Position
 
-Phase: 3
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-04-06
+Phase: 3 — Config injection, validation hooks, and equivalence gate
+Plan: 03-02 (next)
+Status: 03-01 complete (config dataclasses + reference data), 2 plans remaining
+Last activity: 2026-04-07
 
 ## Recent Context
 
@@ -47,14 +47,19 @@ Last activity: 2026-04-06
 - **[A/B split]** Part B may later be promoted to a separate milestone if scope/experimental load warrants it
 - [Phase 02]: Stage 3 trigger path classified as MIXED (orchestrates CORE + COMPAT); runtime parameter derivation documented as hidden behavioral contract
 - [Phase 02]: params.py centralizes all pipeline parameters (33 total); DEFAULT_FIT_PARAMS re-exported from supports_core.py for backward compat
+- [Phase 03-01]: 4 frozen dataclass configs (Stage1-4Config) unify 5 scattered parameter sources; defaults hardcoded in config.py (not imported from params.py) for self-containment
+- [Phase 03-01]: Both duplicated build_runtime_params() functions deleted; Stage3Config.to_runtime_dict() is the single source of truth for runtime param dict
+- [Phase 03-01]: Reference data captured before code changes for equivalence gate in Plan 03-03
 
 ## Blockers / Concerns
 
 - ~~NET-01 root cause ambiguity~~ — **RESOLVED:** Stage 2 primary, Stage 4 secondary
-- Phase 2 scope needs discuss-phase to define: behavioral audit method, module boundary cuts, compatibility logic classification criteria
+- ~~Phase 2 scope needs discuss-phase to define~~ — **RESOLVED:** Phase 2 complete, all 3 plans executed
+- **[2026-04-07]** Phase 3 planned: 3 plans (config dataclasses, validation hooks, equivalence gate). Research + planning complete.
+- **[2026-04-07]** Plan 03-01 executed: 4 frozen dataclass configs, reference data generated, 10 tests passing, both build_runtime_params() deleted
 
 ## Session Continuity
 
-Last session: 2026-04-06T16:55:41.419Z
-Stopped at: Completed 02-03-PLAN.md (Phase 2 complete)
+Last session: 2026-04-07T19:11:00Z
+Stopped at: Completed 03-01-PLAN.md
 Resume file: None
