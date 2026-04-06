@@ -10,6 +10,8 @@ ensure_bf_edge_v3_root_on_path()
 from core.supports_core import (
     DEFAULT_FIT_PARAMS,
     build_supports_payload,
+)
+from core.supports_export import (
     export_npz,
     export_support_geometry_xyz,
     export_trigger_group_classes_xyz,
