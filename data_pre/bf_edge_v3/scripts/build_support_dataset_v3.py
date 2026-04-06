@@ -12,6 +12,8 @@ from core.local_clusters_core import cluster_boundary_centers
 from core.supports_core import (
     DEFAULT_FIT_PARAMS,
     build_supports_payload,
+)
+from core.supports_export import (
     export_npz,
     export_support_geometry_xyz,
 )
