@@ -9,7 +9,7 @@
 ### Behavioral Audit and Module Restructure (Phase 2)
 
 - [ ] **REF-01**: Restructure pipeline stages into modular, independently runnable units with clear input/output contracts
-- [ ] **REF-02**: Audit and document all hidden compatibility logic, heuristics, and cross-stage behavioral contracts — classify each as core algorithm, compatibility patch, or data-adaptation logic
+- [x] **REF-02**: Audit and document all hidden compatibility logic, heuristics, and cross-stage behavioral contracts — classify each as core algorithm, compatibility patch, or data-adaptation logic
 - [ ] **REF-03**: Separate core algorithm logic from compatibility/adaptation logic at module boundaries, so each can evolve independently
 
 ### Config Injection, Validation, and Equivalence (Phase 3)
