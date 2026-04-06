@@ -1,0 +1,5 @@
+# Machine-specific reference data (generated from local sample scenes)
+tests/reference/
+
+# Sample scenes (large binary npy files, not committed)
+samples/
