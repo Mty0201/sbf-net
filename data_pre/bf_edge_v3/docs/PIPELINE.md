@@ -320,18 +320,96 @@ python pointcept/datasets/preprocessing/bf_edge_v3/scripts/build_edge_dataset_v3
 - 某些类别附近出现明显错误吸附到远处 support。
 
 
-## 6. 当前实现边界与注意事项
+## 6. Module Structure (Phase 2 Restructure)
+
+Phase 2 restructured the pipeline's Stage 3 module (originally a monolithic
+1318-line `supports_core.py`) into focused sub-modules and centralized all
+hardcoded parameters. Behavioral equivalence with the pre-restructure pipeline
+has been informally verified on test scenes 020101 and 020102; a formal
+equivalence gate is planned for Phase 3 (REF-06).
+
+### 6.1 Core Module Inventory
+
+| Module | Lines | Stage | Responsibility |
+|--------|-------|-------|----------------|
+| `core/boundary_centers_core.py` | 414 | 1 | kNN boundary detection, center estimation, confidence scoring |
+| `core/local_clusters_core.py` | 404 | 2 | Per-pair DBSCAN clustering, lightweight denoise, trigger flagging |
+| `core/supports_core.py` | 400 | 3 | Orchestration: cluster record rebuild, support record assembly |
+| `core/fitting.py` | 192 | 3 | Core geometry primitives, line/polyline fitting algorithms |
+| `core/trigger_regroup.py` | 686 | 3 | Trigger cluster regrouping (compatibility/adaptation logic) |
+| `core/supports_export.py` | 79 | 3 | NPZ/XYZ export and visualization for supports |
+| `core/params.py` | 100 | 2-3 | Centralized parameter definitions (fit, trigger, denoise) |
+| `core/pointwise_core.py` | 301 | 4 | Per-point edge supervision computation |
+
+### 6.2 Parameter Centralization
+
+All hardcoded pipeline parameters are now defined in `core/params.py`:
+
+- **`DEFAULT_FIT_PARAMS`** (25 keys): Stage 3 trigger regrouping parameters
+  (direction angles, spacing scales, classification thresholds, merging
+  criteria, endpoint absorption limits). Angle parameters stored in degrees;
+  runtime conversion to cosine thresholds in `build_runtime_params()`.
+
+- **`DEFAULT_TRIGGER_PARAMS`** (5 keys): Stage 2 trigger-split decision
+  thresholds (cluster size factor/floor, linearity, tangent coherence, bbox
+  anisotropy).
+
+- **`DEFAULT_DENOISE_PARAMS`** (3 keys): Stage 2 denoise safeguards (max
+  remove ratio, min keep points factor/floor).
+
+- **Stage 4 parameters**: Documented as comments only (currently CLI args:
+  `support_radius=0.08`, `sigma=support_radius/2`).
+
+Import pattern: `from core.params import DEFAULT_FIT_PARAMS` (scripts use
+`core.` prefix after `_bootstrap.py` sets up `sys.path`).
+
+### 6.3 Phase 2 Documentation
+
+Two new reference documents were created in `core/` during Phase 2:
+
+- **`BEHAVIORAL_AUDIT.md`**: Per-module, per-function behavioral
+  classification using a three-way scheme: CORE (algorithm), COMPAT
+  (compatibility/adaptation), INFRA (I/O/visualization). Includes the
+  complete DEFAULT_FIT_PARAMS parameter table with all 25 parameters and
+  their roles, plus runtime parameter derivation documentation.
+
+- **`CROSS_STAGE_CONTRACTS.md`**: Documents implicit cross-stage behavioral
+  contracts -- NPZ field schemas, semantic invariants, hidden assumptions,
+  and parameter construction duplication between per-scene and dataset
+  invocation paths.
+
+### 6.4 Stage 3 Import Structure
+
+After the Phase 2 decomposition, Stage 3's import dependencies are:
+
+```
+fit_local_supports.py (script entry)
+  |-> core.params (DEFAULT_FIT_PARAMS)
+  |-> core.supports_core (build_supports_payload)
+  |     |-> core.fitting (fit_line_support, fit_polyline_support, ...)
+  |     |-> core.trigger_regroup (regroup_trigger_cluster, absorb_sparse_...)
+  |     |-> core.params (DEFAULT_FIT_PARAMS)
+  |-> core.supports_export (export_npz, export_support_geometry_xyz, ...)
+```
+
+`supports_core.py` re-exports `DEFAULT_FIT_PARAMS` from `core.params` for
+backward compatibility. Direct import from `core.params` is preferred.
+
+
+## 7. 当前实现边界与注意事项
 
 当前版本已经做到：
 - 完成四阶段逐步构建。
 - 能从语义点云生成 pointwise edge supervision。
 - 保留了每个阶段的人工验收可视化输出。
+- Phase 2 模块分解和参数集中化完成。
 
 当前版本还没有做：
 - 语义法向替换。
 - smoothing / diffusion。
 - 统一的全量批处理入口。
 - 研究性对比分析。
+- Phase 3 per-stage config injection 和 formal equivalence gate。
 
 当前 pointwise supervision 的关键边界：
 - 当前逐点监督基于最近 support 查询，而不是直接对原始边界几何做解析。
@@ -341,7 +419,7 @@ python pointcept/datasets/preprocessing/bf_edge_v3/scripts/build_edge_dataset_v3
 - 当前 `edge_supervision.xyz` 只导出有效点，用于减小体积并方便 CloudCompare 验收。
 
 
-## 7. 使用建议
+## 8. 使用建议
 
 - 先在单场景上按四阶段顺序跑通，再考虑批处理。
 - 每个阶段都建议查看对应 `.xyz` 可视化，不要只看最终数组。
