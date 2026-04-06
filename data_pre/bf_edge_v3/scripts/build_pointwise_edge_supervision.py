@@ -6,6 +6,7 @@ from _bootstrap import ensure_bf_edge_v3_root_on_path
 ensure_bf_edge_v3_root_on_path()
 
 from core.config import Stage4Config
+from core.validation import validate_edge_supervision
 from core.pointwise_core import (
     build_pointwise_edge_supervision,
     export_edge_arrays,
@@ -52,6 +53,7 @@ def run_scene(input_dir: Path, output_dir: Path, args: argparse.Namespace) -> No
         ignore_index=cfg.ignore_index,
     )
 
+    validate_edge_supervision(payload, num_scene_points=scene["coord"].shape[0])
     export_edge_arrays(output_dir=output_dir, payload=payload)
     export_edge_supervision_xyz(scene=scene, payload=payload, output_dir=output_dir)
 

@@ -6,6 +6,7 @@ from _bootstrap import ensure_bf_edge_v3_root_on_path
 ensure_bf_edge_v3_root_on_path()
 
 from core.config import Stage2Config
+from core.validation import validate_local_clusters
 from core.local_clusters_core import (
     cluster_boundary_centers,
     export_clustered_boundary_centers_xyz,
@@ -51,6 +52,7 @@ def run_scene(input_dir: Path, output_dir: Path, args: argparse.Namespace) -> No
         sparse_mad_scale=cfg.sparse_mad_scale,
     )
 
+    validate_local_clusters(local_clusters, num_boundary_centers=boundary_centers["center_coord"].shape[0])
     export_npz(output_dir / "local_clusters.npz", local_clusters)
     export_clustered_boundary_centers_xyz(
         boundary_centers=boundary_centers,

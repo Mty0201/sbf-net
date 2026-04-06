@@ -12,6 +12,7 @@ from core.boundary_centers_core import (
     export_centers_xyz,
 )
 from core.config import Stage1Config
+from core.validation import validate_boundary_centers
 from utils.stage_io import load_scene
 
 
@@ -49,6 +50,7 @@ def run_scene(scene_dir: Path, output_dir: Path, args: argparse.Namespace) -> No
         ignore_index=cfg.ignore_index,
     )
 
+    validate_boundary_centers(centers_payload)
     export_boundary_centers_npz(output_dir / "boundary_centers.npz", centers_payload)
     export_centers_xyz(centers_payload=centers_payload, output_dir=output_dir)
     export_candidate_xyz(scene=scene, candidates=candidates, output_dir=output_dir)

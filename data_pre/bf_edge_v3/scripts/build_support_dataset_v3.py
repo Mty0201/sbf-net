@@ -8,6 +8,7 @@ ensure_bf_edge_v3_root_on_path()
 from core.boundary_centers_core import build_boundary_centers
 from core.config import Stage1Config, Stage2Config, Stage3Config
 from core.local_clusters_core import cluster_boundary_centers
+from core.validation import validate_boundary_centers, validate_local_clusters, validate_supports
 from core.supports_core import (
     build_supports_payload,
 )
@@ -123,6 +124,7 @@ def run_scene(
         min_side_points=s1_cfg.min_side_points,
         ignore_index=s1_cfg.ignore_index,
     )
+    validate_boundary_centers(boundary_centers)
     local_clusters, _ = cluster_boundary_centers(
         boundary_centers=boundary_centers,
         eps=s2_cfg.eps,
@@ -131,11 +133,13 @@ def run_scene(
         sparse_distance_ratio=s2_cfg.sparse_distance_ratio,
         sparse_mad_scale=s2_cfg.sparse_mad_scale,
     )
+    validate_local_clusters(local_clusters, num_boundary_centers=boundary_centers["center_coord"].shape[0])
     supports_payload, meta_payload, _ = build_supports_payload(
         boundary_centers=boundary_centers,
         local_clusters=local_clusters,
         params=support_params,
     )
+    validate_supports(supports_payload)
 
     cleanup_scene_dir(scene_dir)
     export_npz(scene_dir / "supports.npz", supports_payload)

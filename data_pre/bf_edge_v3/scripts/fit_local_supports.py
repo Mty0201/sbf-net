@@ -6,6 +6,7 @@ from _bootstrap import ensure_bf_edge_v3_root_on_path
 ensure_bf_edge_v3_root_on_path()
 
 from core.config import Stage3Config
+from core.validation import validate_supports
 from core.supports_core import (
     build_supports_payload,
 )
@@ -47,6 +48,7 @@ def run_scene(input_dir: Path, output_dir: Path, params: dict) -> None:
         params=params,
     )
 
+    validate_supports(supports_payload)
     export_npz(output_dir / "supports.npz", supports_payload)
     export_support_geometry_xyz(supports_payload, output_dir=output_dir)
     export_trigger_group_classes_xyz(debug_payload, output_dir=output_dir)
