@@ -11,6 +11,7 @@ from core.boundary_centers_core import (
     export_candidate_xyz,
     export_centers_xyz,
 )
+from core.config import Stage1Config
 from utils.stage_io import load_scene
 
 
@@ -26,15 +27,26 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def run_scene(scene_dir: Path, output_dir: Path, args: argparse.Namespace) -> None:
-    """Run one scene and export boundary center artifacts."""
-    scene = load_scene(scene_dir)
-    candidates, centers_payload, meta = build_boundary_centers(
-        scene=scene,
+def build_config(args: argparse.Namespace) -> Stage1Config:
+    """Build Stage1Config from CLI arguments."""
+    return Stage1Config(
         k=int(args.k),
         min_cross_ratio=float(args.min_cross_ratio),
         min_side_points=int(args.min_side_points),
         ignore_index=int(args.ignore_index),
+    )
+
+
+def run_scene(scene_dir: Path, output_dir: Path, args: argparse.Namespace) -> None:
+    """Run one scene and export boundary center artifacts."""
+    cfg = build_config(args)
+    scene = load_scene(scene_dir)
+    candidates, centers_payload, meta = build_boundary_centers(
+        scene=scene,
+        k=cfg.k,
+        min_cross_ratio=cfg.min_cross_ratio,
+        min_side_points=cfg.min_side_points,
+        ignore_index=cfg.ignore_index,
     )
 
     export_boundary_centers_npz(output_dir / "boundary_centers.npz", centers_payload)

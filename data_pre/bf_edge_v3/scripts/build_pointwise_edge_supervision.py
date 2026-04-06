@@ -5,6 +5,7 @@ from _bootstrap import ensure_bf_edge_v3_root_on_path
 
 ensure_bf_edge_v3_root_on_path()
 
+from core.config import Stage4Config
 from core.pointwise_core import (
     build_pointwise_edge_supervision,
     export_edge_arrays,
@@ -31,15 +32,24 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def build_config(args: argparse.Namespace) -> Stage4Config:
+    """Build Stage4Config from CLI arguments."""
+    return Stage4Config(
+        support_radius=float(args.support_radius),
+        ignore_index=int(args.ignore_index),
+    )
+
+
 def run_scene(input_dir: Path, output_dir: Path, args: argparse.Namespace) -> None:
     """Run pointwise supervision generation for one stage directory."""
+    cfg = build_config(args)
     scene = load_scene(input_dir)
     supports = load_supports(input_dir)
     payload, meta = build_pointwise_edge_supervision(
         scene=scene,
         supports=supports,
-        support_radius=float(args.support_radius),
-        ignore_index=int(args.ignore_index),
+        support_radius=cfg.support_radius,
+        ignore_index=cfg.ignore_index,
     )
 
     export_edge_arrays(output_dir=output_dir, payload=payload)

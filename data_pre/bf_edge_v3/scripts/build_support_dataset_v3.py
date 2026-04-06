@@ -1,16 +1,14 @@
 import argparse
 from pathlib import Path
 
-import numpy as np
-
 from _bootstrap import ensure_bf_edge_v3_root_on_path
 
 ensure_bf_edge_v3_root_on_path()
 
 from core.boundary_centers_core import build_boundary_centers
+from core.config import Stage1Config, Stage2Config, Stage3Config
 from core.local_clusters_core import cluster_boundary_centers
 from core.supports_core import (
-    DEFAULT_FIT_PARAMS,
     build_supports_payload,
 )
 from core.supports_export import (
@@ -72,44 +70,34 @@ def collect_scene_dirs(dataset_root: Path) -> list[Path]:
     return scene_dirs
 
 
-def build_support_runtime_params(args: argparse.Namespace) -> dict:
-    """Build internal support fitting parameters from stable CLI."""
-    internal_params = dict(DEFAULT_FIT_PARAMS)
-    params = {
-        "line_residual_th": float(args.line_residual_th),
-        "min_cluster_size": int(args.min_cluster_size),
-        "max_polyline_vertices": int(args.max_polyline_vertices),
-    }
-    params.update(
-        {
-            "segment_direction_cos_th": float(np.cos(np.deg2rad(float(internal_params["segment_direction_angle_deg"])))),
-            "segment_run_gap_scale": float(internal_params["segment_run_gap_scale"]),
-            "segment_run_lateral_gap_scale": float(internal_params["segment_run_lateral_gap_scale"]),
-            "segment_run_lateral_band_scale": float(internal_params["segment_run_lateral_band_scale"]),
-            "segment_min_points": int(internal_params["segment_min_points"]),
-            "trigger_main_min_points": int(internal_params["trigger_main_min_points"]),
-            "trigger_main_linearity_th": float(internal_params["trigger_main_linearity_th"]),
-            "trigger_main_tangent_cos_th": float(np.cos(np.deg2rad(float(internal_params["trigger_main_tangent_angle_deg"])))),
-            "trigger_main_length_scale": float(internal_params["trigger_main_length_scale"]),
-            "trigger_main_lateral_scale": float(internal_params["trigger_main_lateral_scale"]),
-            "trigger_fragment_min_points": int(internal_params["trigger_fragment_min_points"]),
-            "trigger_fragment_linearity_th": float(internal_params["trigger_fragment_linearity_th"]),
-            "trigger_fragment_tangent_cos_th": float(np.cos(np.deg2rad(float(internal_params["trigger_fragment_tangent_angle_deg"])))),
-            "trigger_fragment_lateral_scale": float(internal_params["trigger_fragment_lateral_scale"]),
-            "trigger_fragment_attach_dist_scale": float(internal_params["trigger_fragment_attach_dist_scale"]),
-            "trigger_fragment_attach_gap_scale": float(internal_params["trigger_fragment_attach_gap_scale"]),
-            "trigger_fragment_attach_cos_th": float(np.cos(np.deg2rad(float(internal_params["trigger_fragment_attach_angle_deg"])))),
-            "trigger_main_merge_cos_th": float(np.cos(np.deg2rad(float(internal_params["trigger_main_merge_angle_deg"])))),
-            "trigger_main_merge_dist_scale": float(internal_params["trigger_main_merge_dist_scale"]),
-            "trigger_main_merge_gap_scale": float(internal_params["trigger_main_merge_gap_scale"]),
-            "trigger_main_merge_lateral_scale": float(internal_params["trigger_main_merge_lateral_scale"]),
-            "trigger_endpoint_absorb_dist_scale": float(internal_params["trigger_endpoint_absorb_dist_scale"]),
-            "trigger_endpoint_absorb_line_dist_scale": float(internal_params["trigger_endpoint_absorb_line_dist_scale"]),
-            "trigger_endpoint_absorb_proj_scale": float(internal_params["trigger_endpoint_absorb_proj_scale"]),
-            "trigger_endpoint_absorb_max_points_per_end": int(internal_params["trigger_endpoint_absorb_max_points_per_end"]),
-        }
+def build_stage1_config(args: argparse.Namespace) -> Stage1Config:
+    """Build Stage1Config from CLI arguments."""
+    return Stage1Config(
+        k=int(args.k),
+        min_cross_ratio=float(args.min_cross_ratio),
+        min_side_points=int(args.min_side_points),
+        ignore_index=int(args.ignore_index),
     )
-    return params
+
+
+def build_stage2_config(args: argparse.Namespace) -> Stage2Config:
+    """Build Stage2Config from CLI arguments."""
+    return Stage2Config(
+        eps=float(args.eps),
+        min_samples=int(args.min_samples),
+        denoise_knn=int(args.denoise_knn),
+        sparse_distance_ratio=float(args.sparse_distance_ratio),
+        sparse_mad_scale=float(args.sparse_mad_scale),
+    )
+
+
+def build_stage3_config(args: argparse.Namespace) -> Stage3Config:
+    """Build Stage3Config from CLI arguments."""
+    return Stage3Config(
+        line_residual_th=float(args.line_residual_th),
+        min_cluster_size=int(args.min_cluster_size),
+        max_polyline_vertices=int(args.max_polyline_vertices),
+    )
 
 
 def cleanup_scene_dir(scene_dir: Path) -> None:
@@ -120,23 +108,28 @@ def cleanup_scene_dir(scene_dir: Path) -> None:
             path.unlink()
 
 
-def run_scene(scene_dir: Path, args: argparse.Namespace, support_params: dict) -> None:
+def run_scene(
+    scene_dir: Path,
+    s1_cfg: Stage1Config,
+    s2_cfg: Stage2Config,
+    support_params: dict,
+) -> None:
     """Run the first three stages in-memory and keep only support outputs."""
     scene = load_scene(scene_dir)
     _, boundary_centers, _ = build_boundary_centers(
         scene=scene,
-        k=int(args.k),
-        min_cross_ratio=float(args.min_cross_ratio),
-        min_side_points=int(args.min_side_points),
-        ignore_index=int(args.ignore_index),
+        k=s1_cfg.k,
+        min_cross_ratio=s1_cfg.min_cross_ratio,
+        min_side_points=s1_cfg.min_side_points,
+        ignore_index=s1_cfg.ignore_index,
     )
     local_clusters, _ = cluster_boundary_centers(
         boundary_centers=boundary_centers,
-        eps=float(args.eps),
-        min_samples=int(args.min_samples),
-        denoise_knn=int(args.denoise_knn),
-        sparse_distance_ratio=float(args.sparse_distance_ratio),
-        sparse_mad_scale=float(args.sparse_mad_scale),
+        eps=s2_cfg.eps,
+        min_samples=s2_cfg.min_samples,
+        denoise_knn=s2_cfg.denoise_knn,
+        sparse_distance_ratio=s2_cfg.sparse_distance_ratio,
+        sparse_mad_scale=s2_cfg.sparse_mad_scale,
     )
     supports_payload, meta_payload, _ = build_supports_payload(
         boundary_centers=boundary_centers,
@@ -165,9 +158,17 @@ def main() -> None:
         print("No valid training/validation scene containing coord.npy and segment.npy was found.")
         return
 
-    support_params = build_support_runtime_params(args)
+    s1_cfg = build_stage1_config(args)
+    s2_cfg = build_stage2_config(args)
+    s3_cfg = build_stage3_config(args)
+    support_params = s3_cfg.to_runtime_dict()
     for scene_dir in scene_dirs:
-        run_scene(scene_dir=scene_dir, args=args, support_params=support_params)
+        run_scene(
+            scene_dir=scene_dir,
+            s1_cfg=s1_cfg,
+            s2_cfg=s2_cfg,
+            support_params=support_params,
+        )
 
 
 if __name__ == "__main__":

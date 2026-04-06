@@ -5,6 +5,7 @@ from _bootstrap import ensure_bf_edge_v3_root_on_path
 
 ensure_bf_edge_v3_root_on_path()
 
+from core.config import Stage2Config
 from core.local_clusters_core import (
     cluster_boundary_centers,
     export_clustered_boundary_centers_xyz,
@@ -26,16 +27,28 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def run_scene(input_dir: Path, output_dir: Path, args: argparse.Namespace) -> None:
-    """Run one stage directory and export local clusters."""
-    boundary_centers = load_boundary_centers(input_dir)
-    local_clusters, meta = cluster_boundary_centers(
-        boundary_centers=boundary_centers,
+def build_config(args: argparse.Namespace) -> Stage2Config:
+    """Build Stage2Config from CLI arguments."""
+    return Stage2Config(
         eps=float(args.eps),
         min_samples=int(args.min_samples),
         denoise_knn=int(args.denoise_knn),
         sparse_distance_ratio=float(args.sparse_distance_ratio),
         sparse_mad_scale=float(args.sparse_mad_scale),
+    )
+
+
+def run_scene(input_dir: Path, output_dir: Path, args: argparse.Namespace) -> None:
+    """Run one stage directory and export local clusters."""
+    cfg = build_config(args)
+    boundary_centers = load_boundary_centers(input_dir)
+    local_clusters, meta = cluster_boundary_centers(
+        boundary_centers=boundary_centers,
+        eps=cfg.eps,
+        min_samples=cfg.min_samples,
+        denoise_knn=cfg.denoise_knn,
+        sparse_distance_ratio=cfg.sparse_distance_ratio,
+        sparse_mad_scale=cfg.sparse_mad_scale,
     )
 
     export_npz(output_dir / "local_clusters.npz", local_clusters)

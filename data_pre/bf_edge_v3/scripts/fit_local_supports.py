@@ -1,14 +1,12 @@
 import argparse
 from pathlib import Path
 
-import numpy as np
-
 from _bootstrap import ensure_bf_edge_v3_root_on_path
 
 ensure_bf_edge_v3_root_on_path()
 
+from core.config import Stage3Config
 from core.supports_core import (
-    DEFAULT_FIT_PARAMS,
     build_supports_payload,
 )
 from core.supports_export import (
@@ -30,44 +28,13 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def build_runtime_params(args: argparse.Namespace) -> dict:
-    """Build internal support fitting parameters from stable CLI."""
-    internal_params = dict(DEFAULT_FIT_PARAMS)
-    params = {
-        "line_residual_th": float(args.line_residual_th),
-        "min_cluster_size": int(args.min_cluster_size),
-        "max_polyline_vertices": int(args.max_polyline_vertices),
-    }
-    params.update(
-        {
-            "segment_direction_cos_th": float(np.cos(np.deg2rad(float(internal_params["segment_direction_angle_deg"])))),
-            "segment_run_gap_scale": float(internal_params["segment_run_gap_scale"]),
-            "segment_run_lateral_gap_scale": float(internal_params["segment_run_lateral_gap_scale"]),
-            "segment_run_lateral_band_scale": float(internal_params["segment_run_lateral_band_scale"]),
-            "segment_min_points": int(internal_params["segment_min_points"]),
-            "trigger_main_min_points": int(internal_params["trigger_main_min_points"]),
-            "trigger_main_linearity_th": float(internal_params["trigger_main_linearity_th"]),
-            "trigger_main_tangent_cos_th": float(np.cos(np.deg2rad(float(internal_params["trigger_main_tangent_angle_deg"])))),
-            "trigger_main_length_scale": float(internal_params["trigger_main_length_scale"]),
-            "trigger_main_lateral_scale": float(internal_params["trigger_main_lateral_scale"]),
-            "trigger_fragment_min_points": int(internal_params["trigger_fragment_min_points"]),
-            "trigger_fragment_linearity_th": float(internal_params["trigger_fragment_linearity_th"]),
-            "trigger_fragment_tangent_cos_th": float(np.cos(np.deg2rad(float(internal_params["trigger_fragment_tangent_angle_deg"])))),
-            "trigger_fragment_lateral_scale": float(internal_params["trigger_fragment_lateral_scale"]),
-            "trigger_fragment_attach_dist_scale": float(internal_params["trigger_fragment_attach_dist_scale"]),
-            "trigger_fragment_attach_gap_scale": float(internal_params["trigger_fragment_attach_gap_scale"]),
-            "trigger_fragment_attach_cos_th": float(np.cos(np.deg2rad(float(internal_params["trigger_fragment_attach_angle_deg"])))),
-            "trigger_main_merge_cos_th": float(np.cos(np.deg2rad(float(internal_params["trigger_main_merge_angle_deg"])))),
-            "trigger_main_merge_dist_scale": float(internal_params["trigger_main_merge_dist_scale"]),
-            "trigger_main_merge_gap_scale": float(internal_params["trigger_main_merge_gap_scale"]),
-            "trigger_main_merge_lateral_scale": float(internal_params["trigger_main_merge_lateral_scale"]),
-            "trigger_endpoint_absorb_dist_scale": float(internal_params["trigger_endpoint_absorb_dist_scale"]),
-            "trigger_endpoint_absorb_line_dist_scale": float(internal_params["trigger_endpoint_absorb_line_dist_scale"]),
-            "trigger_endpoint_absorb_proj_scale": float(internal_params["trigger_endpoint_absorb_proj_scale"]),
-            "trigger_endpoint_absorb_max_points_per_end": int(internal_params["trigger_endpoint_absorb_max_points_per_end"]),
-        }
+def build_config(args: argparse.Namespace) -> Stage3Config:
+    """Build Stage3Config from CLI arguments."""
+    return Stage3Config(
+        line_residual_th=float(args.line_residual_th),
+        min_cluster_size=int(args.min_cluster_size),
+        max_polyline_vertices=int(args.max_polyline_vertices),
     )
-    return params
 
 
 def run_scene(input_dir: Path, output_dir: Path, params: dict) -> None:
@@ -100,7 +67,8 @@ def main() -> None:
     args = parse_args()
     input_path = Path(args.input)
     output_path = Path(args.output) if args.output is not None else None
-    params = build_runtime_params(args)
+    cfg = build_config(args)
+    params = cfg.to_runtime_dict()
     tasks = collect_stage_tasks(
         input_path=input_path,
         output_path=output_path,
