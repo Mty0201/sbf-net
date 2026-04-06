@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Edge Data Pipeline Refactor and Quality Repair
 status: executing
-stopped_at: Completed 03-01-PLAN.md
-last_updated: "2026-04-07T19:11:00Z"
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-04-07T19:18:00Z"
 last_activity: 2026-04-07
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 7
 ---
 
 # Project State
@@ -18,8 +18,8 @@ progress:
 ## Current Position
 
 Phase: 3 — Config injection, validation hooks, and equivalence gate
-Plan: 03-02 (next)
-Status: 03-01 complete (config dataclasses + reference data), 2 plans remaining
+Plan: 03-03 (next)
+Status: 03-01 and 03-02 complete, 1 plan remaining (equivalence gate)
 Last activity: 2026-04-07
 
 ## Recent Context
@@ -50,6 +50,8 @@ Last activity: 2026-04-07
 - [Phase 03-01]: 4 frozen dataclass configs (Stage1-4Config) unify 5 scattered parameter sources; defaults hardcoded in config.py (not imported from params.py) for self-containment
 - [Phase 03-01]: Both duplicated build_runtime_params() functions deleted; Stage3Config.to_runtime_dict() is the single source of truth for runtime param dict
 - [Phase 03-01]: Reference data captured before code changes for equivalence gate in Plan 03-03
+- [Phase 03-02]: 4 validation hooks (bc, lc, supports, edge) cover all 7 cross-stage contracts; pure inspection, no output modification
+- [Phase 03-02]: edge_valid dtype check accepts uint8 or int32 with values in {0,1}; supports validation checks only 8-field Stage-4 minimal read set
 
 ## Blockers / Concerns
 
@@ -57,9 +59,10 @@ Last activity: 2026-04-07
 - ~~Phase 2 scope needs discuss-phase to define~~ — **RESOLVED:** Phase 2 complete, all 3 plans executed
 - **[2026-04-07]** Phase 3 planned: 3 plans (config dataclasses, validation hooks, equivalence gate). Research + planning complete.
 - **[2026-04-07]** Plan 03-01 executed: 4 frozen dataclass configs, reference data generated, 10 tests passing, both build_runtime_params() deleted
+- **[2026-04-07]** Plan 03-02 executed: 4 validation hooks in core/validation.py, integrated into all 5 scripts, 12 new tests (22 total) passing
 
 ## Session Continuity
 
-Last session: 2026-04-07T19:11:00Z
-Stopped at: Completed 03-01-PLAN.md
+Last session: 2026-04-07T19:18:00Z
+Stopped at: Completed 03-02-PLAN.md
 Resume file: None
