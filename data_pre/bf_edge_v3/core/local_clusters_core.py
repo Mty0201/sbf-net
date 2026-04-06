@@ -33,6 +33,8 @@ except ImportError as error:
 from utils.common import normalize_rows, save_npz, save_xyz
 from utils.stage_io import load_boundary_centers
 
+from core.params import DEFAULT_TRIGGER_PARAMS, DEFAULT_DENOISE_PARAMS
+
 
 def spatial_dbscan(coords: np.ndarray, eps: float, min_samples: int) -> np.ndarray:
     """Run spatial DBSCAN on 3D center coordinates."""
@@ -189,10 +191,13 @@ def cluster_boundary_centers(
     coarse_cluster_records: list[dict] = []
     num_removed_by_denoise = 0
     trigger_params = {
-        "trigger_min_cluster_size": max(int(min_samples * 6), 48),
-        "trigger_linearity_th": 0.85,
-        "trigger_tangent_coherence_th": 0.88,
-        "trigger_bbox_anisotropy_th": 6.0,
+        "trigger_min_cluster_size": max(
+            int(min_samples * DEFAULT_TRIGGER_PARAMS["trigger_min_cluster_size_factor"]),
+            int(DEFAULT_TRIGGER_PARAMS["trigger_min_cluster_size_floor"]),
+        ),
+        "trigger_linearity_th": float(DEFAULT_TRIGGER_PARAMS["linearity_th"]),
+        "trigger_tangent_coherence_th": float(DEFAULT_TRIGGER_PARAMS["tangent_coherence_th"]),
+        "trigger_bbox_anisotropy_th": float(DEFAULT_TRIGGER_PARAMS["bbox_anisotropy_th"]),
     }
     unique_pairs = np.unique(semantic_pair, axis=0)
     for pair in unique_pairs:
@@ -214,8 +219,11 @@ def cluster_boundary_centers(
                 density_knn=denoise_knn,
                 sparse_distance_ratio=sparse_distance_ratio,
                 sparse_mad_scale=sparse_mad_scale,
-                max_remove_ratio=0.20,
-                min_keep_points=max(int(min_samples), 6),
+                max_remove_ratio=float(DEFAULT_DENOISE_PARAMS["max_remove_ratio"]),
+                min_keep_points=max(
+                    int(min_samples * DEFAULT_DENOISE_PARAMS["min_keep_points_factor"]),
+                    int(DEFAULT_DENOISE_PARAMS["min_keep_points_floor"]),
+                ),
             )
             kept_indices = global_indices[keep_mask]
             removed_indices = global_indices[~keep_mask]
@@ -302,8 +310,11 @@ def cluster_boundary_centers(
             "denoise_knn": int(denoise_knn),
             "sparse_distance_ratio": float(sparse_distance_ratio),
             "sparse_mad_scale": float(sparse_mad_scale),
-            "max_remove_ratio": 0.20,
-            "min_keep_points": int(max(int(min_samples), 6)),
+            "max_remove_ratio": float(DEFAULT_DENOISE_PARAMS["max_remove_ratio"]),
+            "min_keep_points": max(
+                int(min_samples * DEFAULT_DENOISE_PARAMS["min_keep_points_factor"]),
+                int(DEFAULT_DENOISE_PARAMS["min_keep_points_floor"]),
+            ),
             **trigger_params,
         },
     }

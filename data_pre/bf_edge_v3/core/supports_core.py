@@ -37,6 +37,7 @@ from core.fitting import (
     fit_polyline_support,
     regularize_support_orientation,
 )
+from core.params import DEFAULT_FIT_PARAMS
 from core.trigger_regroup import (
     absorb_sparse_endpoint_points,
     regroup_trigger_cluster,
@@ -50,34 +51,6 @@ from core.supports_export import (
 
 SUPPORT_TYPE_LINE = 0
 SUPPORT_TYPE_POLYLINE = 2
-
-DEFAULT_FIT_PARAMS = {
-    "segment_direction_angle_deg": 20.0,
-    "segment_run_gap_scale": 3.0,
-    "segment_run_lateral_gap_scale": 2.5,
-    "segment_run_lateral_band_scale": 3.0,
-    "segment_min_points": 6,
-    "trigger_main_min_points": 12,
-    "trigger_main_linearity_th": 0.88,
-    "trigger_main_tangent_angle_deg": 20.0,
-    "trigger_main_length_scale": 6.0,
-    "trigger_main_lateral_scale": 2.5,
-    "trigger_fragment_min_points": 6,
-    "trigger_fragment_linearity_th": 0.78,
-    "trigger_fragment_tangent_angle_deg": 28.0,
-    "trigger_fragment_lateral_scale": 3.5,
-    "trigger_fragment_attach_dist_scale": 2.5,
-    "trigger_fragment_attach_gap_scale": 4.0,
-    "trigger_fragment_attach_angle_deg": 20.0,
-    "trigger_main_merge_angle_deg": 10.0,
-    "trigger_main_merge_dist_scale": 1.5,
-    "trigger_main_merge_gap_scale": 3.0,
-    "trigger_main_merge_lateral_scale": 1.4,
-    "trigger_endpoint_absorb_dist_scale": 2.2,
-    "trigger_endpoint_absorb_line_dist_scale": 1.6,
-    "trigger_endpoint_absorb_proj_scale": 2.6,
-    "trigger_endpoint_absorb_max_points_per_end": 12,
-}
 
 
 def rebuild_cluster_records(
