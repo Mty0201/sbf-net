@@ -11,7 +11,7 @@ This document records the Phase 8 local validation results for the support-guide
 **Local validation does NOT prove:** that the route improves semantic segmentation performance, that it beats the support-only baseline, or that it generalizes across the full dataset. Those claims require full-train experiments in a separate environment.
 
 Validation script: `scripts/train/check_active_route_train_step.py`
-Smoke config: `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train-smoke.py`
+Smoke config: `configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train-smoke.py`
 
 ## Smoke Validation Results
 
@@ -92,8 +92,8 @@ This direction is documented only. Do not implement in the current experiment cy
 
 ## Training Config Reference
 
-Active route train config: `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train.py`
-Active route smoke config: `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train-smoke.py`
+Active route train config: `configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train.py`
+Active route smoke config: `configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train-smoke.py`
 
 Key hyperparameters for the first full-train run:
 - `focus_lambda=1.0`, `focus_gamma=1.0` (baseline focus weighting)

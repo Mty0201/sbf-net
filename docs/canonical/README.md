@@ -26,7 +26,7 @@ The repository still preserves historical `support`, `axis-side`, `support-shape
    - Baseline and route-selection rules: `docs/canonical/sbf_semantic_first_route.md` -> `## Current Reference Baseline`
    - Active route definition: `docs/canonical/sbf_semantic_first_route.md` -> `## Active Implementation Route`
    - Route contract: `docs/canonical/sbf_semantic_first_contract.md` -> `## Core Contract`
-   - Active route config: `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train.py`
+   - Active route config: `configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train.py`
 4. Which experiment evidence and conclusions still constrain future work?
    - Confirmed evidence list: `docs/canonical/sbf_facts.md` -> `## Evidence That Still Governs Future Work`
    - Current interpretation of that evidence: `docs/canonical/sbf_facts.md` -> `## Current Interpretation`

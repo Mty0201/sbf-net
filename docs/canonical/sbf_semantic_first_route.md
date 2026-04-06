@@ -27,7 +27,7 @@ As of Phase 8, the candidate route is implemented and locally smoke-validated. L
 
 The active implementation route is the **support-guided semantic focus route**, implemented in Phase 7.
 
-Implementation: `SharedBackboneSemanticSupportModel` + `SupportGuidedSemanticFocusLoss` + `SupportGuidedSemanticFocusEvaluator`. Config: `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train.py`.
+Implementation: `SharedBackboneSemanticSupportModel` + `SupportGuidedSemanticFocusLoss` + `SupportGuidedSemanticFocusEvaluator`. Config: `configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train.py`.
 
 Its definition is:
 

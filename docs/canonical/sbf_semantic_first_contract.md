@@ -42,7 +42,7 @@ The candidate route must keep the repo-local architecture minimal:
 
 The route definition assumes:
 
-- stable runtime entry config remains `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py`
+- stable runtime entry config remains `configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-edge-train.py`
 - historical reference configs remain historical only
 - The route now has its own repo-local model, loss, evaluator, and config implemented in Phase 7: `SharedBackboneSemanticSupportModel`, `SupportGuidedSemanticFocusLoss`, `SupportGuidedSemanticFocusEvaluator`, `semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train.py`. The stable runtime entry config remains unchanged.
 
@@ -52,9 +52,9 @@ The implementation satisfies the semantic-first prohibitions above.
 
 Maintainers must distinguish three config roles:
 
-1. **Stable runtime entry config**: `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py` — unchanged by Phase 7.
-2. **Strongest reference baseline**: `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-support-only-train.py` — the comparison target, not the active route.
-3. **Active implementation route**: `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train.py` — Phase 7 implementation.
+1. **Stable runtime entry config**: `configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-edge-train.py` — unchanged by Phase 7.
+2. **Strongest reference baseline**: `configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-edge-support-only-train.py` — the comparison target, not the active route.
+3. **Active implementation route**: `configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train.py` — Phase 7 implementation.
 
 These are intentionally separate. The stable entry config is the repository's default runtime path. The reference baseline is the evidence comparison target. The active implementation route is the new semantic-first path being evaluated.
 

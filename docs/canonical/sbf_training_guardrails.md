@@ -32,25 +32,25 @@ then instantiates `SemanticBoundaryTrainer` directly.
 Use the configs with these roles in mind:
 
 - **Stable runtime entry config** (unchanged by Phase 7):
-  `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py`
+  `configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-edge-train.py`
   This remains the stable canonical runtime entry config for the repository.
 
 - **Strongest reference baseline** (support-only, the comparison target):
-  `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-support-only-train.py`
+  `configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-edge-support-only-train.py`
   `support-only (reg=1, cover=0.2) = 74.6`
   This is the comparison target the active route should beat. It is not the active implementation route.
 
 - **Active implementation route** (Phase 7, support-guided semantic focus):
-  `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train.py`
+  `configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train.py`
   Uses `SharedBackboneSemanticSupportModel`, `SupportGuidedSemanticFocusLoss`, `SupportGuidedSemanticFocusEvaluator`.
   Trains from scratch (`weight = None`, `resume = False`). Locally smoke-validated (Phase 8). Full-train validation pending.
-  Do not change `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-train.py` — it is the stable entry, not the active route.
+  Do not change `configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-edge-train.py` — it is the stable entry, not the active route.
 
 - **Historical reference configs** (evidence only):
-  `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train.py`
-  `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train-smoke.py`
-  `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-semantic-train.py`
-  `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-semantic-train-smoke.py`
+  `configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-edge-axis-side-train.py`
+  `configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-edge-axis-side-train-smoke.py`
+  `configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-semantic-train.py`
+  `configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-semantic-train-smoke.py`
 
 - **Side evidence** (weaker than baseline):
   `support-shape` — weaker than the support-only baseline and not the semantic-first mainline.
@@ -80,7 +80,7 @@ Historical axis-side smoke example:
 export POINTCEPT_ROOT=/path/to/Pointcept
 export SBF_DATA_ROOT=/path/to/BF_edge_chunk_npy
 conda run --no-capture-output -n ptv3 python scripts/train/train.py \
-  --config configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train-smoke.py \
+  --config configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-edge-axis-side-train-smoke.py \
   --pointcept-root "${POINTCEPT_ROOT}"
 ```
 
@@ -90,7 +90,7 @@ Historical axis-side verification/full-train example:
 export POINTCEPT_ROOT=/path/to/Pointcept
 export SBF_DATA_ROOT=/path/to/BF_edge_chunk_npy
 conda run --no-capture-output -n ptv3 python scripts/train/train.py \
-  --config configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train.py \
+  --config configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-edge-axis-side-train.py \
   --pointcept-root "${POINTCEPT_ROOT}"
 ```
 
@@ -100,7 +100,7 @@ conda run --no-capture-output -n ptv3 python scripts/train/train.py \
 export POINTCEPT_ROOT=/path/to/Pointcept
 export SBF_DATA_ROOT=/path/to/BF_edge_chunk_npy
 conda run --no-capture-output -n ptv3 python scripts/train/train.py \
-  --config configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train.py \
+  --config configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-support-guided-semantic-focus-train.py \
   --pointcept-root "${POINTCEPT_ROOT}"
 ```
 
@@ -113,9 +113,9 @@ expensive run.
 
 - smoke success does not equal full-train validation.
 
-Use `configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train-smoke.py` for a
+Use `configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-edge-axis-side-train-smoke.py` for a
 minimal historical axis-side smoke startup check, then use
-`configs/semantic_boundary/semseg-pt-v3m1-0-base-bf-edge-axis-side-train.py` for the matching
+`configs/semantic_boundary/old/semseg-pt-v3m1-0-base-bf-edge-axis-side-train.py` for the matching
 historical longer-run reference when you need to audit that route. The active implementation route is the support-guided semantic focus route (see `## Active Route Command Pattern` above).
 
 ## Invalid Run Patterns
