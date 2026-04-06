@@ -4,16 +4,17 @@
 
 **Goal:** Fix edge data quality issues in data_pre/bf_edge_v3 — restore supervision coverage, continuity, and geometric fidelity; deliver verified repaired data generation pipeline.
 
-### Phase 1: NET-01 diagnosis
+### Phase 1: NET-01 diagnosis ✅
 
 **Goal:** Determine whether sparse-region coverage loss originates in Stage 2 (DBSCAN cluster loss), Stage 4 (sigma decay), or both.
 **Requires:** DEN-01
 **Depends on:** Nothing — first phase
+**Status:** Complete (2026-04-06). Primary: Stage 2 (18.7pp survival gap). Secondary: Stage 4 (1.3-7.0pp valid gap).
 **Plans:** 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Regenerate intermediates and run stratified density-bucketed diagnosis
-- [ ] 01-02-PLAN.md — Synthesize formal diagnosis conclusion with primary/secondary ranking
+- [x] 01-01-PLAN.md — Regenerate intermediates and run stratified density-bucketed diagnosis
+- [x] 01-02-PLAN.md — Synthesize formal diagnosis conclusion with primary/secondary ranking
 
 ### Phase 2: NET-01 fix and verify
 
