@@ -81,17 +81,18 @@ Plans:
 
 *Goal: Fix NET-01/02/03 on top of the refactored and improved pipeline.*
 
-### Phase 5: NET-01 fix and verify (on improved pipeline)
+### Phase 5: NET-01 fix and verify (on improved pipeline) ✅
 
 **Goal:** Implement density-adaptive Stage 2 parameter changes so the sparse-to-dense coverage gap drops below 5 percentage points (DEN-02) without degrading dense-region quality (DEN-03).
 **Requires:** DEN-02, DEN-03
 **Depends on:** Phase 4
 **Research:** `phases/05-density-adaptive-supervision/05-RESEARCH.md`
-**Plans:** 2 plans
+**Status:** Complete (2026-04-07). DEN-02 verified: gap=4.28pp (020101), 4.22pp (020102). DEN-03 verified: dense_rate=0.9971. 50 tests passing, 12 archived.
+**Plans:** 2/2 plans executed
 
 Plans:
-- [ ] 05-01-PLAN.md — Config defaults, density-conditional denoise logic, CLI script updates, test updates (DEN-02, DEN-03)
-- [ ] 05-02-PLAN.md — Pipeline re-run on 020101/020102, gap verification, reference_v3 generation, equivalence tests (DEN-02, DEN-03)
+- [x] 05-01-PLAN.md — Config defaults, density-conditional denoise logic, CLI script updates, test updates (DEN-02, DEN-03)
+- [x] 05-02-PLAN.md — Pipeline re-run on 020101/020102, gap verification, reference_v3 generation, equivalence tests (DEN-02, DEN-03)
 
 ### Phase 6: NET-02 diagnosis fix and verify
 

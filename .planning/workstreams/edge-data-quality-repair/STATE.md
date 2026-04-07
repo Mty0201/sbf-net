@@ -2,24 +2,24 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Edge Data Pipeline Refactor and Quality Repair
-status: completed
-stopped_at: Phase 04 complete (all 3 plans)
-last_updated: "2026-04-07T11:03:26.715Z"
+status: Phase 5 complete (2 plans)
+stopped_at: Phase 05 Plan 02 complete
+last_updated: "2026-04-07T12:03:14Z"
 last_activity: 2026-04-07
 progress:
   total_phases: 8
-  completed_phases: 4
-  total_plans: 11
-  completed_plans: 11
+  completed_phases: 5
+  total_plans: 13
+  completed_plans: 13
 ---
 
 # Project State
 
 ## Current Position
 
-Phase: 5
-Plan: Not started
-Status: Phase 4 complete. 45 tests passing (10 config + 7 contract + 5 rescue + 14 validation + 9 equiv), 6 archived Part A tests skipped.
+Phase: 5 (complete)
+Plan: 02 (complete)
+Status: Phase 5 complete. DEN-02 (<5pp gap) and DEN-03 (dense rate >= 0.99) verified. 50 tests passing (9 config + 7 contract + 5 rescue + 14 validation + 10 equiv + 5 density-adaptive), 12 archived tests skipped.
 Last activity: 2026-04-07
 
 ## Recent Context
@@ -37,6 +37,14 @@ Last activity: 2026-04-07
   - **Quality repair (Phases 5-8):** NET-01/02/03 fixes + final re-generation on improved pipeline.
   - **A/B boundary rule:** Any change that alters default output semantics belongs in Part B or later, not Part A.
   - Rationale: the current pipeline contains substantial compatibility logic for real project data. Separating "make current behavior explicit and stable" from "change behavior to improve results" prevents silent algorithmic drift during structural refactor.
+
+## Recent Context (Phase 5)
+
+- **[2026-04-07]** Phase 5 Plan 01: Config defaults (ms=5, rds=3.0, smp=4) and density-conditional denoise logic added. denoise_density_threshold initially set to 1.5.
+- **[2026-04-07]** Phase 5 Plan 02: Pipeline re-run revealed threshold=1.5 produced 14.7pp gap (target <5pp). Root cause: 33% of sparse-heavy clusters had internal spacing below threshold. Corrected to 0.5.
+- **[2026-04-07]** DEN-02 verified: gap=4.28pp (020101), 4.22pp (020102). DEN-03 verified: dense_rate=0.9971.
+- **[2026-04-07]** reference_v3 generated from 010101. Phase 5 equivalence gate: 6 tests pass. Phase 4 v2 tests archived.
+- **[2026-04-07]** test_density_adaptive.py created with 5 tests (2 DEN-02, 2 DEN-03, 1 synthetic). Full suite: 50 passed, 12 skipped.
 
 ## Decisions
 
@@ -57,6 +65,10 @@ Last activity: 2026-04-07
 - [Phase 04-02]: trigger_group_classes.xyz export kept for backward compatibility (writes empty file)
 - [Phase 04-02]: All clusters now treated identically in Stage 3 -- no dispatch by type or flag
 - [Phase 04-02]: Stage3Config minimal: 7 fields only (3 CLI + 4 endpoint absorption)
+
+- [Phase 05]: denoise_density_threshold corrected from 1.5 to 0.5; cluster-internal spacing is a poor proxy for scene-level density, lower threshold effectively disables denoise for all but truly dense clusters
+- [Phase 05]: Triple reference baseline established: reference/ (Part A Stage 1), reference_v2/ (Phase 4), reference_v3/ (Phase 5)
+- [Phase 05]: DEN-02 and DEN-03 requirements satisfied with programmatic regression tests
 
 ## Blockers / Concerns
 
@@ -84,6 +96,6 @@ Last activity: 2026-04-07
 
 ## Session Continuity
 
-Last session: 2026-04-07T09:29:19Z
-Stopped at: Phase 04 complete (all 3 plans)
+Last session: 2026-04-07T12:03:14Z
+Stopped at: Phase 05 Plan 02 complete (DEN-02/DEN-03 verified)
 Resume file: None

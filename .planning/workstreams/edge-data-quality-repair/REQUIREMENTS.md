@@ -30,8 +30,8 @@
 
 ### NET-01: Density-Adaptive Supervision (Phase 5)
 
-- [ ] **DEN-02**: Implement density-adaptive fix so sparse-to-dense valid edge coverage gap is significantly reduced to a pre-defined acceptable threshold (e.g. gap < 5%)
-- [ ] **DEN-03**: Verify fix does not degrade dense-region edge quality (coverage rate, weight distribution)
+- [x] **DEN-02**: Implement density-adaptive fix so sparse-to-dense valid edge coverage gap is significantly reduced to a pre-defined acceptable threshold (e.g. gap < 5%) — **Complete:** gap=4.28pp (020101), 4.22pp (020102), verified by test_density_adaptive.py
+- [x] **DEN-03**: Verify fix does not degrade dense-region edge quality (coverage rate, weight distribution) — **Complete:** dense_rate=0.9971 on both scenes (baseline was 0.991), verified by test_density_adaptive.py
 
 ### NET-02: Single-Side Boundary Recovery (Phase 6)
 
@@ -77,8 +77,8 @@ _(none deferred)_
 | ALG-01 | 4 | 04-01, 04-03 | complete |
 | ALG-02 | 4 | 04-01, 04-02, 04-03 | complete |
 | ALG-03 | 4 | 04-03 | complete |
-| DEN-02 | 5 | — | pending |
-| DEN-03 | 5 | — | pending |
+| DEN-02 | 5 | 05-01, 05-02 | complete |
+| DEN-03 | 5 | 05-01, 05-02 | complete |
 | SSB-01 | 6 | — | pending |
 | SSB-02 | 6 | — | pending |
 | SSB-03 | 6 | — | pending |
