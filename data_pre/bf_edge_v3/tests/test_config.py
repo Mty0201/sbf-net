@@ -44,23 +44,26 @@ class TestStage2Defaults:
         assert cfg.denoise_knn == 8
         assert cfg.sparse_distance_ratio == 1.75
         assert cfg.sparse_mad_scale == 3.0
-        # Trigger params (from DEFAULT_TRIGGER_PARAMS)
-        assert cfg.trigger_min_cluster_size_factor == 6
-        assert cfg.trigger_min_cluster_size_floor == 48
-        assert cfg.linearity_th == 0.85
-        assert cfg.tangent_coherence_th == 0.88
-        assert cfg.bbox_anisotropy_th == 6.0
-        # Denoise params (from DEFAULT_DENOISE_PARAMS)
+        # Denoise params
         assert cfg.max_remove_ratio == 0.20
         assert cfg.min_keep_points_factor == 1
         assert cfg.min_keep_points_floor == 6
+        # Direction + spatial run splitting (Phase 4)
+        assert cfg.segment_direction_angle_deg == 20.0
+        assert cfg.segment_run_gap_scale == 3.0
+        assert cfg.segment_run_lateral_gap_scale == 2.5
+        assert cfg.segment_run_lateral_band_scale == 3.0
+        assert cfg.segment_min_points == 6
+        # Density-adaptive rescue (Phase 4)
+        assert cfg.rescue_knn == 8
+        assert cfg.rescue_distance_scale == 2.0
 
     def test_stage2_derived(self) -> None:
         cfg = Stage2Config()
-        # trigger_min_cluster_size = max(8*6, 48) = max(48, 48) = 48
-        assert cfg.trigger_min_cluster_size == 48
         # min_keep_points = max(8*1, 6) = max(8, 6) = 8
         assert cfg.min_keep_points == 8
+        # segment_direction_cos_th from 20.0 deg
+        assert cfg.segment_direction_cos_th == float(np.cos(np.deg2rad(20.0)))
 
 
 # ---------------------------------------------------------------------------
@@ -74,80 +77,21 @@ class TestStage3Defaults:
         assert cfg.line_residual_th == 0.01
         assert cfg.min_cluster_size == 8
         assert cfg.max_polyline_vertices == 32
-        # All 25 DEFAULT_FIT_PARAMS fields
-        assert cfg.segment_direction_angle_deg == 20.0
-        assert cfg.segment_run_gap_scale == 3.0
-        assert cfg.segment_run_lateral_gap_scale == 2.5
-        assert cfg.segment_run_lateral_band_scale == 3.0
-        assert cfg.segment_min_points == 6
-        assert cfg.trigger_main_min_points == 12
-        assert cfg.trigger_main_linearity_th == 0.88
-        assert cfg.trigger_main_tangent_angle_deg == 20.0
-        assert cfg.trigger_main_length_scale == 6.0
-        assert cfg.trigger_main_lateral_scale == 2.5
-        assert cfg.trigger_fragment_min_points == 6
-        assert cfg.trigger_fragment_linearity_th == 0.78
-        assert cfg.trigger_fragment_tangent_angle_deg == 28.0
-        assert cfg.trigger_fragment_lateral_scale == 3.5
-        assert cfg.trigger_fragment_attach_dist_scale == 2.5
-        assert cfg.trigger_fragment_attach_gap_scale == 4.0
-        assert cfg.trigger_fragment_attach_angle_deg == 20.0
-        assert cfg.trigger_main_merge_angle_deg == 10.0
-        assert cfg.trigger_main_merge_dist_scale == 1.5
-        assert cfg.trigger_main_merge_gap_scale == 3.0
-        assert cfg.trigger_main_merge_lateral_scale == 1.4
+        # Endpoint absorption (4 fields retained from trigger path)
         assert cfg.trigger_endpoint_absorb_dist_scale == 2.2
         assert cfg.trigger_endpoint_absorb_line_dist_scale == 1.6
         assert cfg.trigger_endpoint_absorb_proj_scale == 2.6
         assert cfg.trigger_endpoint_absorb_max_points_per_end == 12
 
-    def test_stage3_cosine_properties(self) -> None:
-        cfg = Stage3Config()
-        # segment_direction_cos_th from 20.0 deg
-        assert cfg.segment_direction_cos_th == float(np.cos(np.deg2rad(20.0)))
-        # trigger_main_tangent_cos_th from 20.0 deg
-        assert cfg.trigger_main_tangent_cos_th == float(np.cos(np.deg2rad(20.0)))
-        # trigger_fragment_tangent_cos_th from 28.0 deg
-        assert cfg.trigger_fragment_tangent_cos_th == float(np.cos(np.deg2rad(28.0)))
-        # trigger_fragment_attach_cos_th from 20.0 deg
-        assert cfg.trigger_fragment_attach_cos_th == float(np.cos(np.deg2rad(20.0)))
-        # trigger_main_merge_cos_th from 10.0 deg
-        assert cfg.trigger_main_merge_cos_th == float(np.cos(np.deg2rad(10.0)))
-
     def test_stage3_to_runtime_dict(self) -> None:
-        """Verify to_runtime_dict() produces the EXACT dict that
-        build_runtime_params(default_args) produces in fit_local_supports.py.
-        """
+        """Verify to_runtime_dict() produces exactly 7 keys (3 CLI + 4 absorb)."""
         cfg = Stage3Config()
         result = cfg.to_runtime_dict()
 
-        # This is the verbatim expected dict from build_runtime_params()
-        # with all defaults applied.
         expected = {
             "line_residual_th": 0.01,
             "min_cluster_size": 8,
             "max_polyline_vertices": 32,
-            "segment_direction_cos_th": float(np.cos(np.deg2rad(20.0))),
-            "segment_run_gap_scale": 3.0,
-            "segment_run_lateral_gap_scale": 2.5,
-            "segment_run_lateral_band_scale": 3.0,
-            "segment_min_points": 6,
-            "trigger_main_min_points": 12,
-            "trigger_main_linearity_th": 0.88,
-            "trigger_main_tangent_cos_th": float(np.cos(np.deg2rad(20.0))),
-            "trigger_main_length_scale": 6.0,
-            "trigger_main_lateral_scale": 2.5,
-            "trigger_fragment_min_points": 6,
-            "trigger_fragment_linearity_th": 0.78,
-            "trigger_fragment_tangent_cos_th": float(np.cos(np.deg2rad(28.0))),
-            "trigger_fragment_lateral_scale": 3.5,
-            "trigger_fragment_attach_dist_scale": 2.5,
-            "trigger_fragment_attach_gap_scale": 4.0,
-            "trigger_fragment_attach_cos_th": float(np.cos(np.deg2rad(20.0))),
-            "trigger_main_merge_cos_th": float(np.cos(np.deg2rad(10.0))),
-            "trigger_main_merge_dist_scale": 1.5,
-            "trigger_main_merge_gap_scale": 3.0,
-            "trigger_main_merge_lateral_scale": 1.4,
             "trigger_endpoint_absorb_dist_scale": 2.2,
             "trigger_endpoint_absorb_line_dist_scale": 1.6,
             "trigger_endpoint_absorb_proj_scale": 2.6,
@@ -212,11 +156,9 @@ class TestCustomValues:
         assert cfg.denoise_knn == 8
         assert cfg.sparse_distance_ratio == 1.75
         assert cfg.sparse_mad_scale == 3.0
-        assert cfg.trigger_min_cluster_size_factor == 6
-        assert cfg.trigger_min_cluster_size_floor == 48
-        assert cfg.linearity_th == 0.85
-        assert cfg.tangent_coherence_th == 0.88
-        assert cfg.bbox_anisotropy_th == 6.0
         assert cfg.max_remove_ratio == 0.20
         assert cfg.min_keep_points_factor == 1
         assert cfg.min_keep_points_floor == 6
+        assert cfg.segment_direction_angle_deg == 20.0
+        assert cfg.rescue_knn == 8
+        assert cfg.rescue_distance_scale == 2.0
