@@ -67,7 +67,8 @@ class Stage2Config:
 
     # Density-conditional denoise: skip denoise for sparse clusters
     # Clusters with spacing > threshold * global_median skip denoise
-    denoise_density_threshold: float = 1.5
+    # 0.5 restricts denoise to only tightly-packed clusters (<=0.5x global median)
+    denoise_density_threshold: float = 0.5
 
     @property
     def segment_direction_cos_th(self) -> float:

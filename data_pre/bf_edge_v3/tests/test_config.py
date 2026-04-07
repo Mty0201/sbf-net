@@ -58,7 +58,7 @@ class TestStage2Defaults:
         assert cfg.rescue_knn == 8
         assert cfg.rescue_distance_scale == 3.0
         # Density-conditional denoise (Phase 5)
-        assert cfg.denoise_density_threshold == 1.5
+        assert cfg.denoise_density_threshold == 0.5
 
     def test_stage2_derived(self) -> None:
         cfg = Stage2Config()
