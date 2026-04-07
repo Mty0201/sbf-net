@@ -37,7 +37,6 @@ from core.fitting import (
     fit_polyline_support,
     regularize_support_orientation,
 )
-from core.params import DEFAULT_FIT_PARAMS
 from core.trigger_regroup import (
     absorb_sparse_endpoint_points,
     regroup_trigger_cluster,
