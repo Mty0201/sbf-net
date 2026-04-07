@@ -21,7 +21,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input", type=str, required=True, help="Directory containing boundary_centers.npz")
     parser.add_argument("--output", type=str, default=None, help="Output directory. Default: same as input")
     parser.add_argument("--eps", type=float, default=0.08, help="DBSCAN eps in scene units")
-    parser.add_argument("--min-samples", type=int, default=8, help="DBSCAN min_samples")
+    parser.add_argument("--min-samples", type=int, default=5, help="DBSCAN min_samples")
     parser.add_argument("--denoise-knn", type=int, default=8, help="kNN size used by light cluster-internal denoise")
     parser.add_argument("--sparse-distance-ratio", type=float, default=1.75, help="Remove points whose local spacing exceeds median * ratio")
     parser.add_argument("--sparse-mad-scale", type=float, default=3.0, help="Also require spacing to exceed median + scale * MAD")

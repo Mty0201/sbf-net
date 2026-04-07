@@ -40,7 +40,7 @@ class TestStage2Defaults:
         cfg = Stage2Config()
         # CLI-level
         assert cfg.eps == 0.08
-        assert cfg.min_samples == 8
+        assert cfg.min_samples == 5
         assert cfg.denoise_knn == 8
         assert cfg.sparse_distance_ratio == 1.75
         assert cfg.sparse_mad_scale == 3.0
@@ -53,15 +53,17 @@ class TestStage2Defaults:
         assert cfg.segment_run_gap_scale == 3.0
         assert cfg.segment_run_lateral_gap_scale == 2.5
         assert cfg.segment_run_lateral_band_scale == 3.0
-        assert cfg.segment_min_points == 6
+        assert cfg.segment_min_points == 4
         # Density-adaptive rescue (Phase 4)
         assert cfg.rescue_knn == 8
-        assert cfg.rescue_distance_scale == 2.0
+        assert cfg.rescue_distance_scale == 3.0
+        # Density-conditional denoise (Phase 5)
+        assert cfg.denoise_density_threshold == 1.5
 
     def test_stage2_derived(self) -> None:
         cfg = Stage2Config()
-        # min_keep_points = max(8*1, 6) = max(8, 6) = 8
-        assert cfg.min_keep_points == 8
+        # min_keep_points = max(5*1, 6) = max(5, 6) = 6
+        assert cfg.min_keep_points == 6
         # segment_direction_cos_th from 45.0 deg
         assert cfg.segment_direction_cos_th == float(np.cos(np.deg2rad(45.0)))
 
@@ -75,7 +77,7 @@ class TestStage3Defaults:
         cfg = Stage3Config()
         # CLI-level
         assert cfg.line_residual_th == 0.01
-        assert cfg.min_cluster_size == 8
+        assert cfg.min_cluster_size == 4
         assert cfg.max_polyline_vertices == 32
         # Endpoint absorption (4 fields retained from trigger path)
         assert cfg.trigger_endpoint_absorb_dist_scale == 2.2
@@ -90,7 +92,7 @@ class TestStage3Defaults:
 
         expected = {
             "line_residual_th": 0.01,
-            "min_cluster_size": 8,
+            "min_cluster_size": 4,
             "max_polyline_vertices": 32,
             "trigger_endpoint_absorb_dist_scale": 2.2,
             "trigger_endpoint_absorb_line_dist_scale": 1.6,
@@ -152,7 +154,7 @@ class TestCustomValues:
         cfg = Stage2Config(eps=0.12)
         assert cfg.eps == 0.12
         # All other fields remain at defaults
-        assert cfg.min_samples == 8
+        assert cfg.min_samples == 5
         assert cfg.denoise_knn == 8
         assert cfg.sparse_distance_ratio == 1.75
         assert cfg.sparse_mad_scale == 3.0
@@ -161,4 +163,4 @@ class TestCustomValues:
         assert cfg.min_keep_points_floor == 6
         assert cfg.segment_direction_angle_deg == 45.0
         assert cfg.rescue_knn == 8
-        assert cfg.rescue_distance_scale == 2.0
+        assert cfg.rescue_distance_scale == 3.0

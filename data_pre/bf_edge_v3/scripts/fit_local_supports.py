@@ -24,7 +24,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input", type=str, required=True, help="Scene dir or root dir")
     parser.add_argument("--output", type=str, default=None, help="Output dir. Default: same as input")
     parser.add_argument("--line-residual-th", type=float, default=0.01, help="Line mean residual threshold before falling back to polyline")
-    parser.add_argument("--min-cluster-size", type=int, default=8, help="Minimum cluster size for support fitting")
+    parser.add_argument("--min-cluster-size", type=int, default=4, help="Minimum cluster size for support fitting")
     parser.add_argument("--max-polyline-vertices", type=int, default=32, help="Maximum polyline vertex count for polyline fallback")
     return parser.parse_args()
 
