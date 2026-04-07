@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: semantic-first boundary supervision reboot
-status: Phase 6 implemented — serial derivation module g, smoke-validated
-stopped_at: Phase 6 smoke validation pass
-last_updated: "2026-04-08T00:00:00Z"
+status: Phase 6 complete — serial derivation + 4 experiment configs ready for training
+stopped_at: Phase 6 complete, committed and pushed (8aeb4e1)
+last_updated: "2026-04-08T01:00:00Z"
 last_activity: 2026-04-08
 progress:
   total_phases: 7
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 2
   completed_plans: 2
-  percent: 71
+  percent: 85
 ---
 
 # Project State
@@ -25,9 +25,9 @@ See: `.planning/PROJECT.md` (updated 2026-04-06)
 
 ## Current Position
 
-Phase: 6 — Serial derivation module g (boundary offset from semantic logits)
+Phase: 6 — Serial derivation module g (boundary offset from semantic logits) ✅
 Plan: `.planning/phases/06-serial-derivation-module/06-01-PLAN.md`
-Status: Phase 6 implemented and smoke-validated. SerialDerivationModel + SerialDerivationLoss + CR-D config all pass end-to-end pipeline check. Ready for full training run.
+Status: Complete. All code implemented, BCE weight bug fixed, 4 new experiment configs (CR-C/D/E/F) smoke-validated and pushed (8aeb4e1). Ready for full training runs.
 Last activity: 2026-04-08
 
 ## Recent Context
@@ -88,7 +88,7 @@ Last activity: 2026-04-08
 
 ## Session Continuity
 
-Last session: 2026-04-07
-Stopped at: Phase 4 complete (route redesign). Phase 5 (Part 1: boundary proximity cue CR-C experiment) is next.
+Last session: 2026-04-08
+Stopped at: Phase 6 complete. Serial derivation module g + 4 experiment configs (CR-C/D/E/F) implemented, smoke-validated, pushed (8aeb4e1).
 Resume file: None
-Next action: Plan and execute Phase 5 — implement confidence-weighted BCE loss (Option L1), create CR-C config, run 100-epoch experiment.
+Next action: Run CR-C/D/E/F training experiments, collect results, compare against CR-A baseline (0.7336 mIoU). Then Phase 7 (canonical update + milestone close).
