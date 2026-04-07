@@ -2,24 +2,24 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Edge Data Pipeline Refactor and Quality Repair
-status: Phase 3 complete — Part A refactor done
-stopped_at: Phase 3 complete (human-approved equivalence gate)
-last_updated: "2026-04-07T20:00:00Z"
+status: Phase 4 in progress — Plan 01 complete
+stopped_at: Phase 4 Plan 01 complete
+last_updated: "2026-04-07T08:52:16Z"
 last_activity: 2026-04-07
 progress:
   total_phases: 8
   completed_phases: 3
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 11
+  completed_plans: 9
 ---
 
 # Project State
 
 ## Current Position
 
-Phase: 4 — Algorithm evolution (next)
-Plan: Not yet planned
-Status: Phase 3 complete. Part A refactor done. 31 tests passing (config + validation + equivalence).
+Phase: 4 — Stage 2 cluster contract redesign
+Plan: 01 complete, 02 next
+Status: Plan 04-01 complete. Stage 2 algorithm redesigned with noise rescue, direction grouping, spatial splitting. 850 fine-grained clusters (was 135 coarse). Trigger mechanism eliminated from Stage 2 output.
 Last activity: 2026-04-07
 
 ## Recent Context
@@ -63,9 +63,18 @@ Last activity: 2026-04-07
 - **[2026-04-07]** Plan 03-03 executed: equivalence gate — 9 tests, all bit-identical (np.array_equal). Human-approved. 31 total tests passing.
 - **[2026-04-07]** Phase 3 complete. Part A (algorithm-preserving refactor) is done. Phase 4 (Part B: algorithm improvement) can begin.
 - [Phase 03-03]: Equivalence gate covers all 4 stages + in-memory path; uses np.array_equal exclusively; serves as regression gate for Phase 4
+- **[2026-04-07]** Plan 04-01 executed: Stage 2 algorithm redesigned.
+  - estimate_local_spacing replaced with O(n log n) cKDTree implementation
+  - Stage2Config: 5 trigger fields deleted, 7 new fields (5 direction/spatial + 2 rescue)
+  - rescue_noise_centers: 74 noise points rescued on 010101
+  - refine_cluster_into_runs: each cluster split by direction then spatial continuity
+  - cluster_boundary_centers: 135 -> 850 fine-grained clusters, trigger_flag eliminated
+  - validate_cluster_contract: H1/H2/H3 checks (fallback clusters excluded)
+  - [Phase 04-01]: validate_cluster_contract uses count-based threshold, not per-cluster strict raise; 49 fallback clusters skipped
+  - [Phase 04-01]: H1 check uses group_tangents re-check, not pairwise cosine (matches actual grouping algorithm contract)
 
 ## Session Continuity
 
-Last session: 2026-04-07T20:00:00Z
-Stopped at: Phase 3 complete (human-approved)
+Last session: 2026-04-07T08:52:16Z
+Stopped at: Phase 4 Plan 01 complete
 Resume file: None

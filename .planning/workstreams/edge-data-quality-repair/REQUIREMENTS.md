@@ -22,8 +22,8 @@
 
 ### Algorithm Evolution (Phase 4)
 
-- [ ] **ALG-01**: Introduce density-adaptive parameter values at identified bottleneck stages (Stage 2 eps, Stage 4 sigma) — each change explicitly documented as algorithm redesign
-- [ ] **ALG-02**: Improve clustering, splitting, and fitting logic where current heuristics are inadequate — redesign compatibility strategies as needed
+- [x] **ALG-01**: Introduce density-adaptive parameter values at identified bottleneck stages (Stage 2 eps, Stage 4 sigma) — each change explicitly documented as algorithm redesign — **In progress:** Stage 2 density-adaptive noise rescue (rescue_noise_centers) + direction/spatial splitting implemented in Plan 04-01. Stage 2 contract redesigned: every cluster is a (semantic_pair, direction_class, spatial_run) triple. 74 noise points rescued on 010101.
+- [x] **ALG-02**: Improve clustering, splitting, and fitting logic where current heuristics are inadequate — redesign compatibility strategies as needed — **In progress:** Trigger mechanism eliminated from Stage 2. group_tangents + split_direction_group_into_runs moved to Stage 2 post-DBSCAN. estimate_local_spacing O(n^2)->O(n log n). validate_cluster_contract added. Trigger path deletion from Stage 3 pending (Plan 04-02).
 - [ ] **ALG-03**: Verify algorithm improvements against Phase 1 diagnosis baselines — coverage gap reduction, no dense-region regression
 
 ## Quality Repair
@@ -74,8 +74,8 @@ _(none deferred)_
 | REF-04 | 3 | 03-01 | complete |
 | REF-05 | 3 | 03-02 | complete |
 | REF-06 | 3 | 03-01, 03-03 | complete |
-| ALG-01 | 4 | — | pending |
-| ALG-02 | 4 | — | pending |
+| ALG-01 | 4 | 04-01 | in progress |
+| ALG-02 | 4 | 04-01 | in progress |
 | ALG-03 | 4 | — | pending |
 | DEN-02 | 5 | — | pending |
 | DEN-03 | 5 | — | pending |

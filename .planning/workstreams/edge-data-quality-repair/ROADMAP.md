@@ -60,11 +60,17 @@ Plans:
 
 *Goal: Iterate on the algorithm itself — intentional semantic changes treated explicitly as redesign, not folded into refactor.*
 
-### Phase 4: Algorithm evolution — density-aware parameters and improved splitting/fitting
+### Phase 4: Stage 2 cluster contract redesign
 
-**Goal:** Introduce density-adaptive behavior at identified bottleneck stages (Stage 2 eps, Stage 4 sigma), improve clustering/splitting/fitting logic, and redesign compatibility strategies where the current heuristics are inadequate. Every behavioral change is explicitly marked as algorithm redesign.
+**Goal:** Redesign Stage 2's output contract so every cluster is a (semantic_pair, direction_class, spatial_run) triple that directly satisfies Stage 3's fitter assumptions. Eliminate the trigger mechanism. Add density-adaptive noise rescue.
 **Requires:** ALG-01, ALG-02, ALG-03
 **Depends on:** Phase 3 (equivalence gate must pass before algorithm changes begin)
+**Plans:** 3 plans (1/3 complete)
+
+Plans:
+- [x] 04-01-PLAN.md -- Stage 2 algorithm redesign: rescue, direction grouping, spatial splitting, validation
+- [ ] 04-02-PLAN.md -- Trigger path deletion from Stage 3 + supports_core update
+- [ ] 04-03-PLAN.md -- Verification, tolerance tuning, equivalence baseline regeneration
 
 ---
 
