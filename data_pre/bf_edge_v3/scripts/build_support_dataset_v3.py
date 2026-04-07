@@ -52,7 +52,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--sparse-mad-scale", type=float, default=3.0, help="Also require spacing to exceed median + scale * MAD")
     parser.add_argument("--line-residual-th", type=float, default=0.01, help="Line mean residual threshold before falling back to polyline")
     parser.add_argument("--min-cluster-size", type=int, default=8, help="Minimum cluster size for support fitting")
-    parser.add_argument("--max-polyline-vertices", type=int, default=32, help="Maximum polyline vertex count for non-trigger fallback")
+    parser.add_argument("--max-polyline-vertices", type=int, default=32, help="Maximum polyline vertex count for polyline fallback")
     return parser.parse_args()
 
 

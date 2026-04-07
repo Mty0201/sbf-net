@@ -72,14 +72,16 @@ def load_boundary_centers(input_dir: Path) -> dict:
 
 
 def load_local_clusters(input_dir: Path) -> dict:
-    """Load coarse clusters with trigger flags from bf_edge_v3."""
+    """Load local clusters from bf_edge_v3.
+
+    Post-Phase-4: cluster_trigger_flag is no longer produced or required.
+    """
     payload = np.load(input_dir / "local_clusters.npz")
     center_index = payload["center_index"].astype(np.int32)
     cluster_id = payload["cluster_id"].astype(np.int32)
     semantic_pair = payload["semantic_pair"].astype(np.int32)
     cluster_size = payload["cluster_size"].astype(np.int32)
     cluster_centroid = payload["cluster_centroid"].astype(np.float32)
-    cluster_trigger_flag = payload["cluster_trigger_flag"].astype(np.uint8)
 
     if center_index.ndim != 1:
         raise ValueError(f"center_index shape invalid: {center_index.shape}")
@@ -91,13 +93,10 @@ def load_local_clusters(input_dir: Path) -> dict:
         raise ValueError("cluster_size or cluster_centroid shape invalid")
     if cluster_centroid.shape[1] != 3:
         raise ValueError(f"cluster_centroid shape invalid: {cluster_centroid.shape}")
-    if cluster_trigger_flag.ndim != 1:
-        raise ValueError(f"cluster_trigger_flag shape invalid: {cluster_trigger_flag.shape}")
     if not (
         semantic_pair.shape[0]
         == cluster_size.shape[0]
         == cluster_centroid.shape[0]
-        == cluster_trigger_flag.shape[0]
     ):
         raise ValueError("cluster-level field length mismatch")
 
@@ -107,7 +106,6 @@ def load_local_clusters(input_dir: Path) -> dict:
         "semantic_pair": semantic_pair,
         "cluster_size": cluster_size,
         "cluster_centroid": cluster_centroid,
-        "cluster_trigger_flag": cluster_trigger_flag,
     }
 
 
