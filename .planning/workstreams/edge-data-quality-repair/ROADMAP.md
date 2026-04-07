@@ -41,17 +41,18 @@ Plans:
 - [x] 02-02-PLAN.md — Module restructure: decompose supports_core.py into fitting/trigger_regroup/export sub-modules
 - [x] 02-03-PLAN.md — Parameter extraction to params.py, behavioral spot-check, pipeline docs update
 
-### Phase 3: Config injection, validation hooks, and equivalence gate
+### Phase 3: Config injection, validation hooks, and equivalence gate ✅
 
 **Goal:** Implement per-stage configuration system with density-adaptive parameter injection points, add intermediate validation hooks, and verify behavioral equivalence — refactored pipeline produces identical output under default parameters.
 **Requires:** REF-04, REF-05, REF-06
 **Depends on:** Phase 2
+**Status:** Complete (2026-04-07). 4 frozen config dataclasses, 4 validation hooks, 31 tests (9 equivalence, bit-identical). Human-approved.
 **Plans:** 3 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Reference data generation, test infrastructure, config dataclasses, script integration (REF-04)
-- [ ] 03-02-PLAN.md — Validation hooks implementation and script integration (REF-05)
-- [ ] 03-03-PLAN.md — Equivalence gate pytest suite with human verification (REF-06)
+- [x] 03-01-PLAN.md — Reference data generation, test infrastructure, config dataclasses, script integration (REF-04)
+- [x] 03-02-PLAN.md — Validation hooks implementation and script integration (REF-05)
+- [x] 03-03-PLAN.md — Equivalence gate pytest suite with human verification (REF-06)
 
 ---
 

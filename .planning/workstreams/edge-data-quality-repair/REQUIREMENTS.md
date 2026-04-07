@@ -14,9 +14,9 @@
 
 ### Config Injection, Validation, and Equivalence (Phase 3)
 
-- [ ] **REF-04**: Implement per-stage configuration system that supports density-adaptive parameter injection points (values remain at current defaults)
-- [ ] **REF-05**: Add intermediate validation hooks so each stage's output can be verified before feeding the next
-- [ ] **REF-06**: Verify behavioral equivalence — refactored pipeline produces identical output for identical inputs under default parameters. Cover both final output and intermediate invariants, including compatibility-sensitive edge cases on real project data
+- [x] **REF-04**: Implement per-stage configuration system that supports density-adaptive parameter injection points (values remain at current defaults) — **Complete:** 4 frozen dataclasses (Stage1-4Config) in core/config.py, all 5 scripts integrated
+- [x] **REF-05**: Add intermediate validation hooks so each stage's output can be verified before feeding the next — **Complete:** 4 validate_* functions in core/validation.py covering 7 cross-stage contracts, all 5 scripts integrated
+- [x] **REF-06**: Verify behavioral equivalence — refactored pipeline produces identical output for identical inputs under default parameters. Cover both final output and intermediate invariants, including compatibility-sensitive edge cases on real project data — **Complete:** 9-test equivalence gate (np.array_equal), all 4 stages + in-memory path, human-approved
 
 ## Part B: Algorithm Improvement
 
@@ -68,12 +68,12 @@ _(none deferred)_
 | REQ-ID | Phase | Plan | Status |
 |--------|-------|------|--------|
 | DEN-01 | 1 | 01-01, 01-02 | complete |
-| REF-01 | 2 | — | pending |
-| REF-02 | 2 | — | pending |
-| REF-03 | 2 | — | pending |
-| REF-04 | 3 | — | pending |
-| REF-05 | 3 | — | pending |
-| REF-06 | 3 | — | pending |
+| REF-01 | 2 | 02-01, 02-02, 02-03 | complete |
+| REF-02 | 2 | 02-01, 02-03 | complete |
+| REF-03 | 2 | 02-02, 02-03 | complete |
+| REF-04 | 3 | 03-01 | complete |
+| REF-05 | 3 | 03-02 | complete |
+| REF-06 | 3 | 03-01, 03-03 | complete |
 | ALG-01 | 4 | — | pending |
 | ALG-02 | 4 | — | pending |
 | ALG-03 | 4 | — | pending |
