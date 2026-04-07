@@ -2,25 +2,25 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Edge Data Pipeline Refactor and Quality Repair
-status: Phase 4 in progress — Plan 01 complete
-stopped_at: Phase 4 Plan 01 complete
-last_updated: "2026-04-07T08:52:16Z"
-last_activity: 2026-04-07
+status: executing
+stopped_at: Phase 04 Plan 02 complete
+last_updated: "2026-04-07T09:09:32Z"
+last_activity: 2026-04-07 -- Phase 04 Plan 02 complete
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
 ---
 
 # Project State
 
 ## Current Position
 
-Phase: 4 — Stage 2 cluster contract redesign
-Plan: 01 complete, 02 next
-Status: Plan 04-01 complete. Stage 2 algorithm redesigned with noise rescue, direction grouping, spatial splitting. 850 fine-grained clusters (was 135 coarse). Trigger mechanism eliminated from Stage 2 output.
-Last activity: 2026-04-07
+Phase: 04 (stage2-cluster-contract-redesign) — EXECUTING
+Plan: 3 of 3
+Status: Plan 04-02 complete, Plan 04-03 next
+Last activity: 2026-04-07 -- Phase 04 Plan 02 complete
 
 ## Recent Context
 
@@ -53,6 +53,11 @@ Last activity: 2026-04-07
 - [Phase 03-02]: 4 validation hooks (bc, lc, supports, edge) cover all 7 cross-stage contracts; pure inspection, no output modification
 - [Phase 03-02]: edge_valid dtype check accepts uint8 or int32 with values in {0,1}; supports validation checks only 8-field Stage-4 minimal read set
 
+- [Phase 04-02]: load_local_clusters in stage_io.py updated to not require cluster_trigger_flag (was blocking Stage 3 script execution)
+- [Phase 04-02]: trigger_group_classes.xyz export kept for backward compatibility (writes empty file)
+- [Phase 04-02]: All clusters now treated identically in Stage 3 -- no dispatch by type or flag
+- [Phase 04-02]: Stage3Config minimal: 7 fields only (3 CLI + 4 endpoint absorption)
+
 ## Blockers / Concerns
 
 - ~~NET-01 root cause ambiguity~~ — **RESOLVED:** Stage 2 primary, Stage 4 secondary
@@ -63,18 +68,18 @@ Last activity: 2026-04-07
 - **[2026-04-07]** Plan 03-03 executed: equivalence gate — 9 tests, all bit-identical (np.array_equal). Human-approved. 31 total tests passing.
 - **[2026-04-07]** Phase 3 complete. Part A (algorithm-preserving refactor) is done. Phase 4 (Part B: algorithm improvement) can begin.
 - [Phase 03-03]: Equivalence gate covers all 4 stages + in-memory path; uses np.array_equal exclusively; serves as regression gate for Phase 4
-- **[2026-04-07]** Plan 04-01 executed: Stage 2 algorithm redesigned.
-  - estimate_local_spacing replaced with O(n log n) cKDTree implementation
-  - Stage2Config: 5 trigger fields deleted, 7 new fields (5 direction/spatial + 2 rescue)
-  - rescue_noise_centers: 74 noise points rescued on 010101
-  - refine_cluster_into_runs: each cluster split by direction then spatial continuity
-  - cluster_boundary_centers: 135 -> 850 fine-grained clusters, trigger_flag eliminated
-  - validate_cluster_contract: H1/H2/H3 checks (fallback clusters excluded)
-  - [Phase 04-01]: validate_cluster_contract uses count-based threshold, not per-cluster strict raise; 49 fallback clusters skipped
-  - [Phase 04-01]: H1 check uses group_tangents re-check, not pairwise cosine (matches actual grouping algorithm contract)
+- **[2026-04-07]** Library cleanup committed: params.py deleted, cluster_boundary_centers() rewired to Stage2Config, edge_mask/edge_strength aliases removed, --max-edge-dist alias removed, Stage4Config integrated into build_edge_dataset_v3.py, 3 supplementary scripts moved to scripts/tools/. 31 tests pass.
+- **[2026-04-07]** Deep code analysis session — Phase 4 problem definition finalized:
+  - Root cause: Stage 2 cluster semantic (eps-connected) incompatible with Stage 3 fitter assumptions (direction-consistent, spatially-continuous)
+  - Trigger mechanism is a ~600-line patch for this contract mismatch, not a design feature
+  - Design decision: move group_tangents + split_runs into Stage 2; delete trigger judgment/classification/merging from Stage 3; make DBSCAN density-aware
+  - Snake supports (path A: direction-mixed, path B: spatial bridging) expected to resolve; path C (sparse downsampling) deferred
+  - Context document: `phases/04-stage2-cluster-contract-redesign/04-CONTEXT.md`
+
+- **[2026-04-07]** Plan 04-02 executed: trigger path eliminated. 780 lines deleted, post_fitting.py created (103 lines), Stage3Config reduced to 7 fields, full pipeline verified on 020101.
 
 ## Session Continuity
 
-Last session: 2026-04-07T08:52:16Z
-Stopped at: Phase 4 Plan 01 complete
+Last session: 2026-04-07T09:09:32Z
+Stopped at: Phase 04 Plan 02 complete
 Resume file: None

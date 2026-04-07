@@ -60,17 +60,19 @@ Plans:
 
 *Goal: Iterate on the algorithm itself — intentional semantic changes treated explicitly as redesign, not folded into refactor.*
 
-### Phase 4: Stage 2 cluster contract redesign
+### Phase 4: Stage 2 cluster contract redesign and algorithm update
 
-**Goal:** Redesign Stage 2's output contract so every cluster is a (semantic_pair, direction_class, spatial_run) triple that directly satisfies Stage 3's fitter assumptions. Eliminate the trigger mechanism. Add density-adaptive noise rescue.
+**Goal:** Redesign Stage 2's output contract so every cluster is direction-consistent, spatially-continuous, and directly fittable by Stage 3's standard path — eliminating the trigger mechanism as a necessary subsystem. Make Stage 2 DBSCAN density-aware to stop structural data loss in sparse regions. Reduce snake supports at source by ensuring clusters satisfy fitter input assumptions by construction.
 **Requires:** ALG-01, ALG-02, ALG-03
 **Depends on:** Phase 3 (equivalence gate must pass before algorithm changes begin)
-**Plans:** 3 plans (1/3 complete)
+**Context:** `phases/04-stage2-cluster-contract-redesign/04-CONTEXT.md`
+**Research:** `phases/04-stage2-cluster-contract-redesign/RESEARCH.md`
+**Plans:** 3 plans
 
 Plans:
-- [x] 04-01-PLAN.md -- Stage 2 algorithm redesign: rescue, direction grouping, spatial splitting, validation
-- [ ] 04-02-PLAN.md -- Trigger path deletion from Stage 3 + supports_core update
-- [ ] 04-03-PLAN.md -- Verification, tolerance tuning, equivalence baseline regeneration
+- [x] 04-01-PLAN.md — Stage 2 algorithm redesign: noise rescue, direction grouping, spatial splitting, config, validation (ALG-01, ALG-02)
+- [x] 04-02-PLAN.md — Trigger path elimination: delete 8 functions, rename trigger_regroup.py, simplify Stage 3 (ALG-02)
+- [ ] 04-03-PLAN.md — Test infrastructure: contract tests, rescue tests, equivalence baseline, verification (ALG-01, ALG-02, ALG-03)
 
 ---
 
