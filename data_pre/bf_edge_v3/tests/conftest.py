@@ -16,6 +16,7 @@ if str(_BF_EDGE_V3_ROOT) not in sys.path:
 SAMPLE_SCENE_DIR = _BF_EDGE_V3_ROOT / "samples" / "010101"
 REFERENCE_DIR = _BF_EDGE_V3_ROOT / "tests" / "reference"
 REFERENCE_V2_DIR = _BF_EDGE_V3_ROOT / "tests" / "reference_v2"
+REFERENCE_V3_DIR = _BF_EDGE_V3_ROOT / "tests" / "reference_v3"
 
 
 @pytest.fixture(scope="session")
@@ -36,6 +37,12 @@ def reference_dir() -> Path:
 def reference_v2_dir() -> Path:
     """Return the Phase 4 reference data directory."""
     return REFERENCE_V2_DIR
+
+
+@pytest.fixture(scope="session")
+def reference_v3_dir() -> Path:
+    """Return the Phase 5 reference data directory."""
+    return REFERENCE_V3_DIR
 
 
 @pytest.fixture(scope="module")
