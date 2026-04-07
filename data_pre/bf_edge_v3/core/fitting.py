@@ -96,7 +96,14 @@ def fit_line_support(points: np.ndarray) -> dict | None:
 
 
 def build_polyline_vertices(points: np.ndarray, max_vertices: int = 32) -> np.ndarray:
-    """Sort points along the primary direction and downsample to polyline vertices."""
+    """Build polyline vertices by binning along the primary axis.
+
+    The number of bins adapts to the cluster's geometry: one vertex per
+    ``vertex_spacing_scale * local_spacing`` of along-axis extent, clamped
+    to [2, max_vertices].  Each vertex is the centroid of all points in its
+    bin, suppressing lateral noise that would otherwise produce snake/zigzag
+    artefacts.
+    """
     if points.shape[0] == 0:
         return np.empty((0, 3), dtype=np.float32)
     if points.shape[0] == 1:
@@ -106,17 +113,33 @@ def build_polyline_vertices(points: np.ndarray, max_vertices: int = 32) -> np.nd
     centered = points - centroid[None, :]
     _, _, vh = np.linalg.svd(centered, full_matrices=False)
     direction = normalize_vector(vh[0])
-    t = centered @ direction
-    order = np.argsort(t)
-    ordered = points[order]
+    t = centered @ direction  # along-axis projection
 
-    keep = min(max_vertices, ordered.shape[0])
-    if keep == ordered.shape[0]:
-        return ordered.astype(np.float32)
+    t_min, t_max = float(t.min()), float(t.max())
+    extent = t_max - t_min
+    if extent < 1e-12:
+        return points.mean(axis=0, keepdims=True).astype(np.float32)
 
-    sample_index = np.linspace(0, ordered.shape[0] - 1, num=keep)
-    sample_index = np.unique(np.round(sample_index).astype(np.int32))
-    return ordered[sample_index].astype(np.float32)
+    # Adaptive vertex count: one vertex per 5× local spacing
+    spacing = max(estimate_local_spacing(points), 1e-6)
+    n_bins = int(np.clip(round(extent / (5.0 * spacing)), 2, max_vertices))
+    n_bins = min(n_bins, points.shape[0])
+
+    if n_bins == points.shape[0]:
+        return points[np.argsort(t)].astype(np.float32)
+
+    bin_edges = np.linspace(t_min, t_max, n_bins + 1)
+    bin_idx = np.digitize(t, bin_edges[1:-1])  # 0 .. n_bins-1
+
+    vertices = []
+    for b in range(n_bins):
+        mask = bin_idx == b
+        if mask.any():
+            vertices.append(points[mask].mean(axis=0))
+    if not vertices:
+        return points.mean(axis=0, keepdims=True).astype(np.float32)
+
+    return np.stack(vertices).astype(np.float32)
 
 
 def fit_polyline_support(points: np.ndarray, max_vertices: int = 32) -> dict:

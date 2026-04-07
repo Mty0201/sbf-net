@@ -55,7 +55,7 @@ class Stage2Config:
     min_keep_points_floor: int = 6
 
     # Direction + spatial run splitting (moved from Stage3Config)
-    segment_direction_angle_deg: float = 20.0
+    segment_direction_angle_deg: float = 45.0
     segment_run_gap_scale: float = 3.0
     segment_run_lateral_gap_scale: float = 2.5
     segment_run_lateral_band_scale: float = 3.0

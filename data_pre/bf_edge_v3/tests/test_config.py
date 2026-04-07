@@ -49,7 +49,7 @@ class TestStage2Defaults:
         assert cfg.min_keep_points_factor == 1
         assert cfg.min_keep_points_floor == 6
         # Direction + spatial run splitting (Phase 4)
-        assert cfg.segment_direction_angle_deg == 20.0
+        assert cfg.segment_direction_angle_deg == 45.0
         assert cfg.segment_run_gap_scale == 3.0
         assert cfg.segment_run_lateral_gap_scale == 2.5
         assert cfg.segment_run_lateral_band_scale == 3.0
@@ -62,8 +62,8 @@ class TestStage2Defaults:
         cfg = Stage2Config()
         # min_keep_points = max(8*1, 6) = max(8, 6) = 8
         assert cfg.min_keep_points == 8
-        # segment_direction_cos_th from 20.0 deg
-        assert cfg.segment_direction_cos_th == float(np.cos(np.deg2rad(20.0)))
+        # segment_direction_cos_th from 45.0 deg
+        assert cfg.segment_direction_cos_th == float(np.cos(np.deg2rad(45.0)))
 
 
 # ---------------------------------------------------------------------------
@@ -159,6 +159,6 @@ class TestCustomValues:
         assert cfg.max_remove_ratio == 0.20
         assert cfg.min_keep_points_factor == 1
         assert cfg.min_keep_points_floor == 6
-        assert cfg.segment_direction_angle_deg == 20.0
+        assert cfg.segment_direction_angle_deg == 45.0
         assert cfg.rescue_knn == 8
         assert cfg.rescue_distance_scale == 2.0
