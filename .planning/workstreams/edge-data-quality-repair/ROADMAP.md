@@ -83,9 +83,15 @@ Plans:
 
 ### Phase 5: NET-01 fix and verify (on improved pipeline)
 
-**Goal:** Apply density-adaptive fix at identified bottleneck(s), verify coverage improvement without dense-region regression.
+**Goal:** Implement density-adaptive Stage 2 parameter changes so the sparse-to-dense coverage gap drops below 5 percentage points (DEN-02) without degrading dense-region quality (DEN-03).
 **Requires:** DEN-02, DEN-03
 **Depends on:** Phase 4
+**Research:** `phases/05-density-adaptive-supervision/05-RESEARCH.md`
+**Plans:** 2 plans
+
+Plans:
+- [ ] 05-01-PLAN.md — Config defaults, density-conditional denoise logic, CLI script updates, test updates (DEN-02, DEN-03)
+- [ ] 05-02-PLAN.md — Pipeline re-run on 020101/020102, gap verification, reference_v3 generation, equivalence tests (DEN-02, DEN-03)
 
 ### Phase 6: NET-02 diagnosis fix and verify
 
