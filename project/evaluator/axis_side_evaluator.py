@@ -110,10 +110,11 @@ class AxisSideEvaluator:
         self, edge_pred: torch.Tensor, edge: torch.Tensor
     ) -> dict[str, torch.Tensor]:
         edge = edge.float()
-        dir_gt = edge[:, 0:3]
-        support_gt = edge[:, 4].float().clamp(0.0, 1.0)
-        valid_gt = edge[:, 5].float().clamp(0.0, 1.0)
-        dist_gt = edge[:, 3].float().clamp_min(0.0)
+        vec_gt = edge[:, 0:3]
+        support_gt = edge[:, 3].float().clamp(0.0, 1.0)
+        valid_gt = edge[:, 4].float().clamp(0.0, 1.0)
+        dist_gt = torch.linalg.norm(vec_gt, dim=1).clamp_min(0.0)
+        dir_gt = torch.nn.functional.normalize(vec_gt, dim=1, eps=1e-6)
 
         axis_pred_raw = edge_pred[:, 0:3]
         support_pred = torch.sigmoid(edge_pred[:, 4])

@@ -13,7 +13,7 @@ Design note — CE term overlap and intentional weighting:
 
 Design note — ground-truth guidance (not prediction-guided):
     The focus weighting is intentionally derived from ground-truth support_gt
-    (edge[:, 4]), not from model prediction support_pred. This ensures the
+    (edge[:, 3]), not from model prediction support_pred. This ensures the
     boundary emphasis is deterministic during training and does not create a
     feedback loop where the model's own predictions amplify its own errors.
     The model learns to predict support_pred via loss_support (BCE), but that
@@ -59,8 +59,8 @@ class SupportGuidedSemanticFocusLoss(nn.Module):
         edge = edge.float()
 
         # --- Ground-truth extraction ---
-        support_gt = edge[:, 4].float().clamp(0.0, 1.0)
-        valid_gt = edge[:, 5].float().clamp(0.0, 1.0)
+        support_gt = edge[:, 3].float().clamp(0.0, 1.0)
+        valid_gt = edge[:, 4].float().clamp(0.0, 1.0)
 
         # === Term 1: Global semantic loss (CE + Lovasz) ===
         loss_ce = self.semantic_loss(seg_logits, segment)

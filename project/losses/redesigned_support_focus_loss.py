@@ -99,8 +99,8 @@ class RedesignedSupportFocusLoss(nn.Module):
         edge = edge.float()
 
         # Ground-truth extraction
-        support_gt = edge[:, 4].float().clamp(0.0, 1.0)
-        valid_gt = edge[:, 5].float().clamp(0.0, 1.0)
+        support_gt = edge[:, 3].float().clamp(0.0, 1.0)
+        valid_gt = edge[:, 4].float().clamp(0.0, 1.0)
 
         # Support prediction: apply sigmoid to raw logit (D-05)
         support_logit = support_pred[:, 0]

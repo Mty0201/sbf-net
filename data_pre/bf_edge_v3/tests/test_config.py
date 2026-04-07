@@ -2,7 +2,7 @@
 
 Verifies:
   - Default values match current hardcoded parameters exactly
-  - Derived properties (angle -> cosine, factor/floor -> computed) are correct
+  - Derived properties (angle -> cosine) are correct
   - Stage3Config.to_runtime_dict() produces the same dict as build_runtime_params()
   - Frozen semantics prevent post-construction modification
   - Custom values override defaults while keeping other fields intact
@@ -32,40 +32,30 @@ class TestStage1Defaults:
 
 
 # ---------------------------------------------------------------------------
-# Stage 2 defaults and derived
+# Stage 2 defaults and derived (Phase 6: bottom-up micro-cluster merge)
 # ---------------------------------------------------------------------------
 
 class TestStage2Defaults:
     def test_stage2_defaults(self) -> None:
         cfg = Stage2Config()
-        # CLI-level
-        assert cfg.eps == 0.08
-        assert cfg.min_samples == 5
-        assert cfg.denoise_knn == 8
-        assert cfg.sparse_distance_ratio == 1.75
-        assert cfg.sparse_mad_scale == 3.0
-        # Denoise params
-        assert cfg.max_remove_ratio == 0.20
-        assert cfg.min_keep_points_factor == 1
-        assert cfg.min_keep_points_floor == 6
-        # Direction + spatial run splitting (Phase 4)
-        assert cfg.segment_direction_angle_deg == 45.0
-        assert cfg.segment_run_gap_scale == 3.0
-        assert cfg.segment_run_lateral_gap_scale == 2.5
-        assert cfg.segment_run_lateral_band_scale == 3.0
-        assert cfg.segment_min_points == 4
-        # Density-adaptive rescue (Phase 4)
-        assert cfg.rescue_knn == 8
-        assert cfg.rescue_distance_scale == 3.0
-        # Density-conditional denoise (Phase 5)
-        assert cfg.denoise_density_threshold == 0.5
+        # Micro-clustering
+        assert cfg.micro_eps_scale == 3.5
+        assert cfg.micro_min_samples == 3
+        # Bimodal lateral split
+        assert cfg.split_lateral_threshold_scale == 5.0
+        # Direction-aware merge
+        assert cfg.merge_radius_scale == 8.0
+        assert cfg.merge_direction_angle_deg == 45.0
+        assert cfg.merge_lateral_scale == 5.0
+        # Post-merge rescue
+        assert cfg.rescue_radius_scale == 10.0
+        # Output filtering
+        assert cfg.min_cluster_points == 4
 
     def test_stage2_derived(self) -> None:
         cfg = Stage2Config()
-        # min_keep_points = max(5*1, 6) = max(5, 6) = 6
-        assert cfg.min_keep_points == 6
-        # segment_direction_cos_th from 45.0 deg
-        assert cfg.segment_direction_cos_th == float(np.cos(np.deg2rad(45.0)))
+        # merge_direction_cos_th from 45.0 deg
+        assert cfg.merge_direction_cos_th == float(np.cos(np.deg2rad(45.0)))
 
 
 # ---------------------------------------------------------------------------
@@ -79,6 +69,9 @@ class TestStage3Defaults:
         assert cfg.line_residual_th == 0.01
         assert cfg.min_cluster_size == 4
         assert cfg.max_polyline_vertices == 32
+        # Quality gates
+        assert cfg.polyline_residual_th == 0.04
+        assert cfg.min_cluster_density == 15.0
         # Endpoint absorption (4 fields retained from trigger path)
         assert cfg.trigger_endpoint_absorb_dist_scale == 2.2
         assert cfg.trigger_endpoint_absorb_line_dist_scale == 1.6
@@ -86,7 +79,7 @@ class TestStage3Defaults:
         assert cfg.trigger_endpoint_absorb_max_points_per_end == 12
 
     def test_stage3_to_runtime_dict(self) -> None:
-        """Verify to_runtime_dict() produces exactly 7 keys (3 CLI + 4 absorb)."""
+        """Verify to_runtime_dict() produces exactly 9 keys (3 CLI + 2 gates + 4 absorb)."""
         cfg = Stage3Config()
         result = cfg.to_runtime_dict()
 
@@ -94,6 +87,8 @@ class TestStage3Defaults:
             "line_residual_th": 0.01,
             "min_cluster_size": 4,
             "max_polyline_vertices": 32,
+            "polyline_residual_th": 0.04,
+            "min_cluster_density": 15.0,
             "trigger_endpoint_absorb_dist_scale": 2.2,
             "trigger_endpoint_absorb_line_dist_scale": 1.6,
             "trigger_endpoint_absorb_proj_scale": 2.6,
@@ -151,16 +146,11 @@ class TestFrozen:
 
 class TestCustomValues:
     def test_custom_values(self) -> None:
-        cfg = Stage2Config(eps=0.12)
-        assert cfg.eps == 0.12
+        cfg = Stage2Config(micro_eps_scale=5.0)
+        assert cfg.micro_eps_scale == 5.0
         # All other fields remain at defaults
-        assert cfg.min_samples == 5
-        assert cfg.denoise_knn == 8
-        assert cfg.sparse_distance_ratio == 1.75
-        assert cfg.sparse_mad_scale == 3.0
-        assert cfg.max_remove_ratio == 0.20
-        assert cfg.min_keep_points_factor == 1
-        assert cfg.min_keep_points_floor == 6
-        assert cfg.segment_direction_angle_deg == 45.0
-        assert cfg.rescue_knn == 8
-        assert cfg.rescue_distance_scale == 3.0
+        assert cfg.micro_min_samples == 3
+        assert cfg.merge_radius_scale == 8.0
+        assert cfg.merge_direction_angle_deg == 45.0
+        assert cfg.rescue_radius_scale == 10.0
+        assert cfg.min_cluster_points == 4

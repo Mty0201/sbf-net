@@ -43,11 +43,9 @@ class SerialDerivationLoss(nn.Module):
         edge = edge.float()
 
         # Ground-truth extraction
-        dir_gt = edge[:, 0:3]  # (N, 3) unit direction to boundary
-        dist_gt = edge[:, 3:4]  # (N, 1) distance to boundary
-        support_gt = edge[:, 4].clamp(0.0, 1.0)  # (N,)
-        valid_gt = edge[:, 5].clamp(0.0, 1.0)  # (N,)
-        offset_gt = dir_gt * dist_gt  # (N, 3) displacement to boundary
+        offset_gt = edge[:, 0:3]  # (N, 3) displacement to boundary
+        support_gt = edge[:, 3].clamp(0.0, 1.0)  # (N,)
+        valid_gt = edge[:, 4].clamp(0.0, 1.0)  # (N,)
 
         # === Term 1: Global semantic (CE + Lovasz) ===
         loss_ce = self.semantic_loss(seg_logits, segment)

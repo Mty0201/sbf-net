@@ -49,6 +49,8 @@ def load_supports(input_dir: Path) -> dict:
         "segment_end": payload["segment_end"].astype(np.float32),
         "line_start": payload["line_start"].astype(np.float32),
         "line_end": payload["line_end"].astype(np.float32),
+        "cluster_id": payload["cluster_id"].astype(np.int32),
+        "support_type": payload["support_type"].astype(np.int32),
     }
 
     support_count = supports["support_id"].shape[0]
@@ -121,6 +123,136 @@ def closest_points_to_support(
     return best_point.astype(np.float32), best_dist.astype(np.float32)
 
 
+def _arc_position_on_support(
+    points: np.ndarray,
+    support_id: int,
+    supports: dict,
+) -> tuple[np.ndarray, float]:
+    """Compute normalized arc-length position [0,1] for each point on a support.
+
+    Returns (t_norm, total_length) where t_norm is (N,) float in [0,1].
+    """
+    offset = int(supports["segment_offset"][support_id])
+    length = int(supports["segment_length"][support_id])
+
+    if length <= 0:
+        # Line support
+        ls = supports["line_start"][support_id]
+        le = supports["line_end"][support_id]
+        seg_starts = ls[None, :]
+        seg_ends = le[None, :]
+        length = 1
+    else:
+        seg_starts = supports["segment_start"][offset:offset + length]
+        seg_ends = supports["segment_end"][offset:offset + length]
+
+    # Cumulative arc length at each segment boundary
+    seg_lens = np.linalg.norm(seg_ends - seg_starts, axis=1)
+    cum_len = np.zeros(length + 1, dtype=np.float64)
+    for i in range(length):
+        cum_len[i + 1] = cum_len[i] + seg_lens[i]
+    total_len = float(cum_len[-1])
+    if total_len < EPS:
+        return np.zeros(points.shape[0], dtype=np.float32), 0.0
+
+    # Vectorized: for each segment, project all points and compute distances
+    N = points.shape[0]
+    best_dist = np.full(N, np.inf, dtype=np.float64)
+    best_arc = np.zeros(N, dtype=np.float64)
+    for si in range(length):
+        sv = seg_ends[si] - seg_starts[si]
+        sl = float(seg_lens[si])
+        diff = points - seg_starts[si][None, :]  # (N, 3)
+        if sl < EPS:
+            d = np.linalg.norm(diff, axis=1)
+            arc = np.full(N, cum_len[si])
+        else:
+            t = np.clip((diff @ sv) / (sl * sl), 0.0, 1.0)  # (N,)
+            cp = seg_starts[si][None, :] + t[:, None] * sv[None, :]
+            d = np.linalg.norm(points - cp, axis=1)
+            arc = cum_len[si] + t * sl
+        better = d < best_dist
+        best_dist[better] = d[better]
+        best_arc[better] = arc[better]
+    t_norm = (best_arc / total_len).astype(np.float32)
+    return t_norm, total_len
+
+
+def find_bad_supports(
+    supports: dict,
+    boundary_centers: dict,
+    local_clusters: dict,
+    min_length: float = 0.05,
+    middle_range: tuple[float, float] = (0.2, 0.8),
+    max_middle_fraction: float = 0.15,
+    min_tangent_alignment: float = 0.5,
+) -> set[int]:
+    """Identify supports that should be excluded from pointwise supervision.
+
+    Detects two failure modes:
+    1. **Hollow**: boundary centers cluster at the endpoints with nothing in
+       the middle — a diagonal line spanning a gap between two real edges.
+    2. **Diagonal**: support direction is misaligned with the cluster's mean
+       tangent direction — points from two perpendicular edges got merged
+       and the fitter produced a diagonal connecting them.
+
+    Returns a set of support IDs to exclude.
+    """
+    center_coord = boundary_centers["center_coord"]
+    center_tangent = boundary_centers["center_tangent"]
+    cluster_id = local_clusters["cluster_id"]
+    center_index = local_clusters["center_index"]
+    n_supports = supports["support_id"].shape[0]
+
+    bad_ids: set[int] = set()
+    for sid in range(n_supports):
+        cid = int(supports["cluster_id"][sid])
+        mask = cluster_id == cid
+        idx = center_index[mask]
+        pts = center_coord[idx]
+        tgts = center_tangent[idx]
+        n = pts.shape[0]
+        if n < 2:
+            continue
+
+        # --- Hollow check ---
+        t_norm, total_len = _arc_position_on_support(pts, sid, supports)
+        if total_len >= min_length:
+            lo, hi = middle_range
+            n_middle = int(((t_norm >= lo) & (t_norm <= hi)).sum())
+            if n_middle / n <= max_middle_fraction:
+                bad_ids.add(sid)
+                continue
+
+        # --- Diagonal check: support direction vs cluster tangents ---
+        stype = int(supports["support_type"][sid])
+        if stype == 0:
+            ls = supports["line_start"][sid]
+            le = supports["line_end"][sid]
+            sup_len = float(np.linalg.norm(le - ls))
+            if sup_len < EPS:
+                continue
+            sup_dir = (le - ls) / sup_len
+        else:
+            off = int(supports["segment_offset"][sid])
+            length = int(supports["segment_length"][sid])
+            if length == 0:
+                continue
+            overall = supports["segment_end"][off + length - 1] - supports["segment_start"][off]
+            sup_len = float(np.linalg.norm(overall))
+            if sup_len < EPS:
+                continue
+            sup_dir = overall / sup_len
+
+        tn = np.linalg.norm(tgts, axis=1, keepdims=True)
+        tgts_n = tgts / np.maximum(tn, 1e-9)
+        mean_align = float(np.abs(tgts_n @ sup_dir).mean())
+        if mean_align < min_tangent_alignment:
+            bad_ids.add(sid)
+
+    return bad_ids
+
+
 def build_label_to_supports(semantic_pair: np.ndarray) -> dict[int, np.ndarray]:
     """Build reverse index from segment label to candidate support ids."""
     label_to_supports: dict[int, list[int]] = {}
@@ -155,6 +287,7 @@ def build_pointwise_edge_supervision(
     supports: dict,
     support_radius: float,
     ignore_index: int,
+    skip_supports: set[int] | None = None,
 ) -> tuple[dict, dict]:
     """Build nearest-support boundary snapping supervision."""
     coord = scene["coord"]
@@ -185,6 +318,8 @@ def build_pointwise_edge_supervision(
         best_support = np.full((point_index.shape[0],), -1, dtype=np.int32)
 
         for support_id in candidate_supports:
+            if skip_supports and int(support_id) in skip_supports:
+                continue
             closest, dist = closest_points_to_support(points=points, support_id=int(support_id), supports=supports)
             better = dist < best_dist
             if np.any(better):
@@ -235,6 +370,7 @@ def build_pointwise_edge_supervision(
         "max_edge_dist": float(support_radius),
         "strength_sigma": float(sigma),
         "edge_dist_fill_value": "inf",
+        "num_hollow_supports": len(skip_supports) if skip_supports else 0,
     }
     return payload, meta
 

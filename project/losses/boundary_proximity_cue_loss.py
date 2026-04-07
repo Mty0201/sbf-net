@@ -2,8 +2,8 @@
 
 Replaces the SmoothL1+Tversky regression in RedesignedSupportFocusLoss with a
 classification-based auxiliary loss that treats:
-  - valid (edge[:, 5]) as a binary boundary/not-boundary label
-  - support (edge[:, 4]) as a confidence weight for boundary points
+  - valid (edge[:, 4]) as a binary boundary/not-boundary label
+  - support (edge[:, 3]) as a confidence weight for boundary points
 
 This reinterpretation aligns the auxiliary task with semantic discrimination
 (detecting class transitions) rather than geometric distance regression.
@@ -44,8 +44,8 @@ class BoundaryProximityCueLoss(nn.Module):
         edge = edge.float()
 
         # Ground-truth extraction (same columns as RedesignedSupportFocusLoss)
-        support_gt = edge[:, 4].float().clamp(0.0, 1.0)
-        valid_gt = edge[:, 5].float().clamp(0.0, 1.0)
+        support_gt = edge[:, 3].float().clamp(0.0, 1.0)
+        valid_gt = edge[:, 4].float().clamp(0.0, 1.0)
 
         # === Term 1: Global semantic (CE + Lovasz) ===
         loss_ce = self.semantic_loss(seg_logits, segment)

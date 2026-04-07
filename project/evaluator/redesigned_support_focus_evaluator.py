@@ -103,8 +103,8 @@ class RedesignedSupportFocusEvaluator:
         num_classes = seg_logits.shape[1]
 
         # --- Ground-truth extraction ---
-        support_gt = edge[:, 4].float().clamp(0.0, 1.0)
-        valid_gt = edge[:, 5].float().clamp(0.0, 1.0)
+        support_gt = edge[:, 3].float().clamp(0.0, 1.0)
+        valid_gt = edge[:, 4].float().clamp(0.0, 1.0)
 
         # === 1. Global semantic metrics ===
         global_stats = self._compute_per_class_stats(pred, segment, num_classes)

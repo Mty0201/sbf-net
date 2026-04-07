@@ -12,9 +12,10 @@ from core.config import Stage4Config
 from core.pointwise_core import (
     build_pointwise_edge_supervision,
     export_edge_supervision_xyz,
+    find_bad_supports,
     load_supports,
 )
-from utils.stage_io import load_scene
+from utils.stage_io import load_boundary_centers, load_local_clusters, load_scene
 
 
 SPLITS = ("training", "validation")
@@ -79,11 +80,15 @@ def run_scene(src_scene_dir: Path, dst_scene_dir: Path, cfg: Stage4Config) -> No
     """Build compact edge dataset outputs for one scene."""
     scene = load_scene(src_scene_dir)
     supports = load_supports(src_scene_dir)
+    boundary_centers = load_boundary_centers(src_scene_dir)
+    local_clusters = load_local_clusters(src_scene_dir)
+    hollow_ids = find_bad_supports(supports, boundary_centers, local_clusters)
     payload, meta = build_pointwise_edge_supervision(
         scene=scene,
         supports=supports,
         support_radius=cfg.support_radius,
         ignore_index=cfg.ignore_index,
+        skip_supports=hollow_ids,
     )
 
     copy_base_files(src_scene_dir=src_scene_dir, dst_scene_dir=dst_scene_dir)
@@ -96,6 +101,7 @@ def run_scene(src_scene_dir: Path, dst_scene_dir: Path, cfg: Stage4Config) -> No
     print(f"  output: {dst_scene_dir}")
     print(f"  points: {meta['num_points']}")
     print(f"  valid_points: {meta['num_valid_points']}")
+    print(f"  hollow_supports: {meta['num_hollow_supports']}")
     print(f"  support_radius: {meta['support_radius']:.6f}")
     print("=" * 70)
 

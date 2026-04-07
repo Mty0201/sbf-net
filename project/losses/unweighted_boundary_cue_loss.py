@@ -36,7 +36,7 @@ class UnweightedBoundaryCueLoss(nn.Module):
         segment = segment.reshape(-1).long()
         edge = edge.float()
 
-        valid_gt = edge[:, 5].float().clamp(0.0, 1.0)
+        valid_gt = edge[:, 4].float().clamp(0.0, 1.0)
 
         # Term 1: Global semantic
         loss_ce = self.semantic_loss(seg_logits, segment)

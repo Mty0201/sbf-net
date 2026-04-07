@@ -11,9 +11,10 @@ from core.pointwise_core import (
     build_pointwise_edge_supervision,
     export_edge_arrays,
     export_edge_supervision_xyz,
+    find_bad_supports,
     load_supports,
 )
-from utils.stage_io import load_scene
+from utils.stage_io import load_boundary_centers, load_local_clusters, load_scene
 
 
 def parse_args() -> argparse.Namespace:
@@ -44,11 +45,15 @@ def run_scene(input_dir: Path, output_dir: Path, args: argparse.Namespace) -> No
     cfg = build_config(args)
     scene = load_scene(input_dir)
     supports = load_supports(input_dir)
+    boundary_centers = load_boundary_centers(input_dir)
+    local_clusters = load_local_clusters(input_dir)
+    hollow_ids = find_bad_supports(supports, boundary_centers, local_clusters)
     payload, meta = build_pointwise_edge_supervision(
         scene=scene,
         supports=supports,
         support_radius=cfg.support_radius,
         ignore_index=cfg.ignore_index,
+        skip_supports=hollow_ids,
     )
 
     validate_edge_supervision(payload, num_scene_points=scene["coord"].shape[0])
@@ -63,6 +68,7 @@ def run_scene(input_dir: Path, output_dir: Path, args: argparse.Namespace) -> No
     print(f"  supports: {meta['num_supports']}")
     print(f"  valid_points: {meta['num_valid_points']}")
     print(f"  invalid_points: {meta['num_invalid_points']}")
+    print(f"  hollow_supports: {meta['num_hollow_supports']}")
     print(f"  support_radius: {meta['support_radius']:.6f}")
     print("=" * 70)
 

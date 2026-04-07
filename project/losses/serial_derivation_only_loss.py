@@ -36,10 +36,8 @@ class SerialDerivationOnlyLoss(nn.Module):
         segment = segment.reshape(-1).long()
         edge = edge.float()
 
-        dir_gt = edge[:, 0:3]
-        dist_gt = edge[:, 3:4]
-        valid_gt = edge[:, 5].clamp(0.0, 1.0)
-        offset_gt = dir_gt * dist_gt
+        offset_gt = edge[:, 0:3]
+        valid_gt = edge[:, 4].clamp(0.0, 1.0)
 
         # Term 1: Global semantic
         loss_ce = self.semantic_loss(seg_logits, segment)

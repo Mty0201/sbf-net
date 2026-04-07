@@ -266,9 +266,9 @@ class SupportShapeLoss(nn.Module):
         support_pred = torch.sigmoid(support_logit)
 
         # Parse GT
-        dist_gt = edge[:, 3].float().clamp_min(0.0)
-        support_gt = edge[:, 4].float().clamp(0.0, 1.0)
-        valid_gt = edge[:, 5].float().clamp(0.0, 1.0)
+        dist_gt = torch.linalg.norm(edge[:, 0:3], dim=1).clamp_min(0.0)
+        support_gt = edge[:, 3].float().clamp(0.0, 1.0)
+        valid_gt = edge[:, 4].float().clamp(0.0, 1.0)
 
         support_target = support_gt * valid_gt
         support_region_gt = (valid_gt > 0.5).float()

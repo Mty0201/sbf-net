@@ -35,59 +35,52 @@ class Stage1Config:
 
 
 # -------------------------------------------------------------------------
-# Stage 2: DBSCAN clustering + denoise + trigger
+# Stage 2: Bottom-up micro-cluster merge
 # -------------------------------------------------------------------------
 
 @dataclass(frozen=True)
 class Stage2Config:
-    """DBSCAN clustering, denoising, direction/spatial splitting, and rescue parameters."""
+    """Bottom-up micro-cluster merge parameters.
 
-    # CLI-level
-    eps: float = 0.08
-    min_samples: int = 5
-    denoise_knn: int = 8
-    sparse_distance_ratio: float = 1.75
-    sparse_mad_scale: float = 3.0
+    Algorithm: micro-cluster (small eps DBSCAN) -> bimodal lateral split
+    -> direction-aware merge (union-find on adjacent clusters with compatible
+    tangents) -> post-merge rescue (assign noise to nearest merged cluster).
 
-    # Denoise params (from DEFAULT_DENOISE_PARAMS)
-    max_remove_ratio: float = 0.20
-    min_keep_points_factor: int = 1
-    min_keep_points_floor: int = 6
+    Replaces the previous split-based pipeline (large DBSCAN -> direction
+    grouping -> spatial splitting -> outlier pruning) which suffered from
+    cross-edge contamination when splitting large connected clusters.
+    """
 
-    # Direction + spatial run splitting (moved from Stage3Config)
-    segment_direction_angle_deg: float = 45.0
-    segment_run_gap_scale: float = 3.0
-    segment_run_lateral_gap_scale: float = 2.5
-    segment_run_lateral_band_scale: float = 3.0
-    segment_min_points: int = 4
+    # -- Micro-clustering --
+    # eps = micro_eps_scale * global_median_spacing
+    micro_eps_scale: float = 3.5
+    micro_min_samples: int = 3
 
-    # Density-adaptive rescue
-    rescue_knn: int = 8
-    rescue_distance_scale: float = 3.0
+    # -- Bimodal lateral split --
+    # Splits micro-clusters whose per-direction-group lateral distribution
+    # has a gap > split_lateral_threshold_scale * gms, indicating parallel
+    # edges bridged by DBSCAN through connecting edges (e.g. window frames).
+    split_lateral_threshold_scale: float = 5.0
 
-    # Density-conditional denoise: skip denoise for sparse clusters
-    # Clusters with spacing > threshold * global_median skip denoise
-    # 0.5 restricts denoise to only tightly-packed clusters (<=0.5x global median)
-    denoise_density_threshold: float = 0.5
+    # -- Direction-aware merge --
+    # merge_radius = merge_radius_scale * global_median_spacing
+    merge_radius_scale: float = 8.0
+    merge_direction_angle_deg: float = 45.0
+    # lateral_max = merge_lateral_scale * global_median_spacing
+    # Prevents merging parallel edges that are laterally offset.
+    merge_lateral_scale: float = 5.0
+
+    # -- Post-merge rescue --
+    # rescue_radius = rescue_radius_scale * global_median_spacing
+    rescue_radius_scale: float = 10.0
+
+    # -- Output filtering --
+    min_cluster_points: int = 4
 
     @property
-    def segment_direction_cos_th(self) -> float:
-        """Cosine threshold for direction grouping (sign-invariant)."""
-        return float(np.cos(np.deg2rad(float(self.segment_direction_angle_deg))))
-
-    @property
-    def min_keep_points(self) -> int:
-        """Minimum points to keep after denoising.
-
-        ``max(min_samples * min_keep_points_factor,
-              min_keep_points_floor)``
-
-        With defaults: ``max(5 * 1, 6) = 6``.
-        """
-        return max(
-            self.min_samples * self.min_keep_points_factor,
-            self.min_keep_points_floor,
-        )
+    def merge_direction_cos_th(self) -> float:
+        """Cosine threshold for direction-compatible merge (sign-invariant)."""
+        return float(np.cos(np.deg2rad(float(self.merge_direction_angle_deg))))
 
 
 # -------------------------------------------------------------------------
@@ -96,12 +89,16 @@ class Stage2Config:
 
 @dataclass(frozen=True)
 class Stage3Config:
-    """Support fitting parameters (3 CLI + 4 endpoint absorption)."""
+    """Support fitting parameters (3 CLI + 4 endpoint absorption + 2 quality gates)."""
 
     # CLI-level
     line_residual_th: float = 0.01
     min_cluster_size: int = 4
     max_polyline_vertices: int = 32
+
+    # -- Quality gates --
+    polyline_residual_th: float = 0.04
+    min_cluster_density: float = 15.0
 
     # -- Endpoint absorption --
     trigger_endpoint_absorb_dist_scale: float = 2.2
@@ -112,7 +109,7 @@ class Stage3Config:
     def to_runtime_dict(self) -> dict:
         """Produce the flat dict that ``build_supports_payload()`` expects.
 
-        Contains exactly 7 keys: 3 CLI params + 4 endpoint absorption params.
+        Contains exactly 9 keys: 3 CLI params + 2 quality gates + 4 endpoint absorption params.
         Transition method: lets core functions continue taking a flat dict
         while the config system is established.
         """
@@ -120,6 +117,8 @@ class Stage3Config:
             "line_residual_th": float(self.line_residual_th),
             "min_cluster_size": int(self.min_cluster_size),
             "max_polyline_vertices": int(self.max_polyline_vertices),
+            "polyline_residual_th": float(self.polyline_residual_th),
+            "min_cluster_density": float(self.min_cluster_density),
             "trigger_endpoint_absorb_dist_scale": float(self.trigger_endpoint_absorb_dist_scale),
             "trigger_endpoint_absorb_line_dist_scale": float(self.trigger_endpoint_absorb_line_dist_scale),
             "trigger_endpoint_absorb_proj_scale": float(self.trigger_endpoint_absorb_proj_scale),

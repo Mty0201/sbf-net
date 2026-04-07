@@ -30,21 +30,18 @@ def make_pseudo_case(num_points: int, num_classes: int, all_zero_valid: bool = F
     seg_logits = torch.randn(num_points, num_classes, dtype=torch.float32)
     edge_pred = torch.randn(num_points, 5, dtype=torch.float32)
     segment = torch.randint(0, num_classes, (num_points,), dtype=torch.long)
-    edge = torch.zeros(num_points, 6, dtype=torch.float32)
-    edge[:, 0:3] = F.normalize(
-        torch.randn(num_points, 3, dtype=torch.float32), dim=1
-    )
-    edge[:, 3] = torch.rand(num_points, dtype=torch.float32)
+    edge = torch.zeros(num_points, 5, dtype=torch.float32)
+    edge[:, 0:3] = torch.randn(num_points, 3, dtype=torch.float32) * 0.04
 
     if all_zero_valid:
+        edge[:, 3] = 0.0
         edge[:, 4] = 0.0
-        edge[:, 5] = 0.0
     else:
         valid_count = max(1, num_points // 3)
+        edge[:, 3] = 0.0
         edge[:, 4] = 0.0
-        edge[:, 5] = 0.0
+        edge[:valid_count, 3] = 1.0
         edge[:valid_count, 4] = 1.0
-        edge[:valid_count, 5] = 1.0
     return seg_logits, edge_pred, segment, edge
 
 

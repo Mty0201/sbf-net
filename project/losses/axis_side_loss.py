@@ -152,10 +152,11 @@ class AxisSideSemanticBoundaryLoss(nn.Module):
         support_logit = edge_pred[:, 4]
 
         # Parse GT (unchanged edge.npy layout)
-        dir_gt = edge[:, 0:3]
-        dist_gt = edge[:, 3].float().clamp_min(0.0)
-        support_gt = edge[:, 4].float().clamp(0.0, 1.0)
-        valid_gt = edge[:, 5].float().clamp(0.0, 1.0)
+        vec_gt = edge[:, 0:3]
+        support_gt = edge[:, 3].float().clamp(0.0, 1.0)
+        valid_gt = edge[:, 4].float().clamp(0.0, 1.0)
+        dist_gt = torch.linalg.norm(vec_gt, dim=1).clamp_min(0.0)
+        dir_gt = F.normalize(vec_gt, dim=1, eps=1e-6)
 
         support_pred = torch.sigmoid(support_logit)
         support_target = support_gt * valid_gt

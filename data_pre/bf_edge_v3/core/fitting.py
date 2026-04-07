@@ -202,6 +202,51 @@ def segment_record_from_endpoints(start: np.ndarray, end: np.ndarray, num_points
     }
 
 
+def split_spatial_gaps(
+    points: np.ndarray,
+    gap_spacing_ratio: float = 8.0,
+    min_fragment_size: int = 4,
+) -> list[np.ndarray]:
+    """Split a point cluster at large internal gaps along the PCA axis.
+
+    Projects points onto the first principal component, finds the largest
+    gap between consecutive projected points, and splits there if the gap
+    exceeds ``gap_spacing_ratio * local_spacing``.  Recurses on each
+    fragment so that multiple gaps are handled.
+
+    Returns a list of point arrays.  If no split is needed, returns
+    ``[points]`` unchanged.
+    """
+    if points.shape[0] < 2 * min_fragment_size:
+        return [points]
+
+    spacing = max(estimate_local_spacing(points), 1e-6)
+    threshold = gap_spacing_ratio * spacing
+
+    centroid = points.mean(axis=0)
+    centered = points - centroid
+    _, _, vh = np.linalg.svd(centered, full_matrices=False)
+    t = centered @ vh[0]
+    order = np.argsort(t)
+    t_sorted = t[order]
+    gaps = np.diff(t_sorted)
+
+    max_gap_idx = int(np.argmax(gaps))
+    max_gap = float(gaps[max_gap_idx])
+
+    if max_gap < threshold:
+        return [points]
+
+    left = points[order[: max_gap_idx + 1]]
+    right = points[order[max_gap_idx + 1 :]]
+
+    fragments = []
+    for frag in (left, right):
+        if frag.shape[0] >= min_fragment_size:
+            fragments.extend(split_spatial_gaps(frag, gap_spacing_ratio, min_fragment_size))
+    return fragments if fragments else [points]
+
+
 def estimate_local_spacing(coords: np.ndarray, k: int = 6) -> float:
     """Estimate point spacing from local kNN statistics. O(n log n) via cKDTree."""
     if coords.shape[0] < 2:

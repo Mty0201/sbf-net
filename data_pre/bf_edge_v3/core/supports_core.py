@@ -21,8 +21,8 @@ from core.fitting import (
     fit_line_support,
     fit_polyline_support,
     regularize_support_orientation,
+    split_spatial_gaps,
 )
-from core.post_fitting import absorb_sparse_endpoint_points
 from core.supports_export import (
     export_npz,
     export_support_geometry_xyz,
@@ -116,6 +116,8 @@ def build_standard_support_record(
         }
 
     polyline_support = fit_polyline_support(points, max_vertices=int(params["max_polyline_vertices"]))
+    if polyline_support["fit_residual"] > float(params["polyline_residual_th"]):
+        return None
     direction, orientation_prior_score = regularize_support_orientation(polyline_support["direction"])
     vertices = polyline_support["vertices"].astype(np.float32)
     if vertices.shape[0] >= 2:
@@ -165,13 +167,27 @@ def build_support_record(
     points: np.ndarray,
     params: dict,
 ) -> tuple[list[dict], list[np.ndarray]]:
-    """Build support record(s) from one cluster. All clusters go standard path."""
-    support = build_standard_support_record(
-        cluster_record=cluster_record,
-        points=points,
-        params=params,
+    """Build support record(s) from one cluster.
+
+    Splits the cluster at large spatial gaps before fitting so that
+    corner-contaminated clusters (e.g. L-shaped junctions where one arm's
+    outlier leaks into the other arm's cluster) produce separate supports
+    for each contiguous fragment instead of a single diagonal support.
+    """
+    fragments = split_spatial_gaps(
+        points,
+        min_fragment_size=int(params["min_cluster_size"]),
     )
-    return ([support] if support is not None else []), []
+    supports = []
+    for frag in fragments:
+        support = build_standard_support_record(
+            cluster_record=cluster_record,
+            points=frag,
+            params=params,
+        )
+        if support is not None:
+            supports.append(support)
+    return supports, []
 
 
 def build_supports_payload(
@@ -183,12 +199,21 @@ def build_supports_payload(
     center_coord = boundary_centers["center_coord"]
     cluster_records = rebuild_cluster_records(boundary_centers, local_clusters)
 
+    min_cluster_density = float(params["min_cluster_density"])
+
     support_records = []
     trigger_group_visualization = []
     for record in cluster_records:
         if int(record["cluster_size"]) < int(params["min_cluster_size"]):
             continue
         points = center_coord[record["center_indices"]]
+        if points.shape[0] > 1:
+            from scipy.spatial.distance import pdist
+            max_pairwise = float(np.max(pdist(points)))
+            if max_pairwise > 0.01:
+                density = points.shape[0] / max_pairwise
+                if density < min_cluster_density:
+                    continue
         supports, visualization_rows = build_support_record(
             cluster_record=record,
             points=points,

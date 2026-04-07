@@ -92,8 +92,8 @@ def check_focus_activation(
     Per D-06: in regions where support_gt > 0.2, mean focus_weight must be
     significantly higher than in other regions.
     """
-    support_gt = edge[:, 4].float().clamp(0.0, 1.0)
-    valid_gt = edge[:, 5].float().clamp(0.0, 1.0)
+    support_gt = edge[:, 3].float().clamp(0.0, 1.0)
+    valid_gt = edge[:, 4].float().clamp(0.0, 1.0)
 
     focus_weight = 1.0 + focus_lambda * (support_gt * valid_gt).pow(focus_gamma)
 

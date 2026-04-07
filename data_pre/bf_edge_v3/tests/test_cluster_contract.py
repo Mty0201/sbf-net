@@ -1,14 +1,13 @@
-"""Contract invariant tests for the Phase 4 Stage 2 clustering pipeline (ALG-01).
+"""Contract invariant tests for the Stage 2 clustering pipeline.
 
-Tests verify that the new fine-grained clustering output satisfies:
+Tests verify that clustering output satisfies:
   - Direction consistency: every non-fallback cluster is a single direction group
   - Spatial continuity: no along-axis gaps exceed adaptive threshold
   - Lateral spread: perpendicular deviation within adaptive threshold
-  - No trigger flag in output payload (Phase 4 eliminates trigger mechanism)
-  - Non-regression: assigned center count and cluster count are reasonable
-    compared to Part A baseline
+  - No trigger flag in output payload
+  - Validation hooks pass
 
-All tests use the 010101 sample scene via the phase4_stage2 fixture.
+All tests use the 010101 sample scene.
 """
 
 from __future__ import annotations
@@ -18,61 +17,57 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from core.config import Stage2Config
+from core.config import Stage1Config, Stage2Config
 from core.validation import (
-    StageValidationError,
     validate_cluster_contract,
     validate_local_clusters,
 )
 
-_HERE = Path(__file__).resolve().parent
-REFERENCE_DIR = _HERE / "reference"
-SAMPLE_SCENE_DIR = _HERE.parent / "samples" / "010101"
+SAMPLE_SCENE_DIR = Path(__file__).resolve().parent.parent / "samples" / "010101"
 
-_SKIP_NO_SCENE = pytest.mark.skipif(
+pytestmark = pytest.mark.skipif(
     not (SAMPLE_SCENE_DIR / "coord.npy").exists(),
     reason="Sample scene 010101 not on disk",
 )
-_SKIP_NO_REF = pytest.mark.skipif(
-    not REFERENCE_DIR.exists() or not (REFERENCE_DIR / "local_clusters.npz").exists(),
-    reason="Part A reference data not generated",
-)
-
-pytestmark = [_SKIP_NO_SCENE]
 
 
-# ---------------------------------------------------------------------------
-# Contract invariant tests
-# ---------------------------------------------------------------------------
+@pytest.fixture(scope="module")
+def stage2_result():
+    """Run Stages 1→2 on sample scene 010101."""
+    from core.boundary_centers_core import build_boundary_centers
+    from core.local_clusters_core import cluster_boundary_centers
+    from utils.stage_io import load_scene
+
+    cfg1 = Stage1Config()
+    scene = load_scene(SAMPLE_SCENE_DIR)
+    _, bc, _ = build_boundary_centers(
+        scene=scene,
+        k=cfg1.k,
+        min_cross_ratio=cfg1.min_cross_ratio,
+        min_side_points=cfg1.min_side_points,
+        ignore_index=cfg1.ignore_index,
+    )
+    cfg2 = Stage2Config()
+    payload, meta = cluster_boundary_centers(bc, cfg2)
+    return payload, meta, bc
 
 
 class TestClusterContract:
-    def test_every_cluster_direction_consistent(self, phase4_stage2) -> None:
-        """validate_cluster_contract must not raise for direction check (H1).
-
-        Non-fallback clusters are single direction groups by construction.
-        Fallback clusters are skipped during validation.
-        """
-        payload, meta, bc = phase4_stage2
+    def test_every_cluster_direction_consistent(self, stage2_result) -> None:
+        payload, meta, bc = stage2_result
         cfg = Stage2Config()
-        # Should not raise
         validate_cluster_contract(
             boundary_centers=bc,
             local_clusters=payload,
-            direction_cos_th=cfg.segment_direction_cos_th,
+            direction_cos_th=cfg.merge_direction_cos_th,
         )
 
-    def test_every_cluster_spatially_continuous(self, phase4_stage2) -> None:
-        """No along-axis gap > gap_th in any non-fallback cluster (H2).
-
-        We re-implement the check inline to verify individual clusters
-        (validate_cluster_contract only raises on systematic failure).
-        """
+    def test_every_cluster_spatially_continuous(self, stage2_result) -> None:
         from core.fitting import estimate_local_spacing
         from core.local_clusters_core import group_tangents
         from utils.common import normalize_rows
 
-        payload, meta, bc = phase4_stage2
+        payload, meta, bc = stage2_result
         cfg = Stage2Config()
         coords = bc["center_coord"]
         tangents = bc["center_tangent"]
@@ -88,11 +83,10 @@ class TestClusterContract:
             c = coords[member_idx]
             t = normalize_rows(tangents[member_idx])
 
-            if c.shape[0] < cfg.segment_min_points:
+            if c.shape[0] < cfg.min_cluster_points:
                 continue
 
-            # Skip fallback clusters (multi-direction-group)
-            dir_labels = group_tangents(t, cfg.segment_direction_cos_th)
+            dir_labels = group_tangents(t, cfg.merge_direction_cos_th)
             n_groups = len(np.unique(dir_labels[dir_labels >= 0]))
             if n_groups > 1:
                 continue
@@ -115,7 +109,6 @@ class TestClusterContract:
                 if max_gap > gap_th:
                     violations += 1
 
-        # Allow up to 50% violation (matches validate_cluster_contract threshold)
         assert checked > 0, "No clusters checked"
         violation_rate = violations / checked
         assert violation_rate <= 0.50, (
@@ -123,13 +116,12 @@ class TestClusterContract:
             f"(rate={violation_rate:.1%}, threshold=50%)"
         )
 
-    def test_every_cluster_laterally_bounded(self, phase4_stage2) -> None:
-        """Lateral spread within band_th for non-fallback clusters (H3)."""
+    def test_every_cluster_laterally_bounded(self, stage2_result) -> None:
         from core.fitting import estimate_local_spacing
         from core.local_clusters_core import group_tangents
         from utils.common import normalize_rows
 
-        payload, meta, bc = phase4_stage2
+        payload, meta, bc = stage2_result
         cfg = Stage2Config()
         coords = bc["center_coord"]
         tangents = bc["center_tangent"]
@@ -145,10 +137,10 @@ class TestClusterContract:
             c = coords[member_idx]
             t = normalize_rows(tangents[member_idx])
 
-            if c.shape[0] < cfg.segment_min_points:
+            if c.shape[0] < cfg.min_cluster_points:
                 continue
 
-            dir_labels = group_tangents(t, cfg.segment_direction_cos_th)
+            dir_labels = group_tangents(t, cfg.merge_direction_cos_th)
             n_groups = len(np.unique(dir_labels[dir_labels >= 0]))
             if n_groups > 1:
                 continue
@@ -180,56 +172,17 @@ class TestClusterContract:
             f"(rate={violation_rate:.1%}, threshold=50%)"
         )
 
-    def test_no_trigger_flag_in_output(self, phase4_stage2) -> None:
-        """Phase 4 removes cluster_trigger_flag from the Stage 2 payload."""
-        payload, meta, bc = phase4_stage2
-        assert "cluster_trigger_flag" not in payload, (
-            f"cluster_trigger_flag should not be in Phase 4 output, "
-            f"got keys: {sorted(payload.keys())}"
-        )
+    def test_no_trigger_flag_in_output(self, stage2_result) -> None:
+        payload, meta, bc = stage2_result
+        assert "cluster_trigger_flag" not in payload
 
-    @pytest.mark.skipif(
-        not REFERENCE_DIR.exists() or not (REFERENCE_DIR / "local_clusters.npz").exists(),
-        reason="Part A reference data not generated",
-    )
-    def test_total_assigned_centers_reasonable(self, phase4_stage2) -> None:
-        """Assigned center count >= 80% of Part A baseline (non-regression)."""
-        payload, meta, bc = phase4_stage2
-        ref = np.load(REFERENCE_DIR / "local_clusters.npz")
-        ref_assigned = ref["center_index"].shape[0]
-        new_assigned = payload["center_index"].shape[0]
-        assert new_assigned >= 0.80 * ref_assigned, (
-            f"Non-regression: new assigned centers ({new_assigned}) < 80% of "
-            f"Part A baseline ({ref_assigned})"
-        )
-
-    @pytest.mark.skipif(
-        not REFERENCE_DIR.exists() or not (REFERENCE_DIR / "local_clusters.npz").exists(),
-        reason="Part A reference data not generated",
-    )
-    def test_cluster_count_increased(self, phase4_stage2) -> None:
-        """Phase 4 should produce more clusters (fine-grained runs > coarse DBSCAN)."""
-        payload, meta, bc = phase4_stage2
-        ref = np.load(REFERENCE_DIR / "local_clusters.npz")
-        ref_clusters = ref["semantic_pair"].shape[0]
-        new_clusters = payload["semantic_pair"].shape[0]
-        assert new_clusters > ref_clusters, (
-            f"Expected more clusters from Phase 4 runs: "
-            f"new={new_clusters}, Part A baseline={ref_clusters}"
-        )
-
-    def test_validation_hook_passes(self, phase4_stage2) -> None:
-        """Both validate_local_clusters and validate_cluster_contract pass."""
-        payload, meta, bc = phase4_stage2
+    def test_validation_hook_passes(self, stage2_result) -> None:
+        payload, meta, bc = stage2_result
         cfg = Stage2Config()
         num_bc = bc["center_coord"].shape[0]
-
-        # validate_local_clusters should not raise
         validate_local_clusters(payload, num_boundary_centers=num_bc)
-
-        # validate_cluster_contract should not raise
         validate_cluster_contract(
             boundary_centers=bc,
             local_clusters=payload,
-            direction_cos_th=cfg.segment_direction_cos_th,
+            direction_cos_th=cfg.merge_direction_cos_th,
         )

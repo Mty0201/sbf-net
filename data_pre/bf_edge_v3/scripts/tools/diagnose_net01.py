@@ -161,11 +161,11 @@ def analyze_stage4(
 ) -> dict:
     """Compute valid yield and weight stats per density bucket for scene points.
 
-    edge.npy columns (6-col converted format):
-        [dir_x, dir_y, dir_z, dist, weight(support), valid]
+    edge.npy columns (5-col format):
+        [vec_x, vec_y, vec_z, weight(support), valid]
     """
-    weight_col = edge[:, 4]
-    valid_col = edge[:, 5]
+    weight_col = edge[:, 3]
+    valid_col = edge[:, 4]
 
     result = {}
     for bucket_id, bucket_name in BUCKET_NAMES.items():

@@ -1,17 +1,17 @@
 """
 Build fine-grained local clusters for BF Edge v3.
 
-Each output cluster is a (semantic_pair, direction_class, spatial_run) triple
-that directly satisfies Stage 3's fitter assumptions by construction.
+Bottom-up micro-cluster merge algorithm:
+1. Per semantic_pair: DBSCAN with small eps -> many tight micro-clusters
+2. Direction-aware merge: adjacent micro-clusters with compatible tangents
+   are merged via union-find
+3. Post-merge rescue: noise points assigned to nearest merged cluster
 
-Pipeline per semantic_pair:
-1. Spatial DBSCAN clustering
-2. Density-adaptive noise rescue
-3. Per-cluster lightweight denoise
-4. Per-cluster direction grouping + spatial run splitting
-5. Each run becomes one output cluster
+This replaces the previous split-based pipeline (large DBSCAN -> direction
+grouping -> spatial splitting -> outlier pruning) which suffered from
+cross-edge contamination when splitting large connected clusters.
 
-Phase 4 redesign: trigger judgment/classification/merging eliminated.
+Phase 6 redesign: bottom-up merge structurally prevents cross-edge supports.
 """
 
 from __future__ import annotations
@@ -30,6 +30,11 @@ from utils.stage_io import load_boundary_centers
 
 from core.config import Stage2Config
 from core.fitting import estimate_local_spacing
+
+
+# -------------------------------------------------------------------------
+# Shared utilities
+# -------------------------------------------------------------------------
 
 
 def spatial_dbscan(coords: np.ndarray, eps: float, min_samples: int) -> np.ndarray:
@@ -54,86 +59,16 @@ def build_cluster_record(
     }
 
 
-def build_knn(coords: np.ndarray, k: int) -> np.ndarray:
-    """Build local kNN distances without self."""
-    n_points = coords.shape[0]
-    if n_points == 0:
-        return np.empty((0, 0), dtype=np.float32)
-
-    query_k = min(max(k + 1, 1), n_points)
-    tree = cKDTree(coords)
-    dist, _ = tree.query(coords, k=query_k, workers=-1)
-    if query_k == 1:
-        dist = dist.reshape(-1, 1)
-    if query_k <= 1:
-        return np.empty((n_points, 0), dtype=np.float32)
-    return dist[:, 1:].astype(np.float32)
-
-
-def lightweight_denoise_cluster(
-    coords: np.ndarray,
-    density_knn: int,
-    sparse_distance_ratio: float,
-    sparse_mad_scale: float,
-    max_remove_ratio: float,
-    min_keep_points: int,
-) -> tuple[np.ndarray, dict]:
-    """
-    Remove only clearly sparse points inside one coarse cluster.
-
-    This stays intentionally simple:
-    - use cluster-internal mean kNN distance
-    - mark points whose local spacing is far above the cluster median
-    - cancel denoise if removal would be too aggressive
-    """
-    n_points = coords.shape[0]
-    keep_mask = np.ones((n_points,), dtype=bool)
-    if n_points == 0:
-        return keep_mask, {"denoise_applied": False, "num_removed": 0}
-
-    knn_dist = build_knn(coords, k=density_knn)
-    if knn_dist.shape[1] == 0:
-        return keep_mask, {"denoise_applied": False, "num_removed": 0}
-
-    local_spacing = knn_dist.mean(axis=1).astype(np.float32)
-    finite_spacing = local_spacing[np.isfinite(local_spacing)]
-    if finite_spacing.size == 0:
-        return keep_mask, {"denoise_applied": False, "num_removed": 0}
-
-    median_spacing = float(np.median(finite_spacing))
-    mad_spacing = float(np.median(np.abs(finite_spacing - median_spacing)))
-    threshold = max(
-        median_spacing * float(sparse_distance_ratio),
-        median_spacing + float(sparse_mad_scale) * mad_spacing,
-    )
-    sparse_mask = local_spacing > threshold
-    num_removed = int(np.count_nonzero(sparse_mask))
-    if num_removed == 0:
-        return keep_mask, {"denoise_applied": False, "num_removed": 0}
-
-    if num_removed > int(max_remove_ratio * n_points):
-        return keep_mask, {"denoise_applied": False, "num_removed": 0}
-    if int(np.count_nonzero(~sparse_mask)) < int(min_keep_points):
-        return keep_mask, {"denoise_applied": False, "num_removed": 0}
-
-    keep_mask = ~sparse_mask
-    return keep_mask, {"denoise_applied": True, "num_removed": num_removed}
-
-
-# -------------------------------------------------------------------------
-# Functions moved from trigger_regroup.py (verbatim copy)
-# -------------------------------------------------------------------------
-
-
 def group_tangents(
     tangents: np.ndarray,
     direction_cos_th: float,
 ) -> np.ndarray:
-    """
-    Simple sign-invariant tangent grouping.
+    """Simple sign-invariant tangent grouping.
 
     Groups tangent vectors by direction similarity (sign-invariant cosine).
     Each group contains tangents whose pairwise |cos(angle)| >= direction_cos_th.
+
+    Retained for use by validate_cluster_contract().
     """
     tangents = normalize_rows(tangents)
     n_points = tangents.shape[0]
@@ -170,223 +105,414 @@ def group_tangents(
     return labels.astype(np.int32)
 
 
-def estimate_direction_group_axis(
-    coords: np.ndarray,
-    tangents: np.ndarray,
-) -> np.ndarray:
+# -------------------------------------------------------------------------
+# Bottom-up micro-cluster merge
+# -------------------------------------------------------------------------
+
+
+def _lateral_bimodal_split_1d(
+    lat_1d: np.ndarray,
+    split_threshold: float,
+) -> float | None:
+    """Detect split point in a 1D lateral projection via largest gap.
+
+    Finds the largest gap in sorted lateral positions. If the gap exceeds
+    ``split_threshold``, returns the midpoint as the split coordinate.
+
+    This is simpler and more robust than Otsu for the parallel-edge case:
+    two edges separated by a physical gap always produce a large gap in
+    the sorted lateral projection, regardless of point-count asymmetry.
+
+    Returns the split coordinate, or ``None`` if no gap exceeds threshold.
     """
-    Estimate the dominant run axis inside one direction group.
-
-    Prefer the mean tangent because the group is already direction-consistent.
-    Fall back to PCA when the mean tangent becomes unstable.
-    """
-    axis = normalize_vector(np.mean(normalize_rows(tangents), axis=0))
-    if np.linalg.norm(axis) >= EPS:
-        return axis
-
-    centered = coords - coords.mean(axis=0, keepdims=True)
-    _, _, vh = np.linalg.svd(centered, full_matrices=False)
-    return normalize_vector(vh[0])
+    n = len(lat_1d)
+    if n < 2:
+        return None
+    sorted_lat = np.sort(lat_1d)
+    gaps = np.diff(sorted_lat)
+    max_gap_idx = int(np.argmax(gaps))
+    max_gap = float(gaps[max_gap_idx])
+    if max_gap < split_threshold:
+        return None
+    return float((sorted_lat[max_gap_idx] + sorted_lat[max_gap_idx + 1]) / 2)
 
 
-def split_sorted_indices_by_gap(values: np.ndarray, gap_th: float) -> list[np.ndarray]:
-    """Split sorted 1D values into consecutive runs by adaptive gap threshold."""
-    if values.shape[0] == 0:
-        return []
-
-    split_points = [0]
-    for idx in range(1, values.shape[0]):
-        if float(values[idx] - values[idx - 1]) > float(gap_th):
-            split_points.append(idx)
-    split_points.append(values.shape[0])
-
-    groups = []
-    for start, end in zip(split_points[:-1], split_points[1:]):
-        groups.append(np.arange(start, end, dtype=np.int32))
-    return groups
-
-
-def split_direction_group_into_runs(
-    coords: np.ndarray,
-    tangents: np.ndarray,
-    params: dict,
+def _recursive_lateral_split(
+    g_local: np.ndarray,
+    g_pts: np.ndarray,
+    g_tgts: np.ndarray,
+    split_threshold: float,
+    min_pts: int,
 ) -> list[np.ndarray]:
+    """Recursively split a direction group at lateral gaps.
+
+    Finds the largest lateral gap (perpendicular to the group's mean
+    tangent) and splits there.  Recurses on each half so that 3+ parallel
+    lines are fully separated, not just bisected once.
+
+    Returns a list of local-index arrays (indices into the parent
+    micro-cluster's point array, same semantics as ``g_local``).
     """
-    Split one tangent direction group into edge-runs.
+    if g_pts.shape[0] < 2 * min_pts:
+        return [g_local]
 
-    Minimal rule set:
-    1. Estimate one dominant axis for the direction group
-    2. Separate parallel edges by lateral offset gaps
-    3. Split each lateral band by along-axis projection gaps
+    # Mean tangent (sign-aligned)
+    ref = g_tgts[0]
+    dots = g_tgts @ ref
+    signs = np.where(dots >= 0, 1.0, -1.0)
+    mt = (g_tgts * signs[:, None]).mean(axis=0)
+    mt_norm = np.linalg.norm(mt)
+    if mt_norm < 1e-9:
+        return [g_local]
+    mt = mt / mt_norm
+
+    # Lateral projection perpendicular to this tangent
+    centroid = g_pts.mean(axis=0)
+    diffs = g_pts - centroid
+    lateral_proj = diffs - (diffs @ mt)[:, None] * mt[None, :]
+    lat_max = np.linalg.norm(lateral_proj, axis=1).max()
+    if lat_max < split_threshold:
+        return [g_local]
+
+    # 1D lateral axis via SVD
+    _, _, vh_lat = np.linalg.svd(lateral_proj, full_matrices=False)
+    lat_1d = lateral_proj @ vh_lat[0]
+
+    sp = _lateral_bimodal_split_1d(lat_1d, split_threshold)
+    if sp is None:
+        return [g_local]
+
+    left_mask = lat_1d < sp
+    right_mask = ~left_mask
+    left_local = g_local[left_mask]
+    right_local = g_local[right_mask]
+
+    fragments: list[np.ndarray] = []
+    for frag_local, frag_mask in ((left_local, left_mask), (right_local, right_mask)):
+        if frag_local.shape[0] < min_pts:
+            continue
+        fragments.extend(
+            _recursive_lateral_split(
+                frag_local, g_pts[frag_mask], g_tgts[frag_mask],
+                split_threshold, min_pts,
+            )
+        )
+    return fragments if fragments else [g_local]
+
+
+def _split_bimodal_clusters(
+    pair_coords: np.ndarray,
+    pair_tangents: np.ndarray,
+    labels: np.ndarray,
+    micro_ids: list[int],
+    global_median_spacing: float,
+    config: Stage2Config,
+) -> tuple[np.ndarray, list[int]]:
+    """Split micro-clusters that contain parallel edges.
+
+    A single DBSCAN micro-cluster can span an entire rectangular frame
+    (e.g. window/door) because the horizontal edge physically bridges
+    two parallel vertical edges, making them one connected component.
+
+    Strategy: for each micro-cluster, group points by tangent direction.
+    Each direction group is recursively checked for lateral gaps and split
+    until no fragment contains a gap exceeding the threshold.  This handles
+    3+ parallel lines (e.g. window mullions) that a single binary split
+    would leave partially merged.
+
+    Returns updated (labels, micro_ids) with new IDs for split fragments.
     """
-    n_points = coords.shape[0]
-    if n_points == 0:
-        return []
-    if n_points < int(params["segment_min_points"]):
-        return [np.arange(n_points, dtype=np.int32)]
+    split_threshold = config.split_lateral_threshold_scale * global_median_spacing
+    cos_th = config.merge_direction_cos_th
+    min_pts = config.min_cluster_points
+    next_id = max(micro_ids) + 1 if micro_ids else 0
 
-    axis = estimate_direction_group_axis(coords=coords, tangents=tangents)
-    if np.linalg.norm(axis) < EPS:
-        return [np.arange(n_points, dtype=np.int32)]
+    new_labels = labels.copy()
+    new_micro_ids = list(micro_ids)
 
-    centroid = coords.mean(axis=0, keepdims=True)
-    centered = coords - centroid
-    along = centered @ axis
-    perp_vec = centered - along[:, None] * axis[None, :]
-
-    spacing = max(estimate_local_spacing(coords), 1e-6)
-    along_gap_th = max(float(params["segment_run_gap_scale"]) * spacing, 1e-4)
-    lateral_gap_th = max(float(params["segment_run_lateral_gap_scale"]) * spacing, 1e-4)
-    lateral_band_th = max(float(params["segment_run_lateral_band_scale"]) * spacing, 1e-4)
-
-    if n_points >= 3 and np.max(np.linalg.norm(perp_vec, axis=1)) > 1e-6:
-        _, singular_values, vh = np.linalg.svd(perp_vec, full_matrices=False)
-        if singular_values.shape[0] > 0 and float(singular_values[0]) > 1e-6:
-            lateral_axis = normalize_vector(vh[0])
-        else:
-            lateral_axis = np.zeros(3, dtype=np.float32)
-    else:
-        lateral_axis = np.zeros(3, dtype=np.float32)
-
-    if np.linalg.norm(lateral_axis) >= EPS:
-        lateral_coord = perp_vec @ lateral_axis
-    else:
-        lateral_coord = np.zeros((n_points,), dtype=np.float32)
-
-    lateral_order = np.argsort(lateral_coord, kind="mergesort")
-    lateral_sorted = lateral_coord[lateral_order]
-    lateral_groups = split_sorted_indices_by_gap(lateral_sorted, lateral_gap_th)
-
-    runs: list[np.ndarray] = []
-    for group in lateral_groups:
-        band_indices = lateral_order[group]
-        if band_indices.size == 0:
+    for mid in list(micro_ids):
+        mask = new_labels == mid
+        global_idx = np.where(mask)[0]
+        pts = pair_coords[global_idx]
+        tgts = pair_tangents[global_idx]
+        n = pts.shape[0]
+        if n < 2 * min_pts:
             continue
 
-        band_lateral = lateral_coord[band_indices]
-        if float(np.max(band_lateral) - np.min(band_lateral)) > float(lateral_band_th):
-            sub_order = np.argsort(band_lateral, kind="mergesort")
-            sub_sorted = band_lateral[sub_order]
-            sub_groups = split_sorted_indices_by_gap(sub_sorted, lateral_gap_th)
-            candidate_bands = [band_indices[sub_order[sub_group]] for sub_group in sub_groups]
-        else:
-            candidate_bands = [band_indices]
+        # Group by tangent direction
+        dir_labels = group_tangents(tgts, cos_th)
+        dir_ids = sorted(set(int(x) for x in dir_labels if x >= 0))
 
-        for candidate_indices in candidate_bands:
-            if candidate_indices.size == 0:
-                continue
-            candidate_along = along[candidate_indices]
-            along_order = np.argsort(candidate_along, kind="mergesort")
-            along_sorted = candidate_along[along_order]
-            along_groups = split_sorted_indices_by_gap(along_sorted, along_gap_th)
-            for along_group in along_groups:
-                run_indices = candidate_indices[along_order[along_group]]
-                if run_indices.size > 0:
-                    runs.append(np.sort(run_indices.astype(np.int32)))
+        # Check if any direction group has bimodal lateral distribution
+        any_split = False
+        fragments: list[np.ndarray] = []  # list of local index arrays
 
-    if not runs:
-        return [np.arange(n_points, dtype=np.int32)]
+        for gid in dir_ids:
+            g_local = np.where(dir_labels == gid)[0]
+            g_pts = pts[g_local]
+            g_tgts = tgts[g_local]
 
-    return runs
+            sub_fragments = _recursive_lateral_split(
+                g_local, g_pts, g_tgts, split_threshold, min_pts,
+            )
+            if len(sub_fragments) > 1:
+                any_split = True
+            fragments.extend(sub_fragments)
+
+        if not any_split or len(fragments) < 2:
+            continue
+
+        # Reassign: keep original mid for first fragment, new IDs for rest.
+        # First, mark all points in this micro-cluster as unassigned.
+        new_labels[global_idx] = -1
+
+        for fi, frag_local in enumerate(fragments):
+            frag_global = global_idx[frag_local]
+            if frag_global.shape[0] < min_pts:
+                continue  # too small, stays as noise (will be rescued)
+            if fi == 0:
+                new_labels[frag_global] = mid
+            else:
+                new_labels[frag_global] = next_id
+                new_micro_ids.append(next_id)
+                next_id += 1
+
+    return new_labels, new_micro_ids
 
 
-# -------------------------------------------------------------------------
-# New Stage 2 functions (Phase 4)
-# -------------------------------------------------------------------------
-
-
-def rescue_noise_centers(
-    coords: np.ndarray,
+def _compute_micro_cluster_tangents(
+    pair_tangents: np.ndarray,
     labels: np.ndarray,
-    k: int = 8,
-    rescue_distance_scale: float = 2.0,
+    micro_ids: list[int],
 ) -> np.ndarray:
-    """Assign noise-labeled points to nearest cluster if within density-adaptive threshold.
+    """Compute sign-invariant mean tangent per micro-cluster.
 
-    For each noise point (label == -1), find its nearest cluster point via cKDTree.
-    Compute per-cluster median kNN spacing. Assign the noise point to the nearest
-    cluster if distance <= rescue_distance_scale * cluster_median_spacing.
+    Returns (len(micro_ids), 3) float64 array of unit tangent vectors.
     """
-    noise_mask = labels == -1
-    if not np.any(noise_mask) or not np.any(~noise_mask):
-        return labels.copy()
-
-    cluster_coords = coords[~noise_mask]
-    cluster_labels = labels[~noise_mask]
-    noise_coords = coords[noise_mask]
-
-    # Build kNN on cluster points
-    tree = cKDTree(cluster_coords)
-
-    # For each noise point, find nearest cluster point
-    dist, idx = tree.query(noise_coords, k=1)
-    nearest_cluster = cluster_labels[idx]
-
-    # Compute per-cluster median spacing for adaptive threshold
-    cluster_spacing: dict[int, float] = {}
-    for cid in np.unique(cluster_labels):
-        cmask = cluster_labels == cid
-        cc = cluster_coords[cmask]
-        if cc.shape[0] >= k + 1:
-            ctree = cKDTree(cc)
-            cdist, _ = ctree.query(cc, k=min(k + 1, cc.shape[0]))
-            cluster_spacing[int(cid)] = float(np.median(cdist[:, 1:]))
-        else:
-            # Small cluster: use a fallback based on global median
-            cluster_spacing[int(cid)] = float(np.median(dist))
-
-    # Rescue if distance < scale * cluster_spacing
-    result = labels.copy()
-    noise_indices = np.flatnonzero(noise_mask)
-    for i, ni in enumerate(noise_indices):
-        cid = int(nearest_cluster[i])
-        threshold = rescue_distance_scale * cluster_spacing.get(cid, 999.0)
-        if float(dist[i]) <= threshold:
-            result[ni] = cid
-
+    result = np.zeros((len(micro_ids), 3), dtype=np.float64)
+    for i, mid in enumerate(micro_ids):
+        mask = labels == mid
+        tgts = normalize_rows(pair_tangents[mask])
+        if tgts.shape[0] == 0:
+            continue
+        ref = tgts[0]
+        dots = tgts @ ref
+        signs = np.where(dots >= 0, 1.0, -1.0)
+        aligned = tgts * signs[:, None]
+        mt = aligned.mean(axis=0)
+        n = np.linalg.norm(mt)
+        if n > 1e-9:
+            result[i] = mt / n
     return result
 
 
-def refine_cluster_into_runs(
-    coords: np.ndarray,
-    tangents: np.ndarray,
-    config: Stage2Config,
-) -> list[np.ndarray]:
-    """Split one DBSCAN cluster into direction-consistent, spatially-continuous runs.
+def _merged_has_lateral_gap(
+    coords_list: list[np.ndarray],
+    tangents_list: list[np.ndarray],
+    cos_th: float,
+    split_threshold: float,
+    min_pts: int,
+) -> bool:
+    """Check if merging micro-clusters would create a lateral gap.
 
-    Returns list of index arrays (indices into the input coords/tangents).
-    Each returned array is one output cluster.
+    Simulates the merged point cloud: groups by tangent direction, then
+    checks each direction group for a lateral gap exceeding split_threshold.
+    Returns True if a gap is found (merge should be rejected).
     """
-    direction_labels = group_tangents(tangents, config.segment_direction_cos_th)
-    valid_groups = np.unique(direction_labels[direction_labels >= 0])
+    all_pts = np.concatenate(coords_list, axis=0)
+    all_tgts = np.concatenate(tangents_list, axis=0)
+    if all_pts.shape[0] < 2 * min_pts:
+        return False
 
-    run_params = {
-        "segment_min_points": int(config.segment_min_points),
-        "segment_run_gap_scale": float(config.segment_run_gap_scale),
-        "segment_run_lateral_gap_scale": float(config.segment_run_lateral_gap_scale),
-        "segment_run_lateral_band_scale": float(config.segment_run_lateral_band_scale),
-    }
-
-    all_runs: list[np.ndarray] = []
-    for dg in valid_groups:
-        dg_mask = direction_labels == int(dg)
-        dg_coords = coords[dg_mask]
-        dg_tangents = tangents[dg_mask]
-        dg_indices = np.flatnonzero(dg_mask).astype(np.int32)
-
-        if dg_coords.shape[0] < config.segment_min_points:
+    dir_labels = group_tangents(all_tgts, cos_th)
+    for gid in set(int(x) for x in dir_labels if x >= 0):
+        g_mask = dir_labels == gid
+        g_pts = all_pts[g_mask]
+        g_tgts = all_tgts[g_mask]
+        if g_pts.shape[0] < 2 * min_pts:
             continue
+        # Mean tangent for direction group
+        ref = g_tgts[0]
+        dots = g_tgts @ ref
+        signs = np.where(dots >= 0, 1.0, -1.0)
+        mt = (g_tgts * signs[:, None]).mean(axis=0)
+        mt_norm = np.linalg.norm(mt)
+        if mt_norm < 1e-9:
+            continue
+        mt = mt / mt_norm
+        # Lateral projection
+        centroid = g_pts.mean(axis=0)
+        diffs = g_pts - centroid
+        lateral_proj = diffs - (diffs @ mt)[:, None] * mt[None, :]
+        if np.linalg.norm(lateral_proj, axis=1).max() < split_threshold:
+            continue
+        _, _, vh = np.linalg.svd(lateral_proj, full_matrices=False)
+        lat_1d = lateral_proj @ vh[0]
+        if _lateral_bimodal_split_1d(lat_1d, split_threshold) is not None:
+            return True
+    return False
 
-        runs = split_direction_group_into_runs(dg_coords, dg_tangents, run_params)
-        for run in runs:
-            if run.shape[0] >= config.segment_min_points:
-                all_runs.append(dg_indices[run])
 
-    if not all_runs:
-        # Fallback: return entire cluster as single run
-        return [np.arange(coords.shape[0], dtype=np.int32)]
+def _merge_micro_clusters(
+    centroids: np.ndarray,
+    mean_tangents: np.ndarray,
+    merge_radius: float,
+    cos_th: float,
+    lateral_max: float,
+    micro_coords: list[np.ndarray],
+    micro_tangents: list[np.ndarray],
+    split_threshold: float,
+    min_pts: int,
+) -> np.ndarray:
+    """Direction-aware merge of micro-clusters via union-find.
 
-    return all_runs
+    Two micro-clusters merge only if:
+    1. Centroid distance <= merge_radius
+    2. Direction compatibility: |cos(angle)| >= cos_th
+    3. Lateral offset <= lateral_max (perpendicular to shared tangent)
+    4. Merged point cloud has no lateral gap (prevents re-merging split fragments)
+
+    Condition 4 simulates the merged component's point cloud and rejects
+    the merge if any direction group would exhibit a bimodal lateral gap,
+    which is exactly the condition that _split_bimodal_clusters split on.
+
+    Returns array of root IDs (one per micro-cluster).
+    """
+    n = centroids.shape[0]
+    parent = np.arange(n, dtype=np.int32)
+    # Track which micro-cluster indices belong to each component root
+    component_members: dict[int, list[int]] = {i: [i] for i in range(n)}
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = int(parent[x])
+        return x
+
+    def union(a: int, b: int) -> None:
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[ra] = rb
+            component_members[rb] = component_members[rb] + component_members.pop(ra)
+
+    # Build radius neighbor graph
+    from sklearn.neighbors import NearestNeighbors
+    nn = NearestNeighbors(radius=merge_radius).fit(centroids)
+    _, adj_indices = nn.radius_neighbors(centroids)
+
+    for i in range(n):
+        for j in adj_indices[i]:
+            j = int(j)
+            if j <= i:
+                continue
+            if find(i) == find(j):
+                continue
+            cos_sim = abs(float(np.dot(mean_tangents[i], mean_tangents[j])))
+            if cos_sim < cos_th:
+                continue
+            # Lateral offset check: project centroid difference onto
+            # the plane perpendicular to the shared tangent direction.
+            avg_tangent = mean_tangents[i] + mean_tangents[j]
+            tn = np.linalg.norm(avg_tangent)
+            if tn < 1e-9:
+                continue
+            avg_tangent = avg_tangent / tn
+            diff = centroids[j] - centroids[i]
+            along = float(np.dot(diff, avg_tangent))
+            lateral = float(np.sqrt(max(np.dot(diff, diff) - along * along, 0.0)))
+            if lateral > lateral_max:
+                continue
+            # Lateral gap check on simulated merged component
+            ri, rj = find(i), find(j)
+            merged_indices = component_members[ri] + component_members[rj]
+            if _merged_has_lateral_gap(
+                [micro_coords[k] for k in merged_indices],
+                [micro_tangents[k] for k in merged_indices],
+                cos_th, split_threshold, min_pts,
+            ):
+                continue
+            union(i, j)
+
+    # Normalize all parents to roots
+    roots = np.array([find(i) for i in range(n)], dtype=np.int32)
+    return roots
+
+
+def _cluster_one_pair(
+    pair_coords: np.ndarray,
+    pair_tangents: np.ndarray,
+    config: Stage2Config,
+    global_median_spacing: float,
+) -> tuple[np.ndarray, int]:
+    """Run micro-cluster + merge + rescue for one semantic pair.
+
+    Returns:
+        merged_labels: (N,) int32, -1 for unassigned noise
+        num_rescued: number of noise points rescued
+    """
+    n = pair_coords.shape[0]
+    eps_micro = config.micro_eps_scale * global_median_spacing
+    merge_radius = config.merge_radius_scale * global_median_spacing
+    rescue_radius = config.rescue_radius_scale * global_median_spacing
+    cos_th = config.merge_direction_cos_th
+
+    # Step 1: Micro-cluster
+    labels = DBSCAN(eps=eps_micro, min_samples=config.micro_min_samples).fit_predict(pair_coords)
+    labels = labels.astype(np.int32)
+    micro_ids = sorted(set(int(x) for x in labels if x >= 0))
+
+    if not micro_ids:
+        return np.full(n, -1, dtype=np.int32), 0
+
+    # Step 1.5: Split micro-clusters with bimodal lateral distribution
+    labels, micro_ids = _split_bimodal_clusters(
+        pair_coords, pair_tangents, labels, micro_ids, global_median_spacing, config,
+    )
+
+    # Prune micro-cluster IDs that lost all points during the split
+    micro_ids = [m for m in micro_ids if np.any(labels == m)]
+    if not micro_ids:
+        return np.full(n, -1, dtype=np.int32), 0
+
+    # Step 2: Compute centroids, mean tangents, and per-micro-cluster point arrays
+    centroids = np.array([pair_coords[labels == m].mean(axis=0) for m in micro_ids])
+    mean_tangents = _compute_micro_cluster_tangents(pair_tangents, labels, micro_ids)
+    micro_coords = [pair_coords[labels == m] for m in micro_ids]
+    micro_tgts = [pair_tangents[labels == m] for m in micro_ids]
+
+    # Step 3: Direction-aware merge with lateral offset + lateral gap guard
+    lateral_max = config.merge_lateral_scale * global_median_spacing
+    split_threshold = config.split_lateral_threshold_scale * global_median_spacing
+    roots = _merge_micro_clusters(
+        centroids, mean_tangents, merge_radius, cos_th, lateral_max,
+        micro_coords, micro_tgts, split_threshold, config.min_cluster_points,
+    )
+
+    # Map root IDs to contiguous merged cluster IDs
+    unique_roots = np.unique(roots)
+    root_to_merged = {int(r): i for i, r in enumerate(unique_roots)}
+
+    # Assign merged labels to points
+    merged_labels = np.full(n, -1, dtype=np.int32)
+    for i, mid in enumerate(micro_ids):
+        mask = labels == mid
+        merged_labels[mask] = root_to_merged[int(roots[i])]
+
+    # Step 4: Post-merge rescue
+    num_rescued = 0
+    noise_idx = np.flatnonzero(merged_labels == -1)
+    if noise_idx.size > 0:
+        cluster_mask = merged_labels >= 0
+        if cluster_mask.any():
+            tree = cKDTree(pair_coords[cluster_mask])
+            cluster_ids_flat = merged_labels[cluster_mask]
+            dists, nn_idx = tree.query(pair_coords[noise_idx], k=1)
+            for ni_local, (d, ci) in enumerate(zip(dists, nn_idx)):
+                if float(d) <= rescue_radius:
+                    merged_labels[noise_idx[ni_local]] = int(cluster_ids_flat[ci])
+                    num_rescued += 1
+
+    return merged_labels, num_rescued
 
 
 # -------------------------------------------------------------------------
@@ -398,30 +524,28 @@ def cluster_boundary_centers(
     boundary_centers: dict,
     config: Stage2Config,
 ) -> tuple[dict, dict]:
-    """Group centers by semantic_pair, cluster, rescue noise, refine into runs.
+    """Bottom-up micro-cluster merge: micro-cluster -> merge -> rescue.
 
-    Each output cluster is a (semantic_pair, direction_class, spatial_run) triple
-    that directly satisfies Stage 3's fitter assumptions by construction.
+    Each output cluster is a spatially-contiguous, direction-consistent
+    group of boundary centers that directly satisfies Stage 3's fitter
+    assumptions by construction.
     """
     center_coord = boundary_centers["center_coord"]
     center_tangent = boundary_centers["center_tangent"]
     semantic_pair = boundary_centers["semantic_pair"]
 
-    eps = config.eps
-    min_samples = config.min_samples
-
-    # Compute global median boundary center spacing for density-conditional denoise
-    global_median_spacing = float(
-        estimate_local_spacing(center_coord, k=min(8, center_coord.shape[0] - 1))
-    )
-
     num_centers = center_coord.shape[0]
-    num_removed_by_denoise = 0
-    num_rescued = 0
-    num_runs = 0
-    num_denoise_skipped = 0
 
-    # Each element: (semantic_pair, center_indices_array)
+    # Global median 1-NN spacing drives all adaptive thresholds.
+    # Uses 1-NN (not k-NN mean) to match the micro-cluster scale.
+    if num_centers >= 2:
+        tree = cKDTree(center_coord)
+        d1, _ = tree.query(center_coord, k=2, workers=-1)
+        global_median_spacing = float(np.median(d1[:, 1]))
+    else:
+        global_median_spacing = 0.01  # fallback
+
+    num_rescued = 0
     run_records: list[tuple[np.ndarray, np.ndarray]] = []
 
     unique_pairs = np.unique(semantic_pair, axis=0)
@@ -429,67 +553,26 @@ def cluster_boundary_centers(
         pair_mask = np.all(semantic_pair == pair[None, :], axis=1)
         pair_indices = np.where(pair_mask)[0].astype(np.int32)
         pair_coords = center_coord[pair_indices]
-        if pair_indices.size == 0:
+        pair_tangents = center_tangent[pair_indices]
+
+        if pair_indices.size < config.micro_min_samples:
             continue
 
-        labels = spatial_dbscan(pair_coords, eps=eps, min_samples=min_samples)
-
-        # Rescue noise points
-        noise_before = int(np.count_nonzero(labels == -1))
-        labels = rescue_noise_centers(
-            pair_coords, labels,
-            k=config.rescue_knn,
-            rescue_distance_scale=config.rescue_distance_scale,
+        merged_labels, pair_rescued = _cluster_one_pair(
+            pair_coords, pair_tangents, config, global_median_spacing,
         )
-        noise_after = int(np.count_nonzero(labels == -1))
-        num_rescued += noise_before - noise_after
+        num_rescued += pair_rescued
 
-        valid_local_labels = np.unique(labels[labels >= 0]).astype(np.int32)
-
-        for local_label in valid_local_labels:
-            local_mask = labels == int(local_label)
-            global_indices = pair_indices[local_mask]
-
-            cluster_coords = center_coord[global_indices]
-            cluster_spacing = float(
-                estimate_local_spacing(cluster_coords, k=min(config.denoise_knn, cluster_coords.shape[0] - 1))
-            )
-
-            if cluster_spacing <= config.denoise_density_threshold * global_median_spacing:
-                # Dense cluster: apply standard denoise
-                keep_mask, denoise_stats = lightweight_denoise_cluster(
-                    coords=cluster_coords,
-                    density_knn=config.denoise_knn,
-                    sparse_distance_ratio=config.sparse_distance_ratio,
-                    sparse_mad_scale=config.sparse_mad_scale,
-                    max_remove_ratio=float(config.max_remove_ratio),
-                    min_keep_points=config.min_keep_points,
-                )
-            else:
-                # Sparse cluster: skip denoise to preserve coverage
-                keep_mask = np.ones(cluster_coords.shape[0], dtype=bool)
-                denoise_stats = {"denoise_applied": False, "num_removed": 0, "density_skip": True}
-                num_denoise_skipped += 1
-
-            kept_indices = global_indices[keep_mask]
-            num_removed_by_denoise += int(np.count_nonzero(~keep_mask))
-
-            if kept_indices.size == 0:
+        # Collect runs (one per merged cluster)
+        for cid in np.unique(merged_labels):
+            if cid < 0:
                 continue
+            cmask = merged_labels == int(cid)
+            global_indices = pair_indices[cmask]
+            if global_indices.shape[0] >= config.min_cluster_points:
+                run_records.append((pair.astype(np.int32), global_indices.astype(np.int32)))
 
-            # Refine cluster into direction-consistent spatial runs
-            runs = refine_cluster_into_runs(
-                coords=center_coord[kept_indices],
-                tangents=center_tangent[kept_indices],
-                config=config,
-            )
-
-            for run_local_indices in runs:
-                run_global_indices = kept_indices[run_local_indices]
-                run_records.append((pair.astype(np.int32), run_global_indices.astype(np.int32)))
-                num_runs += 1
-
-    # Build output payload
+    # Build output payload (same format as before)
     cluster_records: list[dict] = []
     assigned_center_indices: list[np.ndarray] = []
 
@@ -541,25 +624,23 @@ def cluster_boundary_centers(
         "num_noise": int(num_centers - keep_center_index.shape[0]),
         "num_assigned": int(keep_center_index.shape[0]),
         "num_rescued": int(num_rescued),
-        "num_runs": int(num_runs),
-        "num_removed_by_denoise": int(num_removed_by_denoise),
-        "num_denoise_skipped": int(num_denoise_skipped),
         "params": {
-            "eps": float(config.eps),
-            "min_samples": int(config.min_samples),
-            "denoise_knn": int(config.denoise_knn),
-            "sparse_distance_ratio": float(config.sparse_distance_ratio),
-            "sparse_mad_scale": float(config.sparse_mad_scale),
-            "max_remove_ratio": float(config.max_remove_ratio),
-            "min_keep_points": config.min_keep_points,
-            "rescue_knn": int(config.rescue_knn),
-            "rescue_distance_scale": float(config.rescue_distance_scale),
-            "segment_direction_angle_deg": float(config.segment_direction_angle_deg),
-            "segment_min_points": int(config.segment_min_points),
-            "denoise_density_threshold": float(config.denoise_density_threshold),
+            "micro_eps_scale": float(config.micro_eps_scale),
+            "micro_min_samples": int(config.micro_min_samples),
+            "split_lateral_threshold_scale": float(config.split_lateral_threshold_scale),
+            "merge_radius_scale": float(config.merge_radius_scale),
+            "merge_direction_angle_deg": float(config.merge_direction_angle_deg),
+            "merge_lateral_scale": float(config.merge_lateral_scale),
+            "rescue_radius_scale": float(config.rescue_radius_scale),
+            "min_cluster_points": int(config.min_cluster_points),
         },
     }
     return payload, meta
+
+
+# -------------------------------------------------------------------------
+# Visualization helpers (unchanged)
+# -------------------------------------------------------------------------
 
 
 def cluster_to_color(cluster_id: int) -> np.ndarray:

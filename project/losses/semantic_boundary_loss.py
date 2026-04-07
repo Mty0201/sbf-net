@@ -14,7 +14,7 @@ from pointcept.models.losses.lovasz import LovaszLoss
 
 
 class SemanticBoundaryLoss(nn.Module):
-    """Use edge.npy as [dir_x, dir_y, dir_z, edge_dist, edge_support, edge_valid]."""
+    """Use edge.npy as [vec_x, vec_y, vec_z, edge_support, edge_valid]."""
 
     SUPPORT_POSITIVE_EPS = 1e-3
 
@@ -112,10 +112,11 @@ class SemanticBoundaryLoss(nn.Module):
         dist_pred = edge_pred[:, 3]
         support_logit = edge_pred[:, 4]
 
-        dir_gt = edge[:, 0:3]
-        dist_gt = edge[:, 3].float().clamp_min(0.0)
-        support_gt = edge[:, 4].float().clamp(0.0, 1.0)
-        valid_gt = edge[:, 5].float().clamp(0.0, 1.0)
+        vec_gt = edge[:, 0:3]
+        support_gt = edge[:, 3].float().clamp(0.0, 1.0)
+        valid_gt = edge[:, 4].float().clamp(0.0, 1.0)
+        dist_gt = torch.linalg.norm(vec_gt, dim=1).clamp_min(0.0)
+        dir_gt = F.normalize(vec_gt, dim=1, eps=1e-6)
 
         support_pred = torch.sigmoid(support_logit)
         dist_pred_scaled = dist_pred / self.dist_scale
