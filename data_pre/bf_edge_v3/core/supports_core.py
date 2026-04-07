@@ -1,26 +1,11 @@
 """
 Fit local supports for BF Edge v3.
 
-输入目录包含:
-- boundary_centers.npz
-- local_clusters.npz
+Each cluster is treated identically via the standard line/polyline fitter.
+No trigger dispatch -- Stage 2 produces fitter-ready clusters directly.
 
-默认输出:
-- supports.npz
-- support_geometry.xyz
-- trigger_group_classes.xyz
-
-这一版的 support fitting 采用双路径:
-1. 非 trigger cluster:
-   - 优先拟合 line support
-   - 失败后回退 polyline support
-2. trigger cluster:
-   - 先做方向 + 空间再分组
-   - 候选子组分成主边组 / 碎片组 / 坏组
-   - 碎片优先并入主边组
-   - 重组后的子簇直接复用普通 line/polyline support 拟合
-
-不处理 vector field / support graph / branch polyline.
+Phase 4: trigger path eliminated. All clusters go through
+build_standard_support_record (line -> polyline fallback).
 """
 
 from __future__ import annotations
@@ -37,10 +22,7 @@ from core.fitting import (
     fit_polyline_support,
     regularize_support_orientation,
 )
-from core.trigger_regroup import (
-    absorb_sparse_endpoint_points,
-    regroup_trigger_cluster,
-)
+from core.post_fitting import absorb_sparse_endpoint_points
 from core.supports_export import (
     export_npz,
     export_support_geometry_xyz,
@@ -64,7 +46,6 @@ def rebuild_cluster_records(
     semantic_pair = local_clusters["semantic_pair"]
     cluster_size = local_clusters["cluster_size"]
     cluster_centroid = local_clusters["cluster_centroid"]
-    cluster_trigger_flag = local_clusters["cluster_trigger_flag"]
 
     if center_index.shape[0] != cluster_id.shape[0]:
         raise ValueError("center_index and cluster_id count mismatch")
@@ -91,7 +72,6 @@ def rebuild_cluster_records(
                 "semantic_pair": semantic_pair[cid].astype(np.int32),
                 "cluster_size": declared_size,
                 "cluster_centroid": cluster_centroid[cid].astype(np.float32),
-                "cluster_trigger_flag": int(cluster_trigger_flag[cid]),
                 "center_indices": member_center_index,
                 "cluster_confidence": float(np.mean(center_confidence[member_center_index])),
             }
@@ -180,75 +160,12 @@ def build_standard_support_record(
     }
 
 
-def build_trigger_support_records(
-    cluster_record: dict,
-    points: np.ndarray,
-    tangents: np.ndarray,
-    params: dict,
-) -> tuple[list[dict], list[np.ndarray]]:
-    """
-    Trigger path: regroup first, then reuse ordinary support fitting.
-
-    The regrouping step only decides which subgroups are worth fitting.
-    Final supports are ordinary line/polyline supports, not a special trigger-only fitter.
-    """
-    final_bundles, visualization_rows, unused_bad_indices = regroup_trigger_cluster(
-        cluster_record=cluster_record,
-        points=points,
-        tangents=tangents,
-        params=params,
-    )
-
-    support_records: list[dict] = []
-    remaining_bad = unused_bad_indices.astype(np.int32)
-
-    for bundle in final_bundles:
-        bundle_record = {
-            "cluster_id": int(cluster_record["cluster_id"]),
-            "seed_subgroup_id": int(bundle["seed_subgroup_id"]),
-            "member_indices": bundle["member_indices"].astype(np.int32),
-        }
-        updated_indices, remaining_bad, absorbed = absorb_sparse_endpoint_points(
-            bundle=bundle_record,
-            points=points,
-            bad_point_indices=remaining_bad,
-            params=params,
-        )
-
-        subgroup_points = points[updated_indices]
-        if subgroup_points.shape[0] < int(params["segment_min_points"]):
-            continue
-        subgroup_record = {
-            "cluster_id": int(cluster_record["cluster_id"]),
-            "semantic_pair": cluster_record["semantic_pair"].astype(np.int32),
-            "cluster_confidence": float(cluster_record["cluster_confidence"]),
-        }
-        support = build_standard_support_record(
-            cluster_record=subgroup_record,
-            points=subgroup_points,
-            params=params,
-        )
-        if support is not None:
-            support_records.append(support)
-
-    return support_records, visualization_rows
-
-
 def build_support_record(
     cluster_record: dict,
     points: np.ndarray,
-    tangents: np.ndarray,
     params: dict,
 ) -> tuple[list[dict], list[np.ndarray]]:
-    """Build support record(s) from one cluster."""
-    if int(cluster_record["cluster_trigger_flag"]) > 0:
-        return build_trigger_support_records(
-            cluster_record=cluster_record,
-            points=points,
-            tangents=tangents,
-            params=params,
-        )
-
+    """Build support record(s) from one cluster. All clusters go standard path."""
     support = build_standard_support_record(
         cluster_record=cluster_record,
         points=points,
@@ -261,10 +178,9 @@ def build_supports_payload(
     boundary_centers: dict,
     local_clusters: dict,
     params: dict,
-) -> tuple[dict, dict]:
+) -> tuple[dict, dict, dict]:
     """Build supports payload and metadata from boundary_centers + local_clusters."""
     center_coord = boundary_centers["center_coord"]
-    center_tangent = boundary_centers["center_tangent"]
     cluster_records = rebuild_cluster_records(boundary_centers, local_clusters)
 
     support_records = []
@@ -273,11 +189,9 @@ def build_supports_payload(
         if int(record["cluster_size"]) < int(params["min_cluster_size"]):
             continue
         points = center_coord[record["center_indices"]]
-        tangents = center_tangent[record["center_indices"]]
         supports, visualization_rows = build_support_record(
             cluster_record=record,
             points=points,
-            tangents=tangents,
             params=params,
         )
         support_records.extend(supports)

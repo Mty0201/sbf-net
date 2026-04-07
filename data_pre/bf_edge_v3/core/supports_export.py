@@ -70,7 +70,11 @@ def export_support_geometry_xyz(supports_payload: dict, output_dir: Path, sample
 
 
 def export_trigger_group_classes_xyz(debug_payload: dict, output_dir: Path) -> None:
-    """Export trigger candidate subgroup classes for manual inspection."""
+    """Export trigger candidate subgroup classes for manual inspection.
+
+    Post-Phase-4: always exports an empty file since trigger path is eliminated.
+    Kept for backward compatibility with downstream visualization tools.
+    """
     data = debug_payload["trigger_group_visualization"]
     save_xyz(
         output_dir / "trigger_group_classes.xyz",
