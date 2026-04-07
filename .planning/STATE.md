@@ -1,0 +1,89 @@
+---
+gsd_state_version: 1.0
+milestone: v2.0
+milestone_name: semantic-first boundary supervision reboot
+status: Phases 1-4 complete — route redesign established, Part 1 experiment next
+stopped_at: Phase 4 completion (direction decision)
+last_updated: "2026-04-07T18:00:00Z"
+last_activity: 2026-04-07
+progress:
+  total_phases: 7
+  completed_phases: 4
+  total_plans: 1
+  completed_plans: 1
+  percent: 57
+---
+
+# Project State
+
+## Project Reference
+
+See: `.planning/PROJECT.md` (updated 2026-04-06)
+
+**Core value:** Semantic segmentation remains the primary objective, and any boundary-aware supervision must improve boundary-region semantic quality without dragging the semantic branch into explicit geometric-field learning.
+**Current focus:** v2.0 Phase 5 — Part 1 boundary proximity cue experiment (CR-C). Route redesign complete.
+
+## Current Position
+
+Phase: 5 — Boundary proximity cue experiment (CR-C)
+Plan: Not yet planned
+Status: Phase 4 (direction decision) complete. Route redesign established: reinterpret `valid + support` as boundary proximity cue / confidence-weighted boundary supervision. Phase 5 implements Option L1 (confidence-weighted BCE) and runs CR-C to validate against CR-A baseline (0.7336 mIoU).
+Last activity: 2026-04-07
+
+## Recent Context
+
+- **[2026-04-06]** Milestone v2.0 kicked off — semantic-first boundary supervision reboot.
+- Phase numbering reset to 1 per `--reset-phase-numbers` flag.
+- 6 phases planned: defect repair → experiment execution → analysis → direction decision → refinement (conditional) → canonical update.
+- 100 epochs for CR-A and CR-B (seed=38873367).
+- **[2026-04-06]** Phase 1 complete. All 3 integration defects fixed (INT-01, INT-02, INT-03). Both pipelines smoke-validated.
+- **[2026-04-07]** Phase 2 complete. Both clean-reset experiments ran to 100 epochs.
+  - CR-A (semantic-only): best val_mIoU = 0.7336 (epoch 70)
+  - CR-B (support-only): best val_mIoU = 0.7184 (epoch 57)
+  - Logs: `outputs/clean_reset_s38873367/{semantic_only,support_only}/train.log`
+- **[2026-04-07]** Phase 3 complete. Evidence analysis written to `docs/canonical/clean_reset_analysis.md`.
+  - CR-A outperforms CR-B by +1.52pp (best) and +1.19pp (steady-state).
+  - CR-A wins 6/8 classes at epoch 100. Current support implementation is a net negative.
+  - Diagnostic analysis: failure is implementation/coupling/optimization, not conceptual.
+- **[2026-04-07]** Phase 4 complete. Route redesign established via four canonical documents:
+  - `docs/canonical/clean_reset_analysis.md` — raw CR-A vs CR-B comparison
+  - `docs/canonical/clean_reset_diagnostic.md` — 8 ranked failure hypotheses (gradient competition, missing coupling, disabled focus_mode)
+  - `docs/canonical/clean_reset_mechanism_analysis.md` — binary edge classification produces aligned gradient; continuous Gaussian regression produces competing gradient. Target alignment is the strongest explanatory factor.
+  - `docs/canonical/route_redesign_discussion.md` — reinterpret `valid + support` as boundary proximity cue. Part 1: confidence-weighted BCE (Option L1). Part 2: geometric field deferred.
+  - Old DIR-02 (pivot away) framing superseded. Concept not invalidated; implementation redesigned.
+  - New route: Part 1 validates boundary proximity cue (CR-C experiment). Part 2 adds geometric field only if Part 1 succeeds.
+
+## Decisions
+
+- Canonical SBF facts and training guardrails live under `docs/canonical/`
+- GSD and local `.planning/` are now the default workflow entry for this repository
+- The active SBF mainline is no longer `support + axis + side`; new work must stay semantic-first
+- Retract flawed baseline before further tuning — clean-reset workstream re-establishes comparison with fixed seed
+- [v2.0] 100 epochs for clean-reset experiments (user preference over 150)
+- [v2.0] Route redesign: reinterpret support as boundary proximity cue (confidence-weighted BCE), not geometric regression. Part 1 validates, Part 2 conditional on Part 1 success.
+- [v2.0] The old DIR-02 "pivot away" framing is superseded. The concept is not invalidated — the implementation is redesigned.
+
+## Blockers / Concerns
+
+- ~~**[RESOLVED]** CR-B integration defects (INT-01, INT-02, INT-03) — fixed in Phase 1, smoke-validated~~
+- ~~**[RESOLVED]** Support supervision net negative under current implementation~~ — Direction decision complete. Route redesigned: boundary proximity cue (confidence-weighted BCE) replaces geometric regression. See `docs/canonical/route_redesign_discussion.md`.
+
+## Roadmap Evolution
+
+- Milestone v2.0 kicked off 2026-04-06. Originally 6 phases, now 7 after route redesign.
+- Phase 4 (direction decision) complete — route redesign, not pivot.
+- Phase 5 (Part 1: boundary proximity cue experiment) is the next active phase.
+- Phase 6 (Part 2: geometric field extension) is conditional on Phase 5 success (CR-C mIoU ≥ 0.7336).
+- Phase 7 (canonical update + milestone close) depends on Phase 5 or Phase 6.
+
+## Performance Metrics
+
+| Phase | Plan | Duration | Tasks | Files | Recorded |
+|-------|------|----------|-------|-------|----------|
+
+## Session Continuity
+
+Last session: 2026-04-07
+Stopped at: Phase 4 complete (route redesign). Phase 5 (Part 1: boundary proximity cue CR-C experiment) is next.
+Resume file: None
+Next action: Plan and execute Phase 5 — implement confidence-weighted BCE loss (Option L1), create CR-C config, run 100-epoch experiment.

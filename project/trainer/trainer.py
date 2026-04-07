@@ -291,6 +291,18 @@ class SemanticBoundaryTrainer:
             if "loss_coherence" in loss_dict:
                 keys.append("loss_coherence")
             return keys
+        if "loss_aux" in loss_dict:
+            # BoundaryProximityCueLoss
+            return [
+                "loss",
+                "loss_semantic",
+                "loss_aux",
+                "loss_aux_weighted",
+                "valid_ratio",
+                "support_positive_ratio",
+                "aux_prob_mean",
+                "aux_prob_boundary_mean",
+            ]
         if "loss_focus" in loss_dict:
             # SupportGuidedSemanticFocusLoss
             return [
@@ -846,6 +858,15 @@ class SemanticBoundaryTrainer:
                     "optimizer_steps={optimizer_steps}".format(
                         **train_metrics
                     )
+                )
+            elif "loss_aux" in train_metrics:
+                # BoundaryProximityCueLoss
+                self.logger.info(
+                    "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
+                    "loss_aux={loss_aux:.4f} loss_aux_weighted={loss_aux_weighted:.4f} "
+                    "valid_ratio={valid_ratio:.4f} "
+                    "aux_prob_mean={aux_prob_mean:.4f} "
+                    "optimizer_steps={optimizer_steps}".format(**train_metrics)
                 )
             elif "loss_focus" in train_metrics:
                 if "loss_support_reg" in train_metrics:

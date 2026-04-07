@@ -195,6 +195,12 @@ def main():
             ),
             dict(type="RedesignedSupportFocusEvaluator"),
         ),
+        (
+            "CR-C (proximity-cue)",
+            config_dir / "clean_reset_support_model.py",
+            dict(type="BoundaryProximityCueLoss", aux_weight=0.3),
+            dict(type="RedesignedSupportFocusEvaluator"),
+        ),
     ]
 
     results = {}
