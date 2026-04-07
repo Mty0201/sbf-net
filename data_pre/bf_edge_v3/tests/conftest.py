@@ -15,6 +15,7 @@ if str(_BF_EDGE_V3_ROOT) not in sys.path:
 
 SAMPLE_SCENE_DIR = _BF_EDGE_V3_ROOT / "samples" / "010101"
 REFERENCE_DIR = _BF_EDGE_V3_ROOT / "tests" / "reference"
+REFERENCE_V2_DIR = _BF_EDGE_V3_ROOT / "tests" / "reference_v2"
 
 
 @pytest.fixture(scope="session")
@@ -29,3 +30,32 @@ def sample_scene_dir() -> Path:
 def reference_dir() -> Path:
     """Return the reference data directory."""
     return REFERENCE_DIR
+
+
+@pytest.fixture(scope="session")
+def reference_v2_dir() -> Path:
+    """Return the Phase 4 reference data directory."""
+    return REFERENCE_V2_DIR
+
+
+@pytest.fixture(scope="module")
+def phase4_stage2(sample_scene_dir):
+    """Run Stage 2 with Phase 4 config (rescue + direction + spatial splitting)."""
+    from core.config import Stage1Config, Stage2Config
+    from core.boundary_centers_core import build_boundary_centers
+    from core.local_clusters_core import cluster_boundary_centers
+    from utils.stage_io import load_scene
+
+    cfg1 = Stage1Config()
+    scene = load_scene(sample_scene_dir)
+    _, bc, _ = build_boundary_centers(
+        scene=scene,
+        k=cfg1.k,
+        min_cross_ratio=cfg1.min_cross_ratio,
+        min_side_points=cfg1.min_side_points,
+        ignore_index=cfg1.ignore_index,
+    )
+
+    cfg2 = Stage2Config()
+    payload, meta = cluster_boundary_centers(bc, cfg2)
+    return payload, meta, bc
