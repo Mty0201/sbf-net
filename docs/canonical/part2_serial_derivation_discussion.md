@@ -118,7 +118,69 @@ The closest existing work is Gated-SCNN's Dual Task Regularizer, which uses a fi
 
 4. **KNN computation cost**: If g uses KNN on coord for local aggregation, this adds O(N log N) per forward pass. May be negligible relative to PTv3 backbone cost, but needs measurement.
 
-## 7. Next Steps
+## 7. Edge Representation: From (dir, dist, support) to (offset, support)
+
+**Date:** 2026-04-07 (continued discussion)
+
+### 7.1 The question
+
+The original edge field from data_pre uses 5 values per point: `dir(3) + dist(1) + support(1)`. Is there a more elegant representation that better fits both the serial derivation learning path and downstream reconstruction needs?
+
+### 7.2 What downstream reconstruction actually needs
+
+The downstream task is **point cloud consolidation**: project boundary-nearby points onto the boundary surface. The only thing needed is:
+
+```
+projected_position = coord + offset
+```
+
+where `offset` is a 3D displacement vector from the current point to its nearest boundary location.
+
+### 7.3 Why offset is better than (dir, dist)
+
+The current `(dir, dist)` decomposition is an artifact of the data_pre pipeline (fit line direction first, then compute distance). It is not what downstream needs. Problems with the split:
+
+1. **Two separate losses** with different scales (cosine loss for unit dir, L1 for scalar dist) requiring weight balancing
+2. **Error multiplication**: small direction error × small distance error = large projection error
+3. **Unnecessary constraint**: dir must be unit-length, adding a normalization requirement
+
+Direct offset supervision with a single smooth-L1 avoids all three issues:
+```
+offset_gt = dir_gt × dist_gt   # combine existing ground truth
+loss = smooth_L1(offset_pred, offset_gt)
+```
+
+### 7.4 Literature context: this is a gap
+
+A survey of boundary representations across 2D and 3D segmentation literature shows:
+
+| Representation | 2D status | 3D point cloud status |
+|---|---|---|
+| Binary boundary classification | Standard (CASENet, Gated-SCNN) | Standard (JSENet, BA-GEM, **BFANet CVPR 2025**) |
+| Distance scalar field | Exists (Audebert et al., SegWithDistMap) | **None** |
+| Direction vector field | Loss only (Active Boundary Loss, AAAI 2022) | **None** |
+| Displacement offset toward boundary | — | **None** (only toward instance centers: PointGroup/SoftGroup) |
+
+The entire 3D point cloud community has not moved beyond binary boundary classification. Predicting a displacement vector field toward semantic boundaries is a clear literature gap.
+
+### 7.5 Why a field (not just binary detection)?
+
+Boundary points in a point cloud are extremely sparse — very few points fall exactly on semantic boundaries. Binary detection can only identify these rare points. A field representation (offset + support) allows boundary-nearby points to "know how to reach the boundary," enabling dense reconstruction of the boundary curve from sparse point clouds.
+
+### 7.6 Final representation
+
+| Output | Dim | Supervision | Purpose |
+|--------|-----|-------------|---------|
+| offset | 3 | smooth-L1 vs `dir_gt × dist_gt` | `coord + offset` = projected boundary position |
+| support | 1 | BCE (same as CR-C) | Which points have reliable offset / semantic regularizer |
+
+Total: 4 dimensions per point. Support retains the CR-C route (validated in Part 1). Offset directly serves downstream consolidation.
+
+### 7.7 Note on g's output flexibility
+
+g's output does not strictly need to equal the downstream quantity. It suffices that g's output can *produce* what downstream needs (possibly via a simple transform). The current choice of direct offset is the simplest such form — no intermediate transform needed. If a better intermediate representation emerges later, this can be revisited.
+
+## 8. Next Steps
 
 1. Confirm CR-C Part 1 results (user reports it's already effective — formal write-up pending)
 2. Design g's architecture in detail: input format, neighborhood aggregation, MLP structure, output heads

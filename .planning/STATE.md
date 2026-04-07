@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: semantic-first boundary supervision reboot
-status: Phases 1-4 complete — route redesign established, Part 1 experiment next
-stopped_at: Phase 4 completion (direction decision)
-last_updated: "2026-04-07T18:00:00Z"
-last_activity: 2026-04-07
+status: Phase 6 implemented — serial derivation module g, smoke-validated
+stopped_at: Phase 6 smoke validation pass
+last_updated: "2026-04-08T00:00:00Z"
+last_activity: 2026-04-08
 progress:
   total_phases: 7
   completed_phases: 4
-  total_plans: 1
-  completed_plans: 1
-  percent: 57
+  total_plans: 2
+  completed_plans: 2
+  percent: 71
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: `.planning/PROJECT.md` (updated 2026-04-06)
 
 ## Current Position
 
-Phase: 5 — Boundary proximity cue experiment (CR-C)
-Plan: Not yet planned
-Status: Phase 4 (direction decision) complete. Route redesign established: reinterpret `valid + support` as boundary proximity cue / confidence-weighted boundary supervision. Phase 5 implements Option L1 (confidence-weighted BCE) and runs CR-C to validate against CR-A baseline (0.7336 mIoU).
-Last activity: 2026-04-07
+Phase: 6 — Serial derivation module g (boundary offset from semantic logits)
+Plan: `.planning/phases/06-serial-derivation-module/06-01-PLAN.md`
+Status: Phase 6 implemented and smoke-validated. SerialDerivationModel + SerialDerivationLoss + CR-D config all pass end-to-end pipeline check. Ready for full training run.
+Last activity: 2026-04-08
 
 ## Recent Context
 
@@ -52,6 +52,11 @@ Last activity: 2026-04-07
   - `docs/canonical/route_redesign_discussion.md` — reinterpret `valid + support` as boundary proximity cue. Part 1: confidence-weighted BCE (Option L1). Part 2: geometric field deferred.
   - Old DIR-02 (pivot away) framing superseded. Concept not invalidated; implementation redesigned.
   - New route: Part 1 validates boundary proximity cue (CR-C experiment). Part 2 adds geometric field only if Part 1 succeeds.
+- **[2026-04-08]** Phase 6 implemented. Serial derivation module g: derives 3D boundary offset field from semantic logits via KNN local aggregation.
+  - New files: `SerialDerivationModel`, `SerialDerivationLoss`, `BoundaryOffsetModule`, CR-D config
+  - Edge representation simplified: (dir, dist, support) 5-dim → (offset, support) 4-dim. offset = dir × dist.
+  - Smoke validation: all 4 pipelines (CR-A/B/C/D) pass end-to-end.
+  - Discussion + literature survey at `docs/canonical/part2_serial_derivation_discussion.md` §7.
 
 ## Decisions
 

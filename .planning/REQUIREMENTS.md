@@ -36,10 +36,13 @@ Requirements for milestone `v2.0 semantic-first boundary supervision reboot`. Ea
 - [ ] **CUE-03**: Run CR-C for 100 epochs with seed=38873367 under the same controlled conditions as CR-A/CR-B, and produce a structured CR-C vs CR-A comparison.
 - [ ] **CUE-04**: CR-C matches or exceeds CR-A semantic-only mIoU (0.7336). This is the success gate for Part 2.
 
-### Part 2: Geometric Field Extension (Phase 6, conditional on CUE-04)
+### Part 2: Serial Derivation of Boundary Offset Field (Phase 6, conditional on CUE-04)
 
-- [ ] **GEO-01**: If CUE-04 passes: add direction/distance/attraction field prediction as a secondary objective on validated boundary proximity cue, with gradient isolation from the backbone.
-- [ ] **GEO-02**: Verify geometric field addition does not regress semantic mIoU below the Part 1 CR-C result.
+- [ ] **SER-01**: Implement module g — a learnable KNN-based local aggregation module that takes `softmax(seg_logits)` (N,8) and `coord` (N,3) as input, performs KNN neighbor lookup, computes edge features `[feat_i, feat_j - feat_i, coord_j - coord_i]`, aggregates via shared MLP + max-pool, and outputs a per-point 3D offset vector.
+- [ ] **SER-02**: Implement offset supervision — smooth-L1 loss between predicted offset and `dir_gt × dist_gt` (from edge ground truth columns 0:3 and 3), applied only to valid points (edge[:,5]=1).
+- [ ] **SER-03**: Integrate g into the existing model: backbone → semantic_head → seg_logits → g → offset. Support head remains separate (CR-C route). Gradients from offset loss flow through g back into backbone via seg_logits.
+- [ ] **SER-04**: Create CR-D training config: CR-C + module g + offset supervision. All other settings (seed, epochs, backbone, optimizer) identical to CR-A/CR-B/CR-C.
+- [ ] **SER-05**: Verify CR-D semantic mIoU does not regress below CR-C result, and offset predictions produce valid boundary projections (qualitative spot-check on sample scenes).
 
 ### Guardrails
 

@@ -123,12 +123,19 @@ def check_pipeline(name: str, model_cfg_path: Path, loss_cfg: dict, evaluator_cf
     print(f"    seg_logits shape: {tuple(output['seg_logits'].shape)}")
     if "support_pred" in output:
         print(f"    support_pred shape: {tuple(output['support_pred'].shape)}")
+    if "offset_pred" in output:
+        print(f"    offset_pred shape: {tuple(output['offset_pred'].shape)}")
 
     # Step 4: Loss
     print("[4] Loss forward...")
     loss_kwargs = dict(seg_logits=output["seg_logits"], segment=batch["segment"])
     if "support_pred" in output and "edge" in batch:
         loss_kwargs["support_pred"] = output["support_pred"]
+        loss_kwargs["edge"] = batch["edge"]
+        if "offset_pred" in output:
+            loss_kwargs["offset_pred"] = output["offset_pred"]
+    elif "offset_pred" in output and "edge" in batch:
+        loss_kwargs["offset_pred"] = output["offset_pred"]
         loss_kwargs["edge"] = batch["edge"]
     loss_dict = loss_fn(**loss_kwargs)
     loss_val = float(loss_dict["loss"].detach().cpu())
@@ -155,6 +162,11 @@ def check_pipeline(name: str, model_cfg_path: Path, loss_cfg: dict, evaluator_cf
         eval_kwargs = dict(seg_logits=eval_output["seg_logits"], segment=batch["segment"])
         if "support_pred" in eval_output and "edge" in batch:
             eval_kwargs["support_pred"] = eval_output["support_pred"]
+            eval_kwargs["edge"] = batch["edge"]
+            if "offset_pred" in eval_output:
+                eval_kwargs["offset_pred"] = eval_output["offset_pred"]
+        elif "offset_pred" in eval_output and "edge" in batch:
+            eval_kwargs["offset_pred"] = eval_output["offset_pred"]
             eval_kwargs["edge"] = batch["edge"]
         metric_dict = evaluator(**eval_kwargs)
     print(f"    val_mIoU: {float(metric_dict['val_mIoU']):.6f}")
@@ -199,6 +211,24 @@ def main():
             "CR-C (proximity-cue)",
             config_dir / "clean_reset_support_model.py",
             dict(type="BoundaryProximityCueLoss", aux_weight=0.3),
+            dict(type="RedesignedSupportFocusEvaluator"),
+        ),
+        (
+            "CR-D (serial-derivation)",
+            config_dir / "clean_reset_serial_derivation_model.py",
+            dict(type="SerialDerivationLoss", aux_weight=0.3, offset_weight=1.0),
+            dict(type="RedesignedSupportFocusEvaluator"),
+        ),
+        (
+            "CR-E (serial-derivation-only)",
+            config_dir / "clean_reset_serial_derivation_only_model.py",
+            dict(type="SerialDerivationOnlyLoss", offset_weight=1.0),
+            dict(type="SemanticEvaluator"),
+        ),
+        (
+            "CR-F (unweighted-boundary-cue)",
+            config_dir / "clean_reset_support_model.py",
+            dict(type="UnweightedBoundaryCueLoss", aux_weight=0.3),
             dict(type="RedesignedSupportFocusEvaluator"),
         ),
     ]

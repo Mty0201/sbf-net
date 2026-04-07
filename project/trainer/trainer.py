@@ -291,6 +291,31 @@ class SemanticBoundaryTrainer:
             if "loss_coherence" in loss_dict:
                 keys.append("loss_coherence")
             return keys
+        if "loss_offset" in loss_dict and "loss_aux" in loss_dict:
+            # SerialDerivationLoss (dual-branch + module g)
+            return [
+                "loss",
+                "loss_semantic",
+                "loss_aux",
+                "loss_aux_weighted",
+                "loss_offset",
+                "loss_offset_weighted",
+                "offset_mae",
+                "valid_ratio",
+                "support_positive_ratio",
+                "aux_prob_mean",
+                "aux_prob_boundary_mean",
+            ]
+        if "loss_offset" in loss_dict:
+            # SerialDerivationOnlyLoss (single-branch + module g)
+            return [
+                "loss",
+                "loss_semantic",
+                "loss_offset",
+                "loss_offset_weighted",
+                "offset_mae",
+                "valid_ratio",
+            ]
         if "loss_aux" in loss_dict:
             # BoundaryProximityCueLoss
             return [
@@ -334,6 +359,11 @@ class SemanticBoundaryTrainer:
         elif "support_pred" in output and "edge" in batch:
             kwargs["support_pred"] = output["support_pred"]
             kwargs["edge"] = batch["edge"]
+            if "offset_pred" in output:
+                kwargs["offset_pred"] = output["offset_pred"]
+        elif "offset_pred" in output and "edge" in batch:
+            kwargs["offset_pred"] = output["offset_pred"]
+            kwargs["edge"] = batch["edge"]
         return kwargs
 
     @staticmethod
@@ -346,6 +376,11 @@ class SemanticBoundaryTrainer:
             kwargs["edge"] = batch["edge"]
         elif "support_pred" in output and "edge" in batch:
             kwargs["support_pred"] = output["support_pred"]
+            kwargs["edge"] = batch["edge"]
+            if "offset_pred" in output:
+                kwargs["offset_pred"] = output["offset_pred"]
+        elif "offset_pred" in output and "edge" in batch:
+            kwargs["offset_pred"] = output["offset_pred"]
             kwargs["edge"] = batch["edge"]
         return kwargs
 

@@ -25,6 +25,7 @@ class SemanticEvaluator:
         self,
         seg_logits: torch.Tensor,
         segment: torch.Tensor,
+        **_extra,
     ) -> dict[str, torch.Tensor]:
         segment = segment.reshape(-1).long()
         pred = seg_logits.argmax(dim=1)

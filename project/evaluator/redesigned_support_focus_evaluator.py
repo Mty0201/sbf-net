@@ -95,6 +95,7 @@ class RedesignedSupportFocusEvaluator:
         support_pred: torch.Tensor,
         segment: torch.Tensor,
         edge: torch.Tensor,
+        **_extra,
     ) -> dict[str, torch.Tensor]:
         segment = segment.reshape(-1).long()
         edge = edge.float()

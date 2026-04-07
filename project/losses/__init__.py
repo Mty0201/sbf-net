@@ -6,6 +6,9 @@ from .support_shape_loss import SupportShapeLoss
 from .support_guided_semantic_focus_loss import SupportGuidedSemanticFocusLoss
 from .redesigned_support_focus_loss import RedesignedSupportFocusLoss
 from .boundary_proximity_cue_loss import BoundaryProximityCueLoss
+from .serial_derivation_loss import SerialDerivationLoss
+from .serial_derivation_only_loss import SerialDerivationOnlyLoss
+from .unweighted_boundary_cue_loss import UnweightedBoundaryCueLoss
 
 
 def build_loss(cfg: dict | None):
@@ -37,6 +40,15 @@ def build_loss(cfg: dict | None):
     if loss_type == "BoundaryProximityCueLoss":
         kwargs = {key: value for key, value in cfg.items() if key != "type"}
         return BoundaryProximityCueLoss(**kwargs)
+    if loss_type == "SerialDerivationLoss":
+        kwargs = {key: value for key, value in cfg.items() if key != "type"}
+        return SerialDerivationLoss(**kwargs)
+    if loss_type == "SerialDerivationOnlyLoss":
+        kwargs = {key: value for key, value in cfg.items() if key != "type"}
+        return SerialDerivationOnlyLoss(**kwargs)
+    if loss_type == "UnweightedBoundaryCueLoss":
+        kwargs = {key: value for key, value in cfg.items() if key != "type"}
+        return UnweightedBoundaryCueLoss(**kwargs)
     raise ValueError(f"Unsupported loss type: {loss_type}")
 
 
@@ -49,5 +61,8 @@ __all__ = [
     "SupportGuidedSemanticFocusLoss",
     "RedesignedSupportFocusLoss",
     "BoundaryProximityCueLoss",
+    "SerialDerivationLoss",
+    "SerialDerivationOnlyLoss",
+    "UnweightedBoundaryCueLoss",
     "build_loss",
 ]

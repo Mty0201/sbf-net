@@ -73,16 +73,43 @@
 
 ---
 
-### — Part 2: Geometric Field Extension (Phase 6, conditional) —
+### — Part 2: Serial Derivation of Boundary Offset Field (Phase 6, conditional) —
 
-### Phase 6: Geometric field objectives (conditional on Phase 5 success)
+### Phase 6: Serial derivation module g — boundary offset field from semantic predictions
 
-**Goal:** Add structured geometric predictions (direction, distance, attraction) as a secondary objective on top of the validated boundary proximity cue from Phase 5.
-**Requires:** GEO-01, GEO-02
-**Depends on:** Phase 5 (only if CUE-04 success criterion met)
+**Goal:** Implement a learnable module g that derives a 3D boundary offset vector field from semantic logits, enabling boundary-nearby points to project onto the boundary surface. This replaces the original parallel geometric prediction approach (which failed due to gradient competition) with a serial derivation architecture where edge supervision reinforces semantic prediction quality.
+
+**Requires:** SER-01, SER-02, SER-03, SER-04, SER-05
+**Depends on:** Phase 5 (assumes CUE-04 success criterion met)
 **Precondition:** Phase 5 CR-C mIoU ≥ CR-A (0.7336)
 
-**Design principle:** Geometric field objectives should consume boundary-detection features without re-introducing gradient competition at the backbone level.
+**Architecture (from discussion 2026-04-07):**
+
+```
+backbone → semantic_head → seg_logits
+                               ↓
+backbone → support_head → support (BCE, retained from CR-C)
+                               ↓
+               g(softmax(seg_logits), coord) → offset (3D, smooth-L1)
+```
+
+**Module g design:**
+- Input: softmax(seg_logits) (N,8) + coord (N,3) → (N,11)
+- Neighborhood: KNN on coord (K neighbors per point, not reusing PTv3 Z-curve)
+- Edge features: [feat_i, feat_j - feat_i, coord_j - coord_i] per neighbor pair (dim=25)
+- Aggregation: shared MLP (25→64→64) + max-pool over K neighbors → (N,64)
+- Output head: MLP (64→32→3) → offset prediction
+- Support remains a separate head from backbone (CR-C route, not inside g)
+
+**Edge representation:**
+- offset (3D): displacement vector from point to nearest boundary. `coord + offset` = projected boundary position
+- Supervised by smooth-L1 vs `dir_gt × dist_gt` (combined from existing edge ground truth)
+- Only valid points (edge[:,5]=1) receive offset supervision
+- This is a novel representation for 3D point cloud segmentation (literature gap — see §7 of part2_serial_derivation_discussion.md)
+
+**Training:** No extra warmup — g shares learning rate group with semantic head. Existing cosine annealing + LR grouping provides natural warmup.
+
+**Design principle:** Backbone only learns semantic features. Geometric field is derived FROM semantic output, not predicted in parallel. Edge supervision gradients through g reinforce "improve semantic predictions at boundaries" — fully aligned with semantic task. No gradient competition.
 
 ---
 
