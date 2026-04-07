@@ -180,13 +180,16 @@ def segment_record_from_endpoints(start: np.ndarray, end: np.ndarray, num_points
 
 
 def estimate_local_spacing(coords: np.ndarray, k: int = 6) -> float:
-    """Estimate point spacing from local kNN statistics."""
+    """Estimate point spacing from local kNN statistics. O(n log n) via cKDTree."""
     if coords.shape[0] < 2:
         return 0.01
-    query_k = min(max(k + 1, 1), coords.shape[0])
-    dist = np.linalg.norm(coords[:, None, :] - coords[None, :, :], axis=2)
-    sorted_dist = np.sort(dist, axis=1)
-    knn_dist = sorted_dist[:, 1:query_k]
+    from scipy.spatial import cKDTree
+    query_k = min(k + 1, coords.shape[0])
+    tree = cKDTree(coords)
+    dist, _ = tree.query(coords, k=query_k)
+    if query_k <= 1:
+        return 0.01
+    knn_dist = dist[:, 1:query_k] if dist.ndim == 2 else dist[1:query_k].reshape(1, -1)
     if knn_dist.size == 0:
         return 0.01
     return float(np.median(knn_dist))

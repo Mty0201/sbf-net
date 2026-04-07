@@ -40,7 +40,7 @@ class Stage1Config:
 
 @dataclass(frozen=True)
 class Stage2Config:
-    """DBSCAN clustering, denoising, and trigger parameters."""
+    """DBSCAN clustering, denoising, direction/spatial splitting, and rescue parameters."""
 
     # CLI-level
     eps: float = 0.08
@@ -49,29 +49,26 @@ class Stage2Config:
     sparse_distance_ratio: float = 1.75
     sparse_mad_scale: float = 3.0
 
-    # Trigger params (from DEFAULT_TRIGGER_PARAMS)
-    trigger_min_cluster_size_factor: int = 6
-    trigger_min_cluster_size_floor: int = 48
-    linearity_th: float = 0.85
-    tangent_coherence_th: float = 0.88
-    bbox_anisotropy_th: float = 6.0
-
     # Denoise params (from DEFAULT_DENOISE_PARAMS)
     max_remove_ratio: float = 0.20
     min_keep_points_factor: int = 1
     min_keep_points_floor: int = 6
 
-    @property
-    def trigger_min_cluster_size(self) -> int:
-        """Minimum cluster size for trigger activation.
+    # Direction + spatial run splitting (moved from Stage3Config)
+    segment_direction_angle_deg: float = 20.0
+    segment_run_gap_scale: float = 3.0
+    segment_run_lateral_gap_scale: float = 2.5
+    segment_run_lateral_band_scale: float = 3.0
+    segment_min_points: int = 6
 
-        ``max(min_samples * trigger_min_cluster_size_factor,
-              trigger_min_cluster_size_floor)``
-        """
-        return max(
-            self.min_samples * self.trigger_min_cluster_size_factor,
-            self.trigger_min_cluster_size_floor,
-        )
+    # Density-adaptive rescue
+    rescue_knn: int = 8
+    rescue_distance_scale: float = 2.0
+
+    @property
+    def segment_direction_cos_th(self) -> float:
+        """Cosine threshold for direction grouping (sign-invariant)."""
+        return float(np.cos(np.deg2rad(float(self.segment_direction_angle_deg))))
 
     @property
     def min_keep_points(self) -> int:
