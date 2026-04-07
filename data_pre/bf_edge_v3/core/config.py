@@ -44,7 +44,7 @@ class Stage2Config:
 
     # CLI-level
     eps: float = 0.08
-    min_samples: int = 8
+    min_samples: int = 5
     denoise_knn: int = 8
     sparse_distance_ratio: float = 1.75
     sparse_mad_scale: float = 3.0
@@ -59,11 +59,15 @@ class Stage2Config:
     segment_run_gap_scale: float = 3.0
     segment_run_lateral_gap_scale: float = 2.5
     segment_run_lateral_band_scale: float = 3.0
-    segment_min_points: int = 6
+    segment_min_points: int = 4
 
     # Density-adaptive rescue
     rescue_knn: int = 8
-    rescue_distance_scale: float = 2.0
+    rescue_distance_scale: float = 3.0
+
+    # Density-conditional denoise: skip denoise for sparse clusters
+    # Clusters with spacing > threshold * global_median skip denoise
+    denoise_density_threshold: float = 1.5
 
     @property
     def segment_direction_cos_th(self) -> float:
@@ -76,6 +80,8 @@ class Stage2Config:
 
         ``max(min_samples * min_keep_points_factor,
               min_keep_points_floor)``
+
+        With defaults: ``max(5 * 1, 6) = 6``.
         """
         return max(
             self.min_samples * self.min_keep_points_factor,
@@ -93,7 +99,7 @@ class Stage3Config:
 
     # CLI-level
     line_residual_th: float = 0.01
-    min_cluster_size: int = 8
+    min_cluster_size: int = 4
     max_polyline_vertices: int = 32
 
     # -- Endpoint absorption --

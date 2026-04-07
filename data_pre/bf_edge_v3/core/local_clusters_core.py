@@ -410,10 +410,16 @@ def cluster_boundary_centers(
     eps = config.eps
     min_samples = config.min_samples
 
+    # Compute global median boundary center spacing for density-conditional denoise
+    global_median_spacing = float(
+        estimate_local_spacing(center_coord, k=min(8, center_coord.shape[0] - 1))
+    )
+
     num_centers = center_coord.shape[0]
     num_removed_by_denoise = 0
     num_rescued = 0
     num_runs = 0
+    num_denoise_skipped = 0
 
     # Each element: (semantic_pair, center_indices_array)
     run_records: list[tuple[np.ndarray, np.ndarray]] = []
@@ -444,14 +450,27 @@ def cluster_boundary_centers(
             local_mask = labels == int(local_label)
             global_indices = pair_indices[local_mask]
 
-            keep_mask, denoise_stats = lightweight_denoise_cluster(
-                coords=center_coord[global_indices],
-                density_knn=config.denoise_knn,
-                sparse_distance_ratio=config.sparse_distance_ratio,
-                sparse_mad_scale=config.sparse_mad_scale,
-                max_remove_ratio=float(config.max_remove_ratio),
-                min_keep_points=config.min_keep_points,
+            cluster_coords = center_coord[global_indices]
+            cluster_spacing = float(
+                estimate_local_spacing(cluster_coords, k=min(config.denoise_knn, cluster_coords.shape[0] - 1))
             )
+
+            if cluster_spacing <= config.denoise_density_threshold * global_median_spacing:
+                # Dense cluster: apply standard denoise
+                keep_mask, denoise_stats = lightweight_denoise_cluster(
+                    coords=cluster_coords,
+                    density_knn=config.denoise_knn,
+                    sparse_distance_ratio=config.sparse_distance_ratio,
+                    sparse_mad_scale=config.sparse_mad_scale,
+                    max_remove_ratio=float(config.max_remove_ratio),
+                    min_keep_points=config.min_keep_points,
+                )
+            else:
+                # Sparse cluster: skip denoise to preserve coverage
+                keep_mask = np.ones(cluster_coords.shape[0], dtype=bool)
+                denoise_stats = {"denoise_applied": False, "num_removed": 0, "density_skip": True}
+                num_denoise_skipped += 1
+
             kept_indices = global_indices[keep_mask]
             num_removed_by_denoise += int(np.count_nonzero(~keep_mask))
 
@@ -524,6 +543,7 @@ def cluster_boundary_centers(
         "num_rescued": int(num_rescued),
         "num_runs": int(num_runs),
         "num_removed_by_denoise": int(num_removed_by_denoise),
+        "num_denoise_skipped": int(num_denoise_skipped),
         "params": {
             "eps": float(config.eps),
             "min_samples": int(config.min_samples),
@@ -536,6 +556,7 @@ def cluster_boundary_centers(
             "rescue_distance_scale": float(config.rescue_distance_scale),
             "segment_direction_angle_deg": float(config.segment_direction_angle_deg),
             "segment_min_points": int(config.segment_min_points),
+            "denoise_density_threshold": float(config.denoise_density_threshold),
         },
     }
     return payload, meta
