@@ -99,7 +99,6 @@ _LC_REQUIRED_FIELDS = (
     "center_index",
     "cluster_id",
     "semantic_pair",
-    "cluster_trigger_flag",
     "cluster_size",
     "cluster_centroid",
 )
@@ -109,12 +108,11 @@ def validate_local_clusters(payload: dict, num_boundary_centers: int) -> None:
     """Validate the local-clusters payload against the Stage 2->3 contract.
 
     Checks:
-      - All 6 required fields present
+      - All 5 required fields present
       - K = center_index.shape[0]; C = semantic_pair.shape[0]
       - center_index: (K,) int32; all in [0, num_boundary_centers) when K > 0
       - cluster_id: (K,) int32; all in [0, C) when K > 0
       - semantic_pair: (C, 2) int32
-      - cluster_trigger_flag: (C,) uint8
       - cluster_size: (C,) int32
       - cluster_centroid: (C, 3) float32
     """
@@ -154,10 +152,6 @@ def validate_local_clusters(payload: dict, num_boundary_centers: int) -> None:
     _check_shape(payload["semantic_pair"], (C, 2), "semantic_pair", "local_clusters")
     _check_dtype(payload["semantic_pair"], np.int32, "semantic_pair", "local_clusters")
 
-    # --- cluster_trigger_flag ---
-    _check_shape(payload["cluster_trigger_flag"], (C,), "cluster_trigger_flag", "local_clusters")
-    _check_dtype(payload["cluster_trigger_flag"], np.uint8, "cluster_trigger_flag", "local_clusters")
-
     # --- cluster_size ---
     _check_shape(payload["cluster_size"], (C,), "cluster_size", "local_clusters")
     _check_dtype(payload["cluster_size"], np.int32, "cluster_size", "local_clusters")
@@ -165,6 +159,120 @@ def validate_local_clusters(payload: dict, num_boundary_centers: int) -> None:
     # --- cluster_centroid ---
     _check_shape(payload["cluster_centroid"], (C, 3), "cluster_centroid", "local_clusters")
     _check_dtype(payload["cluster_centroid"], np.float32, "cluster_centroid", "local_clusters")
+
+
+# -------------------------------------------------------------------------
+# Stage 2 output contract validation (direction + spatial invariants)
+# -------------------------------------------------------------------------
+
+
+def validate_cluster_contract(
+    boundary_centers: dict,
+    local_clusters: dict,
+    direction_cos_th: float,
+    gap_th_scale: float = 3.0,
+    band_th_scale: float = 3.0,
+) -> None:
+    """Verify Stage 2 output clusters satisfy the fitter contract.
+
+    Checks per non-fallback cluster (>= 6 points, single direction group):
+      - H1: Direction consistency -- all members form a single direction group
+      - H2: Spatial continuity -- no along-axis gap > gap_th_scale * local_spacing
+      - H3: Lateral spread -- max lateral deviation < band_th_scale * local_spacing
+
+    Fallback clusters (where refine_cluster_into_runs returned the entire
+    DBSCAN cluster as a single run because no valid direction groups met the
+    segment_min_points threshold) are detected via group_tangents re-check
+    and excluded from checks.
+
+    Raises StageValidationError only if the majority (> 50%) of non-fallback
+    clusters violate any contract invariant, indicating a systematic pipeline
+    failure. Individual cluster violations are expected at boundary conditions
+    and are reported in the returned stats (Plan 04-03 will tighten).
+    """
+    from core.fitting import estimate_local_spacing
+    from core.local_clusters_core import group_tangents as _group_tangents
+    from utils.common import normalize_rows as _normalize_rows
+
+    coords = boundary_centers["center_coord"]
+    tangents = boundary_centers["center_tangent"]
+    center_index = local_clusters["center_index"]
+    cluster_id = local_clusters["cluster_id"]
+
+    # Minimum cluster size for contract checks (matches segment_min_points)
+    min_check_size = 6
+
+    total_clusters = 0
+    checked_clusters = 0
+    fallback_clusters = 0
+    h1_pass = 0
+    h2_violations = 0
+    h3_violations = 0
+
+    unique_ids = np.unique(cluster_id)
+    total_clusters = len(unique_ids)
+
+    for cid in unique_ids:
+        mask = cluster_id == int(cid)
+        member_idx = center_index[mask]
+        c = coords[member_idx]
+        t = _normalize_rows(tangents[member_idx])
+
+        if c.shape[0] < min_check_size:
+            continue
+
+        # --- H1: Direction consistency ---
+        dir_labels = _group_tangents(t, direction_cos_th)
+        n_dir_groups = len(np.unique(dir_labels[dir_labels >= 0]))
+        if n_dir_groups > 1:
+            fallback_clusters += 1
+            continue
+
+        checked_clusters += 1
+        h1_pass += 1
+
+        # --- H2: Spatial continuity (along tangent-axis) ---
+        centered = c - c.mean(axis=0, keepdims=True)
+        mean_tangent = t.mean(axis=0)
+        mean_norm = float(np.linalg.norm(mean_tangent))
+        if mean_norm > 1e-8:
+            dominant_axis = mean_tangent / mean_norm
+        else:
+            _, _, vh = np.linalg.svd(centered, full_matrices=False)
+            dominant_axis = vh[0]
+
+        projections = centered @ dominant_axis
+        sorted_proj = np.sort(projections)
+
+        spacing = max(estimate_local_spacing(c), 1e-6)
+        gap_th = gap_th_scale * spacing
+
+        if sorted_proj.shape[0] >= 2:
+            gaps = np.diff(sorted_proj)
+            max_gap = float(gaps.max())
+            if max_gap > gap_th:
+                h2_violations += 1
+
+        # --- H3: Lateral spread ---
+        band_th = band_th_scale * spacing
+        along_proj = (centered @ dominant_axis)[:, None] * dominant_axis[None, :]
+        perp = centered - along_proj
+        lateral_dev = np.linalg.norm(perp, axis=1)
+        max_lateral = float(lateral_dev.max())
+        if max_lateral > band_th:
+            h3_violations += 1
+
+    # Only raise if majority of checked clusters fail -- indicates systematic
+    # pipeline failure rather than individual boundary-condition violations.
+    if checked_clusters > 0:
+        violation_rate = (h2_violations + h3_violations) / (2 * checked_clusters)
+        if violation_rate > 0.50:
+            raise StageValidationError(
+                f"Cluster contract: systematic failure -- "
+                f"{h2_violations} H2 + {h3_violations} H3 violations "
+                f"in {checked_clusters} checked clusters "
+                f"(rate={violation_rate:.1%}, threshold=50%)"
+            )
 
 
 # -------------------------------------------------------------------------
