@@ -228,7 +228,7 @@ python pointcept/datasets/preprocessing/bf_edge_v3/scripts/fit_local_supports.py
 python pointcept/datasets/preprocessing/bf_edge_v3/scripts/build_pointwise_edge_supervision.py \
   --input /path/to/output \
   --output /path/to/output \
-  --max-edge-dist 0.08 \
+  --support-radius 0.08 \
   --ignore-index -1
 ```
 
@@ -252,7 +252,7 @@ python pointcept/datasets/preprocessing/bf_edge_v3/scripts/build_support_dataset
 python pointcept/datasets/preprocessing/bf_edge_v3/scripts/build_edge_dataset_v3.py \
   --input /path/to/dataset \
   --output /path/to/dataset_edge \
-  --max-edge-dist 0.08 \
+  --support-radius 0.08 \
   --ignore-index -1
 ```
 
@@ -338,29 +338,22 @@ equivalence gate is planned for Phase 3 (REF-06).
 | `core/fitting.py` | 192 | 3 | Core geometry primitives, line/polyline fitting algorithms |
 | `core/trigger_regroup.py` | 686 | 3 | Trigger cluster regrouping (compatibility/adaptation logic) |
 | `core/supports_export.py` | 79 | 3 | NPZ/XYZ export and visualization for supports |
-| `core/params.py` | 100 | 2-3 | Centralized parameter definitions (fit, trigger, denoise) |
-| `core/pointwise_core.py` | 301 | 4 | Per-point edge supervision computation |
+| `core/config.py` | ~218 | 1-4 | Frozen dataclass configs: Stage1Config, Stage2Config, Stage3Config, Stage4Config |
+| `core/pointwise_core.py` | 295 | 4 | Per-point edge supervision computation |
 
 ### 6.2 Parameter Centralization
 
-All hardcoded pipeline parameters are now defined in `core/params.py`:
+All pipeline parameters are now defined as frozen dataclass fields in `core/config.py`:
 
-- **`DEFAULT_FIT_PARAMS`** (25 keys): Stage 3 trigger regrouping parameters
-  (direction angles, spacing scales, classification thresholds, merging
-  criteria, endpoint absorption limits). Angle parameters stored in degrees;
-  runtime conversion to cosine thresholds in `build_runtime_params()`.
+- **`Stage1Config`**: Stage 1 boundary center detection (k, min_cross_ratio, min_side_points, ignore_index).
 
-- **`DEFAULT_TRIGGER_PARAMS`** (5 keys): Stage 2 trigger-split decision
-  thresholds (cluster size factor/floor, linearity, tangent coherence, bbox
-  anisotropy).
+- **`Stage2Config`**: Stage 2 DBSCAN clustering, denoising, and trigger parameters (5 CLI-level + 5 trigger + 3 denoise fields). Computed properties: `trigger_min_cluster_size`, `min_keep_points`.
 
-- **`DEFAULT_DENOISE_PARAMS`** (3 keys): Stage 2 denoise safeguards (max
-  remove ratio, min keep points factor/floor).
+- **`Stage3Config`**: Stage 3 trigger regrouping (3 CLI-level + 25 fit parameters). Angle parameters stored in degrees; cosine thresholds exposed as `@property`. `to_runtime_dict()` produces the flat dict that `build_supports_payload()` expects.
 
-- **Stage 4 parameters**: Documented as comments only (currently CLI args:
-  `support_radius=0.08`, `sigma=support_radius/2`).
+- **`Stage4Config`**: Stage 4 pointwise edge supervision (`support_radius=0.08`, `ignore_index=-1`). Computed property: `sigma`.
 
-Import pattern: `from core.params import DEFAULT_FIT_PARAMS` (scripts use
+Import pattern: `from core.config import Stage2Config` (scripts use
 `core.` prefix after `_bootstrap.py` sets up `sys.path`).
 
 ### 6.3 Phase 2 Documentation
@@ -370,13 +363,12 @@ Two new reference documents were created in `core/` during Phase 2:
 - **`BEHAVIORAL_AUDIT.md`**: Per-module, per-function behavioral
   classification using a three-way scheme: CORE (algorithm), COMPAT
   (compatibility/adaptation), INFRA (I/O/visualization). Includes the
-  complete DEFAULT_FIT_PARAMS parameter table with all 25 parameters and
+  complete Stage3Config parameter table with all 25 parameters and
   their roles, plus runtime parameter derivation documentation.
 
 - **`CROSS_STAGE_CONTRACTS.md`**: Documents implicit cross-stage behavioral
   contracts -- NPZ field schemas, semantic invariants, hidden assumptions,
-  and parameter construction duplication between per-scene and dataset
-  invocation paths.
+  and parameter unification via `Stage3Config.to_runtime_dict()`.
 
 ### 6.4 Stage 3 Import Structure
 

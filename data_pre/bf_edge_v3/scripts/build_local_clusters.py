@@ -45,11 +45,7 @@ def run_scene(input_dir: Path, output_dir: Path, args: argparse.Namespace) -> No
     boundary_centers = load_boundary_centers(input_dir)
     local_clusters, meta = cluster_boundary_centers(
         boundary_centers=boundary_centers,
-        eps=cfg.eps,
-        min_samples=cfg.min_samples,
-        denoise_knn=cfg.denoise_knn,
-        sparse_distance_ratio=cfg.sparse_distance_ratio,
-        sparse_mad_scale=cfg.sparse_mad_scale,
+        config=cfg,
     )
 
     validate_local_clusters(local_clusters, num_boundary_centers=boundary_centers["center_coord"].shape[0])

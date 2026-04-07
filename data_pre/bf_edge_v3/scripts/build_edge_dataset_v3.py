@@ -8,6 +8,7 @@ from _bootstrap import ensure_bf_edge_v3_root_on_path
 
 ensure_bf_edge_v3_root_on_path()
 
+from core.config import Stage4Config
 from core.pointwise_core import (
     build_pointwise_edge_supervision,
     export_edge_supervision_xyz,
@@ -27,11 +28,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=str, required=True, help="Target edge dataset root")
     parser.add_argument(
         "--support-radius",
-        "--max-edge-dist",
-        dest="support_radius",
         type=float,
         default=0.08,
-        help="Support supervision radius for boundary snapping (legacy alias: --max-edge-dist)",
+        help="Support supervision radius for boundary snapping",
     )
     parser.add_argument("--ignore-index", type=int, default=-1, help="Semantic ignore label")
     return parser.parse_args()
@@ -68,15 +67,23 @@ def copy_base_files(src_scene_dir: Path, dst_scene_dir: Path) -> None:
             shutil.copy2(src_path, dst_scene_dir / name)
 
 
-def run_scene(src_scene_dir: Path, dst_scene_dir: Path, args: argparse.Namespace) -> None:
+def build_config(args: argparse.Namespace) -> Stage4Config:
+    """Build Stage4Config from CLI arguments."""
+    return Stage4Config(
+        support_radius=float(args.support_radius),
+        ignore_index=int(args.ignore_index),
+    )
+
+
+def run_scene(src_scene_dir: Path, dst_scene_dir: Path, cfg: Stage4Config) -> None:
     """Build compact edge dataset outputs for one scene."""
     scene = load_scene(src_scene_dir)
     supports = load_supports(src_scene_dir)
     payload, meta = build_pointwise_edge_supervision(
         scene=scene,
         supports=supports,
-        support_radius=float(args.support_radius),
-        ignore_index=int(args.ignore_index),
+        support_radius=cfg.support_radius,
+        ignore_index=cfg.ignore_index,
     )
 
     copy_base_files(src_scene_dir=src_scene_dir, dst_scene_dir=dst_scene_dir)
@@ -97,6 +104,7 @@ def main() -> None:
     args = parse_args()
     input_root = Path(args.input)
     output_root = Path(args.output)
+    cfg = build_config(args)
     scene_dirs = collect_scene_dirs(input_root)
     if not scene_dirs:
         print("No valid training/validation scene containing coord.npy, segment.npy and supports.npz was found.")
@@ -104,7 +112,7 @@ def main() -> None:
 
     for src_scene_dir in scene_dirs:
         rel_path = src_scene_dir.relative_to(input_root)
-        run_scene(src_scene_dir=src_scene_dir, dst_scene_dir=output_root / rel_path, args=args)
+        run_scene(src_scene_dir=src_scene_dir, dst_scene_dir=output_root / rel_path, cfg=cfg)
 
 
 if __name__ == "__main__":

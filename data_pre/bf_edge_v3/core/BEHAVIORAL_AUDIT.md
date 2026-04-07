@@ -65,9 +65,9 @@ Stage 2 groups boundary centers by semantic pair, applies spatial DBSCAN cluster
 
 Stage 3 is the primary complexity center of the pipeline (60%+ of total code). It fits line or polyline supports to each cluster, with a dual-path architecture: the standard path directly fits a line/polyline support, while the trigger path performs direction-based regrouping (tangent clustering, spatial run splitting, subgroup classification, fragment attachment, main bundle merging, and endpoint absorption) before reusing the standard fitting. The trigger path (~600 lines) is almost entirely compatibility logic that handles clusters where DBSCAN produced mixed-direction groupings.
 
-### DEFAULT_FIT_PARAMS (lines 45-71)
+### DEFAULT_FIT_PARAMS (now Stage3Config fields in config.py)
 
-**Classification: [COMPAT]** -- 25 hardcoded parameters for trigger regrouping, tuned to real data, with no external override mechanism.
+**Classification: [COMPAT]** -- 25 parameters for trigger regrouping, now centralized as `Stage3Config` frozen dataclass fields in `core/config.py`.
 
 | Parameter | Default Value | Role |
 |---|---|---|

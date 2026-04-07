@@ -15,10 +15,6 @@ Build pointwise edge supervision from scene points and fitted supports.
 - edge_support.npy
 - edge_supervision.xyz
 
-兼容导出:
-- edge_mask.npy
-- edge_strength.npy
-
 这一版只负责:
 1. 读取场景点和已有 supports
 2. 按 point segment -> support semantic_pair 做候选查询
@@ -225,9 +221,6 @@ def build_pointwise_edge_supervision(
         "edge_support_id": edge_support_id,
         "edge_vec": edge_vec.astype(np.float32),
         "edge_support": edge_support.astype(np.float32),
-        # Legacy aliases kept only for downstream compatibility.
-        "edge_mask": edge_valid,
-        "edge_strength": edge_support.astype(np.float32),
     }
     meta = {
         "version": "bf_edge_v3_build_boundary_snapping_supervision",
@@ -255,8 +248,6 @@ def export_edge_arrays(output_dir: Path, payload: dict) -> None:
     np.save(output_dir / "edge_support_id.npy", payload["edge_support_id"])
     np.save(output_dir / "edge_vec.npy", payload["edge_vec"])
     np.save(output_dir / "edge_support.npy", payload["edge_support"])
-    np.save(output_dir / "edge_mask.npy", payload["edge_mask"])
-    np.save(output_dir / "edge_strength.npy", payload["edge_strength"])
 
 
 def export_edge_supervision_xyz(

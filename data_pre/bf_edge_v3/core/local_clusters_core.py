@@ -33,7 +33,7 @@ except ImportError as error:
 from utils.common import normalize_rows, save_npz, save_xyz
 from utils.stage_io import load_boundary_centers
 
-from core.params import DEFAULT_TRIGGER_PARAMS, DEFAULT_DENOISE_PARAMS
+from core.config import Stage2Config
 
 
 def spatial_dbscan(coords: np.ndarray, eps: float, min_samples: int) -> np.ndarray:
@@ -176,28 +176,24 @@ def lightweight_denoise_cluster(
 
 def cluster_boundary_centers(
     boundary_centers: dict,
-    eps: float,
-    min_samples: int,
-    denoise_knn: int,
-    sparse_distance_ratio: float,
-    sparse_mad_scale: float,
+    config: Stage2Config,
 ) -> tuple[dict, dict]:
     """Group centers by semantic_pair and apply coarse spatial DBSCAN."""
     center_coord = boundary_centers["center_coord"]
     center_tangent = boundary_centers["center_tangent"]
     semantic_pair = boundary_centers["semantic_pair"]
 
+    eps = config.eps
+    min_samples = config.min_samples
+
     num_centers = center_coord.shape[0]
     coarse_cluster_records: list[dict] = []
     num_removed_by_denoise = 0
     trigger_params = {
-        "trigger_min_cluster_size": max(
-            int(min_samples * DEFAULT_TRIGGER_PARAMS["trigger_min_cluster_size_factor"]),
-            int(DEFAULT_TRIGGER_PARAMS["trigger_min_cluster_size_floor"]),
-        ),
-        "trigger_linearity_th": float(DEFAULT_TRIGGER_PARAMS["linearity_th"]),
-        "trigger_tangent_coherence_th": float(DEFAULT_TRIGGER_PARAMS["tangent_coherence_th"]),
-        "trigger_bbox_anisotropy_th": float(DEFAULT_TRIGGER_PARAMS["bbox_anisotropy_th"]),
+        "trigger_min_cluster_size": config.trigger_min_cluster_size,
+        "trigger_linearity_th": float(config.linearity_th),
+        "trigger_tangent_coherence_th": float(config.tangent_coherence_th),
+        "trigger_bbox_anisotropy_th": float(config.bbox_anisotropy_th),
     }
     unique_pairs = np.unique(semantic_pair, axis=0)
     for pair in unique_pairs:
@@ -216,14 +212,11 @@ def cluster_boundary_centers(
 
             keep_mask, denoise_stats = lightweight_denoise_cluster(
                 coords=center_coord[global_indices],
-                density_knn=denoise_knn,
-                sparse_distance_ratio=sparse_distance_ratio,
-                sparse_mad_scale=sparse_mad_scale,
-                max_remove_ratio=float(DEFAULT_DENOISE_PARAMS["max_remove_ratio"]),
-                min_keep_points=max(
-                    int(min_samples * DEFAULT_DENOISE_PARAMS["min_keep_points_factor"]),
-                    int(DEFAULT_DENOISE_PARAMS["min_keep_points_floor"]),
-                ),
+                density_knn=config.denoise_knn,
+                sparse_distance_ratio=config.sparse_distance_ratio,
+                sparse_mad_scale=config.sparse_mad_scale,
+                max_remove_ratio=float(config.max_remove_ratio),
+                min_keep_points=config.min_keep_points,
             )
             kept_indices = global_indices[keep_mask]
             removed_indices = global_indices[~keep_mask]
@@ -305,16 +298,13 @@ def cluster_boundary_centers(
         ) if cluster_records else 0,
         "num_removed_by_denoise": int(num_removed_by_denoise),
         "params": {
-            "eps": float(eps),
-            "min_samples": int(min_samples),
-            "denoise_knn": int(denoise_knn),
-            "sparse_distance_ratio": float(sparse_distance_ratio),
-            "sparse_mad_scale": float(sparse_mad_scale),
-            "max_remove_ratio": float(DEFAULT_DENOISE_PARAMS["max_remove_ratio"]),
-            "min_keep_points": max(
-                int(min_samples * DEFAULT_DENOISE_PARAMS["min_keep_points_factor"]),
-                int(DEFAULT_DENOISE_PARAMS["min_keep_points_floor"]),
-            ),
+            "eps": float(config.eps),
+            "min_samples": int(config.min_samples),
+            "denoise_knn": int(config.denoise_knn),
+            "sparse_distance_ratio": float(config.sparse_distance_ratio),
+            "sparse_mad_scale": float(config.sparse_mad_scale),
+            "max_remove_ratio": float(config.max_remove_ratio),
+            "min_keep_points": config.min_keep_points,
             **trigger_params,
         },
     }

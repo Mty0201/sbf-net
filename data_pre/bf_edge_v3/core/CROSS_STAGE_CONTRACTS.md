@@ -223,7 +223,7 @@ if length <= 0:
 - Per-scene scripts: `build_boundary_centers.py`, `build_local_clusters.py`, `fit_local_supports.py`
 - Dataset script: `build_support_dataset_v3.py`
 
-**Parameter construction duplication:** Both `fit_local_supports.py` and `build_support_dataset_v3.py` contain independent `build_runtime_params()` / `build_support_runtime_params()` functions that convert `DEFAULT_FIT_PARAMS` angle values to cosine thresholds. These are structurally identical but maintained separately. A parameter change in one without updating the other would cause behavioral divergence between per-scene and dataset paths.
+**Parameter construction duplication:** Resolved. Both scripts now use `Stage3Config.to_runtime_dict()` from `core.config` as the single source of truth for angle-to-cosine conversion.
 
 **Cleanup behavior:** `build_support_dataset_v3.py` calls `cleanup_scene_dir()` which removes all intermediate files (boundary_centers.npz, local_clusters.npz, all edge_*.npy, all xyz files). This means after a dataset run, only `supports.npz` and `support_geometry.xyz` remain.
 

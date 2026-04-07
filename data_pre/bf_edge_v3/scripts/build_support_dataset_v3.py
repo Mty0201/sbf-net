@@ -30,11 +30,9 @@ INTERMEDIATE_FILES_TO_REMOVE = (
     "edge_dist.npy",
     "edge_dir.npy",
     "edge_valid.npy",
-    "edge_mask.npy",
     "edge_support_id.npy",
     "edge_vec.npy",
     "edge_support.npy",
-    "edge_strength.npy",
     "edge_supervision.xyz",
 )
 
@@ -127,11 +125,7 @@ def run_scene(
     validate_boundary_centers(boundary_centers)
     local_clusters, _ = cluster_boundary_centers(
         boundary_centers=boundary_centers,
-        eps=s2_cfg.eps,
-        min_samples=s2_cfg.min_samples,
-        denoise_knn=s2_cfg.denoise_knn,
-        sparse_distance_ratio=s2_cfg.sparse_distance_ratio,
-        sparse_mad_scale=s2_cfg.sparse_mad_scale,
+        config=s2_cfg,
     )
     validate_local_clusters(local_clusters, num_boundary_centers=boundary_centers["center_coord"].shape[0])
     supports_payload, meta_payload, _ = build_supports_payload(

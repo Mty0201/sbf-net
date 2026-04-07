@@ -19,14 +19,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import numpy as np
 from scipy.spatial import cKDTree
 
-from _bootstrap import ensure_bf_edge_v3_root_on_path
-
-ensure_bf_edge_v3_root_on_path()
+# Inline path setup (tools/ is one level below scripts/)
+_root = str(Path(__file__).resolve().parents[2])
+if _root not in sys.path:
+    sys.path.insert(0, _root)
 
 from utils.stage_io import load_boundary_centers, load_local_clusters
 

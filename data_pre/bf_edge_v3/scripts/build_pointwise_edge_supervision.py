@@ -23,11 +23,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=str, default=None, help="Output directory. Default: same as input")
     parser.add_argument(
         "--support-radius",
-        "--max-edge-dist",
-        dest="support_radius",
         type=float,
         default=0.08,
-        help="Support supervision radius for boundary snapping (legacy alias: --max-edge-dist)",
+        help="Support supervision radius for boundary snapping",
     )
     parser.add_argument("--ignore-index", type=int, default=-1, help="Semantic ignore label")
     return parser.parse_args()

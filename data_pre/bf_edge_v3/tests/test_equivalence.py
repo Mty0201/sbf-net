@@ -110,11 +110,7 @@ def refactored_stage2(refactored_stage1):
     cfg = Stage2Config()
     payload, _ = cluster_boundary_centers(
         boundary_centers=refactored_stage1,
-        eps=cfg.eps,
-        min_samples=cfg.min_samples,
-        denoise_knn=cfg.denoise_knn,
-        sparse_distance_ratio=cfg.sparse_distance_ratio,
-        sparse_mad_scale=cfg.sparse_mad_scale,
+        config=cfg,
     )
     return payload
 
@@ -286,11 +282,7 @@ def test_inmemory_path_matches_perstage(sample_scene_dir, refactored_stage3):
     )
     lc_payload, _ = cluster_boundary_centers(
         boundary_centers=bc_payload,
-        eps=cfg2.eps,
-        min_samples=cfg2.min_samples,
-        denoise_knn=cfg2.denoise_knn,
-        sparse_distance_ratio=cfg2.sparse_distance_ratio,
-        sparse_mad_scale=cfg2.sparse_mad_scale,
+        config=cfg2,
     )
     sup_payload, _, _ = build_supports_payload(
         boundary_centers=bc_payload,

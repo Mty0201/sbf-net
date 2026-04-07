@@ -24,13 +24,15 @@ Output:
 """
 
 import argparse
+import sys
 from pathlib import Path
 
 import numpy as np
 
-from _bootstrap import ensure_bf_edge_v3_root_on_path
-
-ensure_bf_edge_v3_root_on_path()
+# Inline path setup (tools/ is one level below scripts/)
+_root = str(Path(__file__).resolve().parents[2])
+if _root not in sys.path:
+    sys.path.insert(0, _root)
 
 from core.pointwise_core import build_pointwise_edge_supervision, load_supports
 from utils.stage_io import load_scene
