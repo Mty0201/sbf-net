@@ -73,6 +73,10 @@ Last activity: 2026-04-08
 - ~~**[RESOLVED]** CR-B integration defects (INT-01, INT-02, INT-03) — fixed in Phase 1, smoke-validated~~
 - ~~**[RESOLVED]** Support supervision net negative under current implementation~~ — Direction decision complete. Route redesigned: boundary proximity cue (confidence-weighted BCE) replaces geometric regression. See `docs/canonical/route_redesign_discussion.md`.
 
+## Workstream Archival
+
+- **[2026-04-08]** `edge-data-quality-repair` workstream archived. Phases 1-5 complete (diagnosis → refactor → algorithm redesign → density-adaptive fix). Pipeline consolidated and committed (124348e). Phases 6-8 (NET-02/NET-03) deferred.
+
 ## Roadmap Evolution
 
 - Milestone v2.0 kicked off 2026-04-06. Originally 6 phases, now 7 after route redesign.

@@ -184,7 +184,8 @@ class BoundaryOffsetModule(nn.Module):
 
         # Max-pool over K neighbors per point
         pooled = torch.full(
-            (N, edge_feat.shape[1]), float("-inf"), device=edge_feat.device
+            (N, edge_feat.shape[1]), float("-inf"),
+            device=edge_feat.device, dtype=edge_feat.dtype,
         )
         pooled.scatter_reduce_(
             0, col.unsqueeze(-1).expand_as(edge_feat), edge_feat, reduce="amax"

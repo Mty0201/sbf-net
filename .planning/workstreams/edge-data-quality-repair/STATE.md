@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Edge Data Pipeline Refactor and Quality Repair
-status: Phase 5 complete (2 plans)
-stopped_at: Phase 05 Plan 02 complete
-last_updated: "2026-04-07T12:03:14Z"
-last_activity: 2026-04-07
+status: "ARCHIVED — workstream closed 2026-04-08"
+stopped_at: "Archived after Phase 5. Phases 6-8 (NET-02/NET-03) deferred — pipeline consolidated into main (124348e)."
+last_updated: "2026-04-08T09:00:00Z"
+last_activity: 2026-04-08
 progress:
   total_phases: 8
   completed_phases: 5
@@ -94,8 +94,12 @@ Last activity: 2026-04-07
 - [Phase 04-03]: test_config.py auto-fixed (Rule 3) for Phase 4 Stage2Config/Stage3Config schemas
 - [Phase 04-03]: Phase 4 complete. ALG-01, ALG-02, ALG-03 requirements all satisfied.
 
+## Archival Note
+
+**Archived: 2026-04-08.** Phases 1-5 complete (diagnosis → refactor → algorithm redesign → density-adaptive fix). Pipeline consolidated and committed to main branch (124348e). Phases 6-8 (NET-02 single-side boundary, NET-03 snake/zigzag) deferred — can be revisited as a future milestone if needed.
+
 ## Session Continuity
 
-Last session: 2026-04-07T12:03:14Z
-Stopped at: Phase 05 Plan 02 complete (DEN-02/DEN-03 verified)
+Last session: 2026-04-08
+Stopped at: Workstream archived. Final commit 124348e consolidated data_pre v3 pipeline.
 Resume file: None
