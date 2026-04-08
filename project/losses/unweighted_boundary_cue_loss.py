@@ -66,6 +66,7 @@ class UnweightedBoundaryCueLoss(nn.Module):
             loss_aux=loss_aux,
             loss_aux_weighted=loss_aux_weighted,
             valid_ratio=valid_gt.mean(),
+            support_positive_ratio=(valid_gt > 1e-3).float().mean(),
             aux_prob_mean=aux_prob_mean,
             aux_prob_boundary_mean=aux_prob_boundary_mean,
         )
