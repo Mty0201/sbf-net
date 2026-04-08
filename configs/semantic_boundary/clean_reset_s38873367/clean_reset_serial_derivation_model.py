@@ -1,16 +1,18 @@
 """Serial derivation model for clean-reset workstream.
 
 SerialDerivationModel: backbone + semantic head + support head + offset module g.
-Extends SharedBackboneSemanticSupportModel with serial boundary offset derivation
-from semantic logits. See docs/canonical/part2_serial_derivation_discussion.md.
+Module g uses PTv3-style serialized patch self-attention (not KNN) to derive
+boundary offset from semantic logits.
 """
 
 model = dict(
     type="SerialDerivationModel",
     num_classes=8,
     backbone_out_channels=64,
-    offset_k=16,
-    offset_hidden_dim=64,
+    offset_channels=64,
+    offset_patch_size=48,
+    offset_num_heads=4,
+    enable_flash=True,
     backbone=dict(
         type="PT-v3m1",
         in_channels=6,

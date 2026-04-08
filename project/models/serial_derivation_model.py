@@ -48,8 +48,10 @@ class SerialDerivationModel(nn.Module):
         self,
         num_classes,
         backbone_out_channels,
-        offset_k=16,
-        offset_hidden_dim=64,
+        offset_channels=64,
+        offset_patch_size=48,
+        offset_num_heads=4,
+        enable_flash=True,
         semantic_adapter_cfg: dict | None = None,
         boundary_adapter_cfg: dict | None = None,
         backbone=None,
@@ -68,8 +70,10 @@ class SerialDerivationModel(nn.Module):
         # Serial derivation module g
         self.offset_module = BoundaryOffsetModule(
             num_classes=num_classes,
-            k=offset_k,
-            hidden_dim=offset_hidden_dim,
+            channels=offset_channels,
+            patch_size=offset_patch_size,
+            num_heads=offset_num_heads,
+            enable_flash=enable_flash,
         )
 
     @staticmethod
@@ -100,7 +104,6 @@ class SerialDerivationModel(nn.Module):
 
     def forward(self, input_dict, return_point=False):
         coord = input_dict["coord"]  # (N, 3)
-        batch_offset = input_dict["offset"]  # (B,) cumulative counts
 
         backbone_output = self.backbone(Point(input_dict))
         point, feat = self._extract_feat(backbone_output)
@@ -111,7 +114,8 @@ class SerialDerivationModel(nn.Module):
         support_pred = self.support_head(boundary_feat)
 
         # Serial derivation: offset from semantic logits (NOT backbone features)
-        offset_pred = self.offset_module(seg_logits, coord, batch_offset)
+        # point carries serialized_order/inverse/grid_coord from backbone
+        offset_pred = self.offset_module(seg_logits, coord, point)
 
         output = dict(
             seg_logits=seg_logits,

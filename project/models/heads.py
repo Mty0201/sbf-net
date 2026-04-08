@@ -2,7 +2,13 @@
 
 import torch
 import torch.nn as nn
-from torch_cluster import knn
+
+try:
+    import flash_attn
+except ImportError:
+    flash_attn = None
+
+from pointcept.models.utils.misc import offset2bincount
 
 
 class ResidualFeatureAdapter(nn.Module):
@@ -121,77 +127,172 @@ class SupportConditionedEdgeHead(nn.Module):
 class BoundaryOffsetModule(nn.Module):
     """Learnable module g: derives boundary offset field from semantic logits.
 
-    Takes softmax(seg_logits) and coord, performs KNN local aggregation to
-    capture local semantic gradients, and predicts a 3D offset vector per point.
-    offset = displacement from current point to nearest boundary.
+    Uses PTv3-style serialized patch self-attention instead of KNN.
+    The backbone's space-filling curve serialization (z-order / Hilbert) is
+    reused: consecutive points in the serialized order form patches, and
+    self-attention within each patch lets the model learn which neighbors
+    carry useful semantic-gradient signal while naturally down-weighting
+    curve-discontinuity artifacts.
+
+    Architecture (mirrors a single PTv3 Block at module-g scale):
+        softmax(seg_logits) + coord → linear projection → patch self-attention
+        (with RPE from grid_coord) → MLP → offset_head → 3D offset
     """
 
-    def __init__(self, num_classes, k=16, hidden_dim=64):
+    def __init__(self, num_classes, channels=64, patch_size=48, num_heads=4,
+                 enable_flash=True):
         super().__init__()
-        self.k = k
-        # Edge feature: [feat_i, feat_j - feat_i, coord_j - coord_i]
-        # dim = (num_classes + 3) + (num_classes + 3) + 3 = 2 * num_classes + 9
-        edge_feat_dim = 2 * num_classes + 9
-        self.edge_mlp = nn.Sequential(
-            nn.Linear(edge_feat_dim, hidden_dim),
-            nn.ReLU(inplace=True),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(inplace=True),
-        )
-        self.offset_head = nn.Sequential(
-            nn.Linear(hidden_dim, hidden_dim // 2),
-            nn.ReLU(inplace=True),
-            nn.Linear(hidden_dim // 2, 3),
+        assert channels % num_heads == 0
+        self.channels = channels
+        self.patch_size = patch_size
+        self.num_heads = num_heads
+        self.scale = (channels // num_heads) ** -0.5
+        self.enable_flash = enable_flash
+
+        # Input projection: softmax probs (num_classes) + coord (3) → channels
+        self.input_proj = nn.Linear(num_classes + 3, channels)
+
+        # Self-attention
+        self.qkv = nn.Linear(channels, channels * 3)
+        self.attn_proj = nn.Linear(channels, channels)
+
+        if enable_flash:
+            assert flash_attn is not None, "flash_attn required when enable_flash=True"
+            self.rpe = None
+        else:
+            # RPE when flash attention is off (same design as PTv3)
+            pos_bnd = int((4 * patch_size) ** (1 / 3) * 2)
+            rpe_num = 2 * pos_bnd + 1
+            self.rpe_pos_bnd = pos_bnd
+            self.rpe_num = rpe_num
+            self.rpe = nn.Parameter(torch.zeros(3 * rpe_num, num_heads))
+            nn.init.trunc_normal_(self.rpe, std=0.02)
+
+        # FFN (same ratio as PTv3: 4x)
+        self.norm1 = nn.LayerNorm(channels)
+        self.norm2 = nn.LayerNorm(channels)
+        self.ffn = nn.Sequential(
+            nn.Linear(channels, channels * 4),
+            nn.GELU(),
+            nn.Linear(channels * 4, channels),
         )
 
-    def forward(self, seg_logits, coord, offset):
+        # Offset prediction head
+        self.offset_head = nn.Sequential(
+            nn.Linear(channels, channels // 2),
+            nn.GELU(),
+            nn.Linear(channels // 2, 3),
+        )
+
+    def _get_padding_and_inverse(self, offset):
+        """Pad each batch element's point count to a multiple of patch_size.
+
+        Mirrors SerializedAttention.get_padding_and_inverse from PTv3.
+        """
+        K = self.patch_size
+        bincount = offset2bincount(offset)
+        bincount_pad = (
+            torch.div(bincount + K - 1, K, rounding_mode="trunc") * K
+        )
+        # Only pad when count > patch_size
+        mask_pad = bincount > K
+        bincount_pad = ~mask_pad * bincount + mask_pad * bincount_pad
+
+        _offset = nn.functional.pad(offset, (1, 0))
+        _offset_pad = nn.functional.pad(torch.cumsum(bincount_pad, dim=0), (1, 0))
+
+        pad = torch.arange(_offset_pad[-1], device=offset.device)
+        unpad = torch.arange(_offset[-1], device=offset.device)
+        cu_seqlens = []
+        for i in range(len(offset)):
+            unpad[_offset[i]: _offset[i + 1]] += _offset_pad[i] - _offset[i]
+            if bincount[i] != bincount_pad[i]:
+                pad[
+                    _offset_pad[i + 1] - K + (bincount[i] % K): _offset_pad[i + 1]
+                ] = pad[
+                    _offset_pad[i + 1] - 2 * K + (bincount[i] % K): _offset_pad[i + 1] - K
+                ]
+            pad[_offset_pad[i]: _offset_pad[i + 1]] -= _offset_pad[i] - _offset[i]
+            cu_seqlens.append(
+                torch.arange(
+                    _offset_pad[i], _offset_pad[i + 1],
+                    step=K, dtype=torch.int32, device=offset.device,
+                )
+            )
+        cu_seqlens = nn.functional.pad(
+            torch.concat(cu_seqlens), (0, 1), value=_offset_pad[-1]
+        )
+        return pad, unpad, cu_seqlens
+
+    @torch.no_grad()
+    def _get_rel_pos(self, grid_coord_ordered):
+        """Compute pairwise RPE indices within each patch (non-flash path)."""
+        K = self.patch_size
+        gc = grid_coord_ordered.reshape(-1, K, 3)  # (num_patches, K, 3)
+        rel = gc.unsqueeze(2) - gc.unsqueeze(1)  # (num_patches, K, K, 3)
+        idx = (
+            rel.clamp(-self.rpe_pos_bnd, self.rpe_pos_bnd)
+            + self.rpe_pos_bnd
+            + torch.arange(3, device=rel.device) * self.rpe_num
+        )
+        out = self.rpe.index_select(0, idx.reshape(-1))
+        out = out.view(idx.shape + (-1,)).sum(3)  # (num_patches, K, K, H)
+        return out.permute(0, 3, 1, 2)  # (num_patches, H, K, K)
+
+    def forward(self, seg_logits, coord, point):
         """
         Args:
             seg_logits: (N, num_classes) raw logits from semantic head
             coord: (N, 3) point coordinates
-            offset: (B,) cumulative point counts per batch element
+            point: Point dict from backbone, must contain serialized_order,
+                   serialized_inverse, grid_coord, offset
 
         Returns:
             offset_pred: (N, 3) predicted displacement to nearest boundary
         """
-        # Soft semantic probabilities (differentiable)
-        sem_prob = seg_logits.softmax(dim=-1)  # (N, C)
-        feat = torch.cat([sem_prob, coord], dim=-1)  # (N, C+3)
+        H = self.num_heads
+        K = self.patch_size
+        C = self.channels
 
-        # Build batch vector from offset for torch_cluster
-        N = coord.shape[0]
-        batch_vec = torch.zeros(N, dtype=torch.long, device=coord.device)
-        for i in range(offset.shape[0]):
-            start = 0 if i == 0 else int(offset[i - 1])
-            batch_vec[start : int(offset[i])] = i
+        # Build input features
+        sem_prob = seg_logits.softmax(dim=-1)
+        feat = self.input_proj(torch.cat([sem_prob, coord], dim=-1))  # (N, C)
 
-        # KNN on coord (spatial neighbors only)
-        # Returns (2, N*K): row 0 = source (neighbor), row 1 = target (center)
-        edge_index = knn(coord, coord, self.k, batch_vec, batch_vec)
-        row, col = edge_index[0], edge_index[1]  # row=neighbor, col=center
+        # Reuse backbone serialization — pick first order (index 0)
+        pad, unpad, cu_seqlens = self._get_padding_and_inverse(point.offset)
+        order = point.serialized_order[0][pad]
+        inverse = unpad[point.serialized_inverse[0]]
 
-        # Edge features: [feat_center, feat_neighbor - feat_center, coord_diff]
-        feat_center = feat[col]  # (N*K, C+3)
-        feat_neighbor = feat[row]  # (N*K, C+3)
-        coord_diff = coord[row] - coord[col]  # (N*K, 3)
+        # Reorder features into serialized patches
+        qkv = self.qkv(self.norm1(feat))[order]  # (N_pad, 3C)
 
-        edge_feat = torch.cat(
-            [feat_center, feat_neighbor - feat_center, coord_diff], dim=-1
-        )  # (N*K, 2*(C+3)+3)
+        if self.enable_flash:
+            attn_out = flash_attn.flash_attn_varlen_qkvpacked_func(
+                qkv.to(torch.bfloat16).reshape(-1, 3, H, C // H),
+                cu_seqlens,
+                max_seqlen=K,
+                dropout_p=0.0,
+                softmax_scale=self.scale,
+            ).reshape(-1, C)
+            attn_out = attn_out.to(qkv.dtype)
+        else:
+            q, k, v = (
+                qkv.reshape(-1, K, 3, H, C // H)
+                .permute(2, 0, 3, 1, 4)
+                .unbind(dim=0)
+            )
+            attn = (q * self.scale) @ k.transpose(-2, -1)
+            # RPE from grid_coord
+            grid_coord_ordered = point.grid_coord[order]
+            attn = attn + self._get_rel_pos(grid_coord_ordered)
+            attn = attn.float().softmax(dim=-1).to(qkv.dtype)
+            attn_out = (attn @ v).transpose(1, 2).reshape(-1, C)
 
-        # Shared MLP on edge features
-        edge_feat = self.edge_mlp(edge_feat)  # (N*K, hidden_dim)
+        # Unsort back to original order
+        attn_out = self.attn_proj(attn_out[inverse])
+        feat = feat + attn_out
 
-        # Max-pool over K neighbors per point
-        pooled = torch.full(
-            (N, edge_feat.shape[1]), float("-inf"),
-            device=edge_feat.device, dtype=edge_feat.dtype,
-        )
-        pooled.scatter_reduce_(
-            0, col.unsqueeze(-1).expand_as(edge_feat), edge_feat, reduce="amax"
-        )
-        # Replace -inf (points with no neighbors, shouldn't happen) with 0
-        pooled = pooled.clamp_min(0.0)
+        # FFN
+        feat = feat + self.ffn(self.norm2(feat))
 
-        # Offset prediction
-        return self.offset_head(pooled)  # (N, 3)
+        return self.offset_head(feat)  # (N, 3)

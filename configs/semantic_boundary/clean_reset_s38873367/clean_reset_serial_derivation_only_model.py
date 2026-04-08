@@ -1,7 +1,7 @@
 """Serial derivation only model for clean-reset workstream.
 
 SerialDerivationOnlyModel: backbone + semantic head + offset module g.
-No support head. Single-branch backbone with pure serial derivation.
+No support head. Module g uses PTv3-style serialized patch self-attention.
 CR-E baseline.
 """
 
@@ -9,8 +9,10 @@ model = dict(
     type="SerialDerivationOnlyModel",
     num_classes=8,
     backbone_out_channels=64,
-    offset_k=16,
-    offset_hidden_dim=64,
+    offset_channels=64,
+    offset_patch_size=48,
+    offset_num_heads=4,
+    enable_flash=True,
     backbone=dict(
         type="PT-v3m1",
         in_channels=6,
