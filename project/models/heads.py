@@ -124,6 +124,170 @@ class SupportConditionedEdgeHead(nn.Module):
         )
 
 
+class BoundaryGatingModule(nn.Module):
+    """Module g (v3): boundary→semantic gating with patch self-attention.
+
+    Uses boundary adapter features + PTv3-style serialized patch attention
+    to produce a per-point residual gate that modulates semantic features.
+    The attention lets each point see its spatial neighbors' boundary features,
+    enabling the gate to reason about local semantic transition patterns
+    (e.g. "my neighbors have different boundary characteristics → I'm near
+    an edge → boost semantic features here").
+
+    No dedicated loss — trained entirely by semantic loss gradients flowing
+    back through the gate into boundary_feat and then into the backbone.
+
+    Architecture:
+        boundary_feat (N, C) → patch self-attention (PTv3 serialization)
+        → FFN → output_head → gate (N, C) → sigmoid
+        semantic_feat = semantic_feat * (1 + gate)   [residual gating]
+    """
+
+    def __init__(self, in_channels, patch_size=48, num_heads=4, enable_flash=True):
+        super().__init__()
+        C = in_channels
+        assert C % num_heads == 0
+        self.channels = C
+        self.patch_size = patch_size
+        self.num_heads = num_heads
+        self.scale = (C // num_heads) ** -0.5
+        self.enable_flash = enable_flash
+
+        # Self-attention on boundary_feat
+        self.qkv = nn.Linear(C, C * 3)
+        self.attn_proj = nn.Linear(C, C)
+
+        if enable_flash:
+            assert flash_attn is not None, "flash_attn required when enable_flash=True"
+            self.rpe = None
+        else:
+            pos_bnd = int((4 * patch_size) ** (1 / 3) * 2)
+            rpe_num = 2 * pos_bnd + 1
+            self.rpe_pos_bnd = pos_bnd
+            self.rpe_num = rpe_num
+            self.rpe = nn.Parameter(torch.zeros(3 * rpe_num, num_heads))
+            nn.init.trunc_normal_(self.rpe, std=0.02)
+
+        self.norm1 = nn.LayerNorm(C)
+        self.norm2 = nn.LayerNorm(C)
+        self.ffn = nn.Sequential(
+            nn.Linear(C, C * 4),
+            nn.GELU(),
+            nn.Linear(C * 4, C),
+        )
+
+        # Output head: per-channel gate logits
+        self.output_head = nn.Sequential(
+            nn.Linear(C, C // 2),
+            nn.GELU(),
+            nn.Linear(C // 2, C),
+        )
+        # Zero-init last layer so gate starts at sigmoid(0) = 0.5
+        # → initial multiplier = 1.5, close to identity
+        nn.init.zeros_(self.output_head[-1].weight)
+        nn.init.zeros_(self.output_head[-1].bias)
+
+    def _get_padding_and_inverse(self, offset):
+        """Pad each batch element to a multiple of patch_size."""
+        K = self.patch_size
+        bincount = offset2bincount(offset)
+        bincount_pad = (
+            torch.div(bincount + K - 1, K, rounding_mode="trunc") * K
+        )
+        mask_pad = bincount > K
+        bincount_pad = ~mask_pad * bincount + mask_pad * bincount_pad
+
+        _offset = nn.functional.pad(offset, (1, 0))
+        _offset_pad = nn.functional.pad(torch.cumsum(bincount_pad, dim=0), (1, 0))
+
+        pad = torch.arange(_offset_pad[-1], device=offset.device)
+        unpad = torch.arange(_offset[-1], device=offset.device)
+        cu_seqlens = []
+        for i in range(len(offset)):
+            unpad[_offset[i]: _offset[i + 1]] += _offset_pad[i] - _offset[i]
+            if bincount[i] != bincount_pad[i]:
+                pad[
+                    _offset_pad[i + 1] - K + (bincount[i] % K): _offset_pad[i + 1]
+                ] = pad[
+                    _offset_pad[i + 1] - 2 * K + (bincount[i] % K): _offset_pad[i + 1] - K
+                ]
+            pad[_offset_pad[i]: _offset_pad[i + 1]] -= _offset_pad[i] - _offset[i]
+            cu_seqlens.append(
+                torch.arange(
+                    _offset_pad[i], _offset_pad[i + 1],
+                    step=K, dtype=torch.int32, device=offset.device,
+                )
+            )
+        cu_seqlens = nn.functional.pad(
+            torch.concat(cu_seqlens), (0, 1), value=_offset_pad[-1]
+        )
+        return pad, unpad, cu_seqlens
+
+    @torch.no_grad()
+    def _get_rel_pos(self, grid_coord_ordered):
+        """Compute pairwise RPE indices within each patch (non-flash path)."""
+        K = self.patch_size
+        gc = grid_coord_ordered.reshape(-1, K, 3)
+        rel = gc.unsqueeze(2) - gc.unsqueeze(1)
+        idx = (
+            rel.clamp(-self.rpe_pos_bnd, self.rpe_pos_bnd)
+            + self.rpe_pos_bnd
+            + torch.arange(3, device=rel.device) * self.rpe_num
+        )
+        out = self.rpe.index_select(0, idx.reshape(-1))
+        out = out.view(idx.shape + (-1,)).sum(3)
+        return out.permute(0, 3, 1, 2)
+
+    def forward(self, boundary_feat, point):
+        """
+        Args:
+            boundary_feat: (N, C) features from boundary adapter
+            point: Point dict from backbone with serialized_order,
+                   serialized_inverse, grid_coord, offset
+
+        Returns:
+            gate: (N, C) values in (0, 1) for residual gating
+        """
+        H = self.num_heads
+        K = self.patch_size
+        C = self.channels
+
+        feat = boundary_feat
+
+        pad, unpad, cu_seqlens = self._get_padding_and_inverse(point.offset)
+        order = point.serialized_order[0][pad]
+        inverse = unpad[point.serialized_inverse[0]]
+
+        qkv = self.qkv(self.norm1(feat))[order]
+
+        if self.enable_flash:
+            attn_out = flash_attn.flash_attn_varlen_qkvpacked_func(
+                qkv.to(torch.bfloat16).reshape(-1, 3, H, C // H),
+                cu_seqlens,
+                max_seqlen=K,
+                dropout_p=0.0,
+                softmax_scale=self.scale,
+            ).reshape(-1, C)
+            attn_out = attn_out.to(qkv.dtype)
+        else:
+            q, k, v = (
+                qkv.reshape(-1, K, 3, H, C // H)
+                .permute(2, 0, 3, 1, 4)
+                .unbind(dim=0)
+            )
+            attn = (q * self.scale) @ k.transpose(-2, -1)
+            grid_coord_ordered = point.grid_coord[order]
+            attn = attn + self._get_rel_pos(grid_coord_ordered)
+            attn = attn.float().softmax(dim=-1).to(qkv.dtype)
+            attn_out = (attn @ v).transpose(1, 2).reshape(-1, C)
+
+        attn_out = self.attn_proj(attn_out[inverse])
+        feat = feat + attn_out
+        feat = feat + self.ffn(self.norm2(feat))
+
+        return torch.sigmoid(self.output_head(feat))
+
+
 class BoundaryConsistencyModule(nn.Module):
     """Learnable module g: boundary offset derivation with tolerance.
 
