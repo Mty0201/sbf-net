@@ -1,9 +1,9 @@
 """Clean-reset serial derivation (CR-D) @ seed=38873367.
 
 Part of workstream clean-reset-s38873367.
-Model: SerialDerivationModel (backbone + semantic head + support head + offset module g).
-Loss: SerialDerivationLoss — semantic (CE+Lovasz) + confidence-weighted BCE (CR-C)
-      + offset smooth-L1 (serial derivation from semantic logits).
+Model: SerialDerivationModel (backbone + semantic head + support head + consistency module g).
+Loss: SerialDerivationLoss — semantic (CE+Lovasz) + soft boundary BCE (CR-G style)
+      + consistency MSE (g output vs detach(support branch)).
 See docs/canonical/part2_serial_derivation_discussion.md.
 """
 
@@ -26,6 +26,7 @@ loss = dict(
     type="SerialDerivationLoss",
     aux_weight=0.3,
     offset_weight=1.0,
+    consistency_weight=0.5,
 )
 evaluator = dict(type="RedesignedSupportFocusEvaluator")
 

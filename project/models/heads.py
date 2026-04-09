@@ -124,19 +124,24 @@ class SupportConditionedEdgeHead(nn.Module):
         )
 
 
-class BoundaryOffsetModule(nn.Module):
-    """Learnable module g: derives boundary offset field from semantic logits.
+class BoundaryConsistencyModule(nn.Module):
+    """Learnable module g: boundary offset derivation with tolerance.
+
+    From semantic logits, derives a 3D boundary offset field. Unlike the
+    original exact-regression approach, this version is trained with:
+      - Cosine direction loss on valid points only (~2%): coarse directional
+        alignment, tolerant of magnitude errors.
+      - Local consistency loss within patches: same-side neighbors (same GT
+        class) should predict similar offset directions.
+
+    Gradients flow through seg_logits back to backbone, nudging semantic
+    predictions to produce better boundary structure.
 
     Uses PTv3-style serialized patch self-attention instead of KNN.
-    The backbone's space-filling curve serialization (z-order / Hilbert) is
-    reused: consecutive points in the serialized order form patches, and
-    self-attention within each patch lets the model learn which neighbors
-    carry useful semantic-gradient signal while naturally down-weighting
-    curve-discontinuity artifacts.
 
-    Architecture (mirrors a single PTv3 Block at module-g scale):
+    Architecture:
         softmax(seg_logits) + coord → linear projection → patch self-attention
-        (with RPE from grid_coord) → MLP → offset_head → 3D offset
+        (with RPE from grid_coord) → MLP → output_head → offset (N, 3)
     """
 
     def __init__(self, num_classes, channels=64, patch_size=48, num_heads=4,
@@ -177,8 +182,8 @@ class BoundaryOffsetModule(nn.Module):
             nn.Linear(channels * 4, channels),
         )
 
-        # Offset prediction head
-        self.offset_head = nn.Sequential(
+        # Output head: 3D boundary offset field
+        self.output_head = nn.Sequential(
             nn.Linear(channels, channels // 2),
             nn.GELU(),
             nn.Linear(channels // 2, 3),
@@ -248,7 +253,7 @@ class BoundaryOffsetModule(nn.Module):
                    serialized_inverse, grid_coord, offset
 
         Returns:
-            offset_pred: (N, 3) predicted displacement to nearest boundary
+            offset_pred: (N, 3) predicted boundary offset field
         """
         H = self.num_heads
         K = self.patch_size
@@ -295,4 +300,4 @@ class BoundaryOffsetModule(nn.Module):
         # FFN
         feat = feat + self.ffn(self.norm2(feat))
 
-        return self.offset_head(feat)  # (N, 3)
+        return self.output_head(feat)  # (N, 1)

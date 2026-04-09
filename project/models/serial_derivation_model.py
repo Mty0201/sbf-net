@@ -1,8 +1,9 @@
-"""Semantic segmentation + support head + serial boundary offset derivation.
+"""Semantic segmentation + support head + boundary offset module g.
 
-Extends SharedBackboneSemanticSupportModel with module g that derives
-boundary offset from semantic logits. The backbone only learns semantic
-features — the geometric field is derived serially from semantic output.
+Extends SharedBackboneSemanticSupportModel with module g that derives a
+3D boundary offset field from semantic logits. Trained with tolerant
+cosine direction loss + local consistency, so gradients nudge backbone
+to produce better semantic predictions at boundary regions.
 
 See docs/canonical/part2_serial_derivation_discussion.md.
 """
@@ -17,7 +18,7 @@ from pointcept.models.builder import MODELS, build_model
 from pointcept.models.utils.structure import Point
 
 from .heads import (
-    BoundaryOffsetModule,
+    BoundaryConsistencyModule,
     ResidualFeatureAdapter,
     SemanticHead,
     SupportHead,
@@ -31,17 +32,17 @@ ADAPTER_TYPES = {
 
 @MODELS.register_module()
 class SerialDerivationModel(nn.Module):
-    """Semantic segmentation with support head and serial boundary offset derivation.
+    """Semantic segmentation with support head and boundary offset module g.
 
     Architecture:
         backbone → semantic_head → seg_logits
-        backbone → support_head → support_pred  (CR-C route, separate branch)
-        g(softmax(seg_logits), coord) → offset_pred  (serial derivation)
+        backbone → support_head → support_pred  (BCE vs GT, boundary detection)
+        g(softmax(seg_logits), coord) → offset_pred  (tolerant offset derivation)
 
-    The offset module g takes soft semantic predictions (not backbone features)
-    and derives the geometric boundary field. Gradients from offset supervision
-    flow through g back to backbone via seg_logits, reinforcing boundary-region
-    semantic quality without gradient competition.
+    Module g derives a 3D boundary offset field from semantic logits.
+    Trained with cosine direction loss (tolerant, valid points only) +
+    local consistency (same-side patch neighbors have similar directions).
+    Gradients flow through seg_logits back to backbone.
     """
 
     def __init__(
@@ -67,8 +68,8 @@ class SerialDerivationModel(nn.Module):
         self.semantic_head = SemanticHead(backbone_out_channels, num_classes)
         self.support_head = SupportHead(backbone_out_channels)
 
-        # Serial derivation module g
-        self.offset_module = BoundaryOffsetModule(
+        # Boundary consistency module g
+        self.consistency_module = BoundaryConsistencyModule(
             num_classes=num_classes,
             channels=offset_channels,
             patch_size=offset_patch_size,
@@ -113,9 +114,9 @@ class SerialDerivationModel(nn.Module):
         seg_logits = self.semantic_head(semantic_feat)
         support_pred = self.support_head(boundary_feat)
 
-        # Serial derivation: offset from semantic logits (NOT backbone features)
+        # Boundary offset: 3D field from semantic logits (NOT backbone features)
         # point carries serialized_order/inverse/grid_coord from backbone
-        offset_pred = self.offset_module(seg_logits, coord, point)
+        offset_pred = self.consistency_module(seg_logits, coord, point)
 
         output = dict(
             seg_logits=seg_logits,

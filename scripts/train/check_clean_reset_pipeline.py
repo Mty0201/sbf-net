@@ -216,14 +216,8 @@ def main():
         (
             "CR-D (serial-derivation)",
             config_dir / "clean_reset_serial_derivation_model.py",
-            dict(type="SerialDerivationLoss", aux_weight=0.3, offset_weight=1.0),
+            dict(type="SerialDerivationLoss", aux_weight=0.3, offset_weight=1.0, consistency_weight=0.5),
             dict(type="RedesignedSupportFocusEvaluator"),
-        ),
-        (
-            "CR-E (serial-derivation-only)",
-            config_dir / "clean_reset_serial_derivation_only_model.py",
-            dict(type="SerialDerivationOnlyLoss", offset_weight=1.0),
-            dict(type="SemanticEvaluator"),
         ),
         (
             "CR-F (unweighted-boundary-cue)",

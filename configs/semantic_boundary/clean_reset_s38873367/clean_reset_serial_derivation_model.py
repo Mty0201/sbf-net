@@ -1,8 +1,9 @@
 """Serial derivation model for clean-reset workstream.
 
-SerialDerivationModel: backbone + semantic head + support head + offset module g.
-Module g uses PTv3-style serialized patch self-attention (not KNN) to derive
-boundary offset from semantic logits.
+SerialDerivationModel: backbone + semantic head + support head + consistency module g.
+Module g uses PTv3-style serialized patch self-attention to derive a scalar
+boundary-likelihood field from semantic logits, trained via MSE consistency
+against the support branch output.
 """
 
 model = dict(

@@ -1,5 +1,5 @@
 from .heads import (
-    BoundaryOffsetModule,
+    BoundaryConsistencyModule,
     EdgeHead,
     ResidualFeatureAdapter,
     SemanticHead,
@@ -10,10 +10,9 @@ from .semantic_boundary_model import SharedBackboneSemanticBoundaryModel
 from .semantic_model import SharedBackboneSemanticModel
 from .semantic_support_model import SharedBackboneSemanticSupportModel
 from .serial_derivation_model import SerialDerivationModel
-from .serial_derivation_only_model import SerialDerivationOnlyModel
 
 __all__ = [
-    "BoundaryOffsetModule",
+    "BoundaryConsistencyModule",
     "EdgeHead",
     "ResidualFeatureAdapter",
     "SemanticHead",
@@ -23,5 +22,5 @@ __all__ = [
     "SharedBackboneSemanticModel",
     "SharedBackboneSemanticSupportModel",
     "SerialDerivationModel",
-    "SerialDerivationOnlyModel",
+
 ]
