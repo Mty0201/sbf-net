@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: semantic-first boundary supervision reboot
-status: Phase 6 complete — serial derivation + 4 experiment configs ready for training
-stopped_at: Phase 6 complete, committed and pushed (8aeb4e1)
-last_updated: "2026-04-08T01:00:00Z"
-last_activity: 2026-04-08
+status: "BCE lower-bound problem diagnosed on continuous support target. Replaced with Focal MSE + Dice (CR-H). 2-epoch validation confirms healthy training: no collapse, support learning, aux gradient <10% of total."
+stopped_at: "CR-H (FocalMSEBoundaryLoss) implemented and validated. BCE on continuous Gaussian target has irreducible entropy lower bound (~0.2), causing persistent noise gradient that competes with semantic loss in late training. MSE+Dice combo: MSE provides stable early gradients (lower bound=0), Dice handles imbalance and prevents all-zero collapse. 2-epoch test: val_mIoU=0.579, aux_prob_boundary_mean rising (0.19→0.24), loss_aux_weighted ~9% of total. CR-G (BCE, aux_weight=1) confirmed harmful: best mIoU=0.7240 < CR-A 0.7336, aux occupied 56% of total loss. CR-G aux_weight=0.3 running on real environment. Next: compare CR-G(0.3) vs CR-H full 100-epoch results."
+last_updated: "2026-04-09T21:10:00Z"
+last_activity: 2026-04-09
 progress:
   total_phases: 7
   completed_phases: 5
@@ -27,8 +27,8 @@ See: `.planning/PROJECT.md` (updated 2026-04-06)
 
 Phase: 6 — Serial derivation module g (boundary offset from semantic logits) ✅
 Plan: `.planning/phases/06-serial-derivation-module/06-01-PLAN.md`
-Status: Complete. All code implemented, BCE weight bug fixed, 4 new experiment configs (CR-C/D/E/F) smoke-validated and pushed (8aeb4e1). Ready for full training runs.
-Last activity: 2026-04-08
+Status: Complete. All code implemented. CR-G (soft boundary + pos_weight) training in progress.
+Last activity: 2026-04-09
 
 ## Recent Context
 
@@ -57,6 +57,33 @@ Last activity: 2026-04-08
   - Edge representation simplified: (dir, dist, support) 5-dim → (offset, support) 4-dim. offset = dir × dist.
   - Smoke validation: all 4 pipelines (CR-A/B/C/D) pass end-to-end.
   - Discussion + literature survey at `docs/canonical/part2_serial_derivation_discussion.md` §7.
+- **[2026-04-09]** Trainer refactored: dynamic metric dispatch replaces 4 layers of hardcoded branches (~314 lines removed). Adding new losses now requires zero trainer changes. Smoke-validated all 7 pipelines (CR-A through CR-G).
+- **[2026-04-09]** CR-G (soft boundary loss) analysis:
+  - Initial run (aux_weight=0.3, no pos_weight): edge branch collapsed to trivial all-zero solution by epoch 2 due to extreme positive/negative imbalance (~2% boundary points).
+  - Raising aux_weight to 1.0 did not help — scales entire BCE but doesn't change internal positive/negative gradient ratio.
+  - Fix: per-batch `pos_weight = sqrt(neg_ratio / pos_ratio)` ≈ 8, rebalances BCE gradient. Prevents all-zero collapse.
+  - Key insight: pos_weight solves the training-initialization problem. Once converged, non-boundary points (target ≈ 0) naturally have near-zero loss and stop contributing gradient. The edge branch then only produces gradient at semantic transition zones — acting as a "boundary highlighter" for the backbone.
+  - Epoch 5 validation: edge branch learning confirmed (support_cover 0.15-0.43, aux_prob_boundary_mean separating from aux_prob_mean).
+  - Note: current CR-G run uses aux_weight=1 (manually changed in training env, not in git config which still says 0.3). Epoch 14 shows loss_semantic=0.349 vs loss_aux_weighted=0.228 — aux approaching parity with semantic. May need rerun at 0.3 if mIoU underperforms.
+- **[2026-04-09]** Module g redesigned through extensive discussion. Key design decisions:
+  - **Unified philosophy:** support branch = feature-level "reminder" (detection vs GT). g module = prediction-level "correction" (from seg_logits, gradient nudges backbone).
+  - **CR-E removed:** g's task depends on support branch existing; standalone offset-only has no purpose.
+  - **Support BCE upgraded to CR-G style** (pos_weight) in SerialDerivationLoss.
+  - **v1 (consistency MSE):** g outputs scalar, MSE vs detach(sigmoid(support_pred)). Result: loss_consistency ≈ 0.01 from start — task too easy, g provides zero useful gradient. val_mIoU=0.54 (same as without g).
+  - **v2 (tolerant cosine offset + local consistency):** g outputs 3D offset. Cosine direction loss on ~2% valid points + same-side patch consistency.
+  - **v2 retest (fair conditions):** Original 1-epoch test was unfair (no full LR cycle). Retest with total_epoch=20/eval_epoch=1 (complete OneCycleLR): val_mIoU=0.5529 (not 0.12). Direction loss still stuck at ~0.98 (no learning), but offset is neutral — not harmful, just dead weight like v1.
+  - **Commit:** 1935ab5. Files: heads.py (BoundaryConsistencyModule), serial_derivation_model.py, serial_derivation_loss.py.
+- **[2026-04-09]** BCE lower-bound problem diagnosed on continuous support target:
+  - **CR-G (BCE, aux_weight=1) full run to epoch 75:** best val_mIoU=0.7240 (epoch 57) < CR-A 0.7336. Loss_aux stuck at ~0.2 (irreducible BCE entropy on continuous Gaussian target). After epoch 57, mIoU oscillates/declines — aux noise gradient (56% of total loss) interferes with semantic fine-tuning.
+  - **Root cause:** BCE on continuous target t∈(0,1) has lower bound H(t) = -[t·log(t) + (1-t)·log(1-t)] > 0. Even perfect prediction produces non-zero loss and persistent gradient. With pos_weight≈7, this noise is amplified. CR-A's semantic loss reaches 0.088 by epoch 75, but CR-G's loss_aux_weighted=0.19 keeps injecting noise.
+  - **BFANet comparison:** BFANet uses hard 0/1 labels → BCE lower bound = 0, gradient vanishes when learned. Plus 10x semantic upweighting at boundary points (no aux loss competition). Fundamentally different design.
+  - **Solution: CR-H (FocalMSEBoundaryLoss)** — MSE + soft Dice replaces BCE:
+    - MSE: lower bound = 0, stable early gradients, focal weighting (pos_alpha=9) for imbalance
+    - Dice: global overlap, naturally immune to imbalance, prevents all-zero collapse
+    - MSE dominates early (stable per-point gradients), Dice refines late (after MSE vanishes)
+    - dice_weight=0.25 prevents Dice from dominating early (initial loss_dice≈0.96 >> loss_mse≈0.25)
+  - **CR-H 2-epoch validation:** val_mIoU=0.579, aux_prob_boundary_mean rising (0.19→0.24), loss_aux_weighted ~9% of total. No collapse, healthy learning.
+  - CR-G (aux_weight=0.3) running on real environment for comparison.
 
 ## Decisions
 

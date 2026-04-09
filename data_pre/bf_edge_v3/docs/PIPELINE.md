@@ -20,10 +20,6 @@
 - `edge_vec`
 - `edge_support`
 
-兼容别名：
-- `edge_mask`
-- `edge_strength`
-
 中间的 `boundary_centers / local_clusters / supports` 都只是为最终 pointwise supervision 服务的中间表示。
 
 
@@ -57,8 +53,11 @@
 
 作用：
 - 读取 `boundary_centers`。
-- 按 `semantic_pair` 分组后做 coarse spatial clustering。
-- 对 coarse cluster 做轻量去噪和 trigger 标记。
+- 按 `semantic_pair` 分组后做 bottom-up micro-cluster merge：
+  1. 小 eps DBSCAN 生成紧密微簇
+  2. 双峰横向分裂：分离被连接边桥接的平行边
+  3. 方向感知合并：相邻且切向兼容的微簇通过 union-find 合并
+  4. 后合并救援：噪声点分配到最近已合并簇
 
 依赖输入：
 - `boundary_centers.npz`
@@ -72,15 +71,15 @@
 这些可视化主要看什么：
 - 看 surviving centers 是否形成合理的局部边界簇。
 - 看 cluster id 是否局部连续。
-- 看 trigger cluster 是否主要出现在方向混杂或结构更复杂的位置。
+- 看是否出现跨边界误合并。
 
 
 ### 2.3 `scripts/fit_local_supports.py`
 
 作用：
 - 从 `local_clusters` 重建 cluster record。
-- 对普通 cluster 拟合 line / polyline support。
-- 对 trigger cluster 先做组内重组，再拟合 support。
+- 对每个 cluster 做空间间隙分割后拟合 line / polyline support。
+- 所有 cluster 统一处理，无 trigger dispatch。
 
 依赖输入：
 - `boundary_centers.npz`
@@ -91,11 +90,9 @@
 
 可视化输出：
 - `support_geometry.xyz`
-- `trigger_group_classes.xyz`
 
 这些可视化主要看什么：
 - `support_geometry.xyz`：看 support 几何是否沿真实边界展开，是否有明显串线、短碎片或方向错误。
-- `trigger_group_classes.xyz`：看 trigger cluster 内部的主边组、碎片组和坏组划分是否基本合理。
 
 
 ### 2.4 `scripts/build_pointwise_edge_supervision.py`
@@ -117,10 +114,6 @@
 - `edge_support_id.npy`
 - `edge_vec.npy`
 - `edge_support.npy`
-
-兼容导出：
-- `edge_mask.npy`
-- `edge_strength.npy`
 
 可视化输出：
 - `edge_supervision.xyz`
@@ -169,8 +162,6 @@
 - `edge_support_id.npy`
 - `edge_vec.npy`
 - `edge_support.npy`
-- 兼容保留 `edge_mask.npy`
-- 兼容保留 `edge_strength.npy`
 
 
 ### 3.3 各阶段保留的可视化输出
@@ -184,82 +175,171 @@
 
 第三阶段：
 - `support_geometry.xyz`
-- `trigger_group_classes.xyz`
 
 第四阶段：
 - `edge_supervision.xyz`
 
 
-## 4. 推荐运行顺序
+## 4. 推荐运行方式
 
-下面是单场景推荐运行顺序。将路径替换成自己的场景目录即可。
+### 4.1 一步式批处理（推荐）
 
-假设：
-- 原始场景目录：`/path/to/scene`
-- 阶段输出目录：`/path/to/output`
+`rebuild_edge_dataset_inplace.py` 是主力批处理入口，在内存中执行完整四阶段流程，每个场景只输出三个文件：`edge.npy`、`edge_supervision.xyz`、`support_geometry.xyz`。
 
-### 第一步：构建 boundary centers
+**安装 C++ 加速（首次使用前执行一次）：**
 
 ```bash
-python pointcept/datasets/preprocessing/bf_edge_v3/scripts/build_boundary_centers.py \
-  --scene /path/to/scene \
-  --output /path/to/output
+cd data_pre/bf_edge_v3/cpp
+pip install --no-build-isolation .
 ```
 
-### 第二步：构建 local clusters
+**批处理整个数据集：**
 
 ```bash
-python pointcept/datasets/preprocessing/bf_edge_v3/scripts/build_local_clusters.py \
-  --input /path/to/output \
-  --output /path/to/output
+cd data_pre/bf_edge_v3
+python scripts/rebuild_edge_dataset_inplace.py \
+    --input /path/to/dataset --workers 4
 ```
 
-### 第三步：拟合 local supports
+**强制重跑已有结果的场景：**
 
 ```bash
-python pointcept/datasets/preprocessing/bf_edge_v3/scripts/fit_local_supports.py \
-  --input /path/to/output \
-  --output /path/to/output
+python scripts/rebuild_edge_dataset_inplace.py \
+    --input /path/to/dataset --workers 4 --force
 ```
 
-### 第四步：构建 pointwise edge supervision
+启动时打印 `Backend: C++` 或 `Backend: Python` 表示当前后端。
+C++ 后端约 8s/场景（367K 点），Python 后端约 200s/场景。
+
+跳过逻辑：如果场景已有 `edge.npy`（shape `(N, 5)`）+ `edge_supervision.xyz` + `support_geometry.xyz`，且未指定 `--force`，则跳过。
+
+
+### 4.2 单场景逐阶段运行（调试用）
+
+将路径替换成自己的场景目录即可。
 
 ```bash
-python pointcept/datasets/preprocessing/bf_edge_v3/scripts/build_pointwise_edge_supervision.py \
-  --input /path/to/output \
-  --output /path/to/output \
-  --support-radius 0.08 \
-  --ignore-index -1
+cd data_pre/bf_edge_v3
+
+# 第一步：构建 boundary centers
+python scripts/build_boundary_centers.py \
+    --scene /path/to/scene --output /path/to/output
+
+# 第二步：构建 local clusters
+python scripts/build_local_clusters.py \
+    --input /path/to/output --output /path/to/output
+
+# 第三步：拟合 local supports
+python scripts/fit_local_supports.py \
+    --input /path/to/output --output /path/to/output
+
+# 第四步：构建 pointwise edge supervision
+python scripts/build_pointwise_edge_supervision.py \
+    --input /path/to/output --output /path/to/output \
+    --support-radius 0.08 --ignore-index -1
 ```
 
-说明：
-- 第一阶段的 `--scene` 指向原始场景目录。
-- 第二到第四阶段的 `--input` 指向前一阶段产物所在目录。
-- 当前没有统一批处理入口；若需要批处理，建议先按这四步确认单场景结果稳定。
 
-## 4.1 两步式数据集级批处理
+### 4.3 两步式数据集级批处理（旧流程）
 
 第一步：原地为样本补 `supports.npz + support_geometry.xyz`
 
 ```bash
-python pointcept/datasets/preprocessing/bf_edge_v3/scripts/build_support_dataset_v3.py \
-  --input /path/to/dataset
+python scripts/build_support_dataset_v3.py --input /path/to/dataset
 ```
 
 第二步：构建新的紧凑 edge 数据集
 
 ```bash
-python pointcept/datasets/preprocessing/bf_edge_v3/scripts/build_edge_dataset_v3.py \
-  --input /path/to/dataset \
-  --output /path/to/dataset_edge \
-  --support-radius 0.08 \
-  --ignore-index -1
+python scripts/build_edge_dataset_v3.py \
+    --input /path/to/dataset \
+    --output /path/to/dataset_edge \
+    --support-radius 0.08 --ignore-index -1
 ```
 
+注意：4.1 的一步式流程是推荐做法，4.3 仅在需要保留中间 `supports.npz` 时使用。
 
-## 5. 可视化验收说明
 
-### 5.1 boundary_centers 阶段看什么
+## 5. C++ 加速后端
+
+`cpp/` 目录包含全部四阶段的 C++ 实现，通过 pybind11 暴露为 `bf_edge_cpp` Python 模块。
+
+### 5.1 依赖
+
+- pybind11 (pip)
+- Eigen3 (conda install eigen 或系统 libeigen3-dev)
+- cmake
+- OpenMP (可选，用于多线程加速)
+
+### 5.2 编译安装
+
+```bash
+cd data_pre/bf_edge_v3/cpp
+pip install --no-build-isolation .
+```
+
+验证：
+
+```bash
+python -c "import bf_edge_cpp; print(dir(bf_edge_cpp))"
+```
+
+### 5.3 性能对比（367K 点场景）
+
+| Stage | Python | C++ | 加速比 |
+|-------|--------|-----|--------|
+| 1 (boundary centers) | 60s | 1.8s | 33x |
+| 2 (clustering) | 5s | 0.45s | 11x |
+| 3 (support fitting) | 2.4s | 0.35s | 7x |
+| 4 (pointwise supervision) | 133s | 5.8s | 23x |
+| **合计** | **200s** | **8.4s** | **24x** |
+
+### 5.4 自动降级
+
+`rebuild_edge_dataset_inplace.py` 在启动时尝试 `import bf_edge_cpp`。
+如果导入失败，自动回退到纯 Python 实现，功能完全相同。
+
+
+## 6. Module Structure
+
+### 6.1 Core Module Inventory
+
+| Module | Lines | Stage | Responsibility |
+|--------|-------|-------|----------------|
+| `core/boundary_centers_core.py` | 414 | 1 | kNN boundary detection, center estimation, confidence scoring |
+| `core/local_clusters_core.py` | 723 | 2 | Bottom-up micro-cluster merge: DBSCAN, bimodal split, direction merge, rescue |
+| `core/supports_core.py` | 338 | 3 | Orchestration: cluster record rebuild, support record assembly |
+| `core/fitting.py` | 263 | 3 | Core geometry primitives, line/polyline fitting, spatial gap splitting |
+| `core/supports_export.py` | 83 | 3 | NPZ/XYZ export and visualization for supports |
+| `core/config.py` | 143 | 1-4 | Frozen dataclass configs: Stage1Config, Stage2Config, Stage3Config, Stage4Config |
+| `core/pointwise_core.py` | 428 | 4 | Per-point edge supervision computation, bad support detection |
+| `core/validation.py` | 448 | 1-4 | Cross-stage validation hooks |
+
+### 6.2 Parameter Centralization
+
+所有流程参数定义在 `core/config.py` 的 frozen dataclass 中：
+
+- **`Stage1Config`**: boundary center detection (k, min_cross_ratio, min_side_points, ignore_index)
+- **`Stage2Config`**: bottom-up micro-cluster merge (micro DBSCAN eps/min_samples, bimodal split threshold, merge radius/direction/lateral, rescue radius, min_cluster_points)
+- **`Stage3Config`**: support fitting (line_residual_th, min_cluster_size, max_polyline_vertices, polyline_residual_th, min_cluster_density). `to_runtime_dict()` 生成 `build_supports_payload()` 所需的 flat dict
+- **`Stage4Config`**: pointwise edge supervision (support_radius=0.08, ignore_index=-1). Computed property: `sigma`
+
+### 6.3 C++ Module
+
+| File | Responsibility |
+|------|----------------|
+| `cpp/src/stage1.cpp` | Stage 1: nanoflann kNN + OpenMP parallel boundary detection |
+| `cpp/src/stage2.cpp` | Stage 2: nanoflann DBSCAN + union-find merge |
+| `cpp/src/stage3.cpp` | Stage 3: Eigen SVD line/polyline fitting |
+| `cpp/src/stage4.cpp` | Stage 4: OpenMP per-label parallel pointwise supervision |
+| `cpp/src/bindings.cpp` | pybind11 bindings exposing 5 Python functions |
+| `cpp/include/bf_edge/` | Headers: common.h, kdtree.h, stage1-4.h |
+| `cpp/third_party/nanoflann/` | Vendored nanoflann header-only KD-tree |
+
+
+## 7. 可视化验收说明
+
+### 7.1 boundary_centers 阶段看什么
 
 - `boundary_candidates.xyz` 是否主要贴着语义边界分布。
 - 是否出现大面积内部点被错误标成候选点。
@@ -267,21 +347,19 @@ python pointcept/datasets/preprocessing/bf_edge_v3/scripts/build_edge_dataset_v3
 - 切向和法向是否明显失稳。
 
 
-### 5.2 local_clusters 阶段看什么
+### 7.2 local_clusters 阶段看什么
 
 - `clustered_boundary_centers.xyz` 中同一边界带是否被分成合理局部簇。
 - 是否出现明显跨边界误合并。
-- trigger 标记是否主要集中在复杂区域，而不是普遍泛化。
 
 
-### 5.3 supports 阶段看什么
+### 7.3 supports 阶段看什么
 
 - `support_geometry.xyz` 中 support 是否贴着真实边界延展。
 - 是否存在明显过短、碎裂、串线或方向错误的 support。
-- `trigger_group_classes.xyz` 中 trigger cluster 的内部分类是否大致符合直觉。
 
 
-### 5.4 pointwise 阶段看什么
+### 7.4 pointwise 阶段看什么
 
 `edge_supervision.xyz` 当前只包含 `edge_valid == 1` 的点，不包含无效点。
 
@@ -301,107 +379,23 @@ python pointcept/datasets/preprocessing/bf_edge_v3/scripts/build_edge_dataset_v3
 12. `vec_z`
 13. `segment`
 
-各字段怎么理解：
-- `edge_dist`：点到最近 support 的距离。
-- `edge_support`：由 `edge_dist` 通过监督半径内的截断高斯映射得到的吸附权重。
-- `edge_support_id`：当前点命中的最近 support id。
-- `edge_dir`：从点指向最近边界的单位方向。
-- `edge_vec`：从点指向最近边界的位移向量。
-- `segment`：原始语义标签，方便按类别检查监督带。
-
-额外说明：
-- `edge_valid` 不单独写入 `edge_supervision.xyz`，因为这里本身只导出 `edge_valid == 1` 的点。
-
 重点关注的异常现象：
 - 有效点没有沿真实边界形成连续带状区域。
 - `edge_support_id` 在局部区域频繁跳变。
 - `edge_dir` 或 `edge_vec` 出现明显随机方向。
-- `edge_support` 不是“边界附近强、远离边界弱”，而是分布突兀或断裂。
+- `edge_support` 不是"边界附近强、远离边界弱"，而是分布突兀或断裂。
 - 某些类别附近出现明显错误吸附到远处 support。
 
 
-## 6. Module Structure (Phase 2 Restructure)
+## 8. 使用建议
 
-Phase 2 restructured the pipeline's Stage 3 module (originally a monolithic
-1318-line `supports_core.py`) into focused sub-modules and centralized all
-hardcoded parameters. Behavioral equivalence with the pre-restructure pipeline
-has been informally verified on test scenes 020101 and 020102; a formal
-equivalence gate is planned for Phase 3 (REF-06).
-
-### 6.1 Core Module Inventory
-
-| Module | Lines | Stage | Responsibility |
-|--------|-------|-------|----------------|
-| `core/boundary_centers_core.py` | 414 | 1 | kNN boundary detection, center estimation, confidence scoring |
-| `core/local_clusters_core.py` | 404 | 2 | Per-pair DBSCAN clustering, lightweight denoise, trigger flagging |
-| `core/supports_core.py` | 400 | 3 | Orchestration: cluster record rebuild, support record assembly |
-| `core/fitting.py` | 192 | 3 | Core geometry primitives, line/polyline fitting algorithms |
-| `core/trigger_regroup.py` | 686 | 3 | Trigger cluster regrouping (compatibility/adaptation logic) |
-| `core/supports_export.py` | 79 | 3 | NPZ/XYZ export and visualization for supports |
-| `core/config.py` | ~218 | 1-4 | Frozen dataclass configs: Stage1Config, Stage2Config, Stage3Config, Stage4Config |
-| `core/pointwise_core.py` | 295 | 4 | Per-point edge supervision computation |
-
-### 6.2 Parameter Centralization
-
-All pipeline parameters are now defined as frozen dataclass fields in `core/config.py`:
-
-- **`Stage1Config`**: Stage 1 boundary center detection (k, min_cross_ratio, min_side_points, ignore_index).
-
-- **`Stage2Config`**: Stage 2 DBSCAN clustering, denoising, and trigger parameters (5 CLI-level + 5 trigger + 3 denoise fields). Computed properties: `trigger_min_cluster_size`, `min_keep_points`.
-
-- **`Stage3Config`**: Stage 3 trigger regrouping (3 CLI-level + 25 fit parameters). Angle parameters stored in degrees; cosine thresholds exposed as `@property`. `to_runtime_dict()` produces the flat dict that `build_supports_payload()` expects.
-
-- **`Stage4Config`**: Stage 4 pointwise edge supervision (`support_radius=0.08`, `ignore_index=-1`). Computed property: `sigma`.
-
-Import pattern: `from core.config import Stage2Config` (scripts use
-`core.` prefix after `_bootstrap.py` sets up `sys.path`).
-
-### 6.3 Phase 2 Documentation
-
-Two new reference documents were created in `core/` during Phase 2:
-
-- **`BEHAVIORAL_AUDIT.md`**: Per-module, per-function behavioral
-  classification using a three-way scheme: CORE (algorithm), COMPAT
-  (compatibility/adaptation), INFRA (I/O/visualization). Includes the
-  complete Stage3Config parameter table with all 25 parameters and
-  their roles, plus runtime parameter derivation documentation.
-
-- **`CROSS_STAGE_CONTRACTS.md`**: Documents implicit cross-stage behavioral
-  contracts -- NPZ field schemas, semantic invariants, hidden assumptions,
-  and parameter unification via `Stage3Config.to_runtime_dict()`.
-
-### 6.4 Stage 3 Import Structure
-
-After the Phase 2 decomposition, Stage 3's import dependencies are:
-
-```
-fit_local_supports.py (script entry)
-  |-> core.params (DEFAULT_FIT_PARAMS)
-  |-> core.supports_core (build_supports_payload)
-  |     |-> core.fitting (fit_line_support, fit_polyline_support, ...)
-  |     |-> core.trigger_regroup (regroup_trigger_cluster, absorb_sparse_...)
-  |     |-> core.params (DEFAULT_FIT_PARAMS)
-  |-> core.supports_export (export_npz, export_support_geometry_xyz, ...)
-```
-
-`supports_core.py` re-exports `DEFAULT_FIT_PARAMS` from `core.params` for
-backward compatibility. Direct import from `core.params` is preferred.
+- **批处理推荐** `rebuild_edge_dataset_inplace.py --workers 4`，一步完成全部四阶段。
+- **调试排查** 时按四阶段顺序逐步跑，每步查看对应 `.xyz` 可视化。
+- 若 pointwise 结果异常，优先回溯检查 `supports`，再检查 `local_clusters`，最后检查 `boundary_centers`。
+- 当前流程的最终目标是逐点监督质量，不是让中间支撑元在几何上"看起来更漂亮"。
 
 
-## 7. 当前实现边界与注意事项
-
-当前版本已经做到：
-- 完成四阶段逐步构建。
-- 能从语义点云生成 pointwise edge supervision。
-- 保留了每个阶段的人工验收可视化输出。
-- Phase 2 模块分解和参数集中化完成。
-
-当前版本还没有做：
-- 语义法向替换。
-- smoothing / diffusion。
-- 统一的全量批处理入口。
-- 研究性对比分析。
-- Phase 3 per-stage config injection 和 formal equivalence gate。
+## 9. 当前实现边界与注意事项
 
 当前 pointwise supervision 的关键边界：
 - 当前逐点监督基于最近 support 查询，而不是直接对原始边界几何做解析。
@@ -409,11 +403,3 @@ backward compatibility. Direct import from `core.params` is preferred.
 - `sigma` 由 `support_radius / 2` 推导。
 - 超过 `support_radius` 或无合法候选 support 的点，`edge_valid = 0`。
 - 当前 `edge_supervision.xyz` 只导出有效点，用于减小体积并方便 CloudCompare 验收。
-
-
-## 8. 使用建议
-
-- 先在单场景上按四阶段顺序跑通，再考虑批处理。
-- 每个阶段都建议查看对应 `.xyz` 可视化，不要只看最终数组。
-- 若 pointwise 结果异常，优先回溯检查 `supports`，再检查 `local_clusters`，最后检查 `boundary_centers`。
-- 当前流程的最终目标是逐点监督质量，不是让中间支撑元在几何上“看起来更漂亮”。

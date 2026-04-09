@@ -10,6 +10,7 @@ from .serial_derivation_loss import SerialDerivationLoss
 
 from .unweighted_boundary_cue_loss import UnweightedBoundaryCueLoss
 from .soft_boundary_loss import SoftBoundaryLoss
+from .focal_mse_boundary_loss import FocalMSEBoundaryLoss
 
 
 def build_loss(cfg: dict | None):
@@ -50,6 +51,9 @@ def build_loss(cfg: dict | None):
     if loss_type == "SoftBoundaryLoss":
         kwargs = {key: value for key, value in cfg.items() if key != "type"}
         return SoftBoundaryLoss(**kwargs)
+    if loss_type == "FocalMSEBoundaryLoss":
+        kwargs = {key: value for key, value in cfg.items() if key != "type"}
+        return FocalMSEBoundaryLoss(**kwargs)
     raise ValueError(f"Unsupported loss type: {loss_type}")
 
 
@@ -66,5 +70,6 @@ __all__ = [
 
     "UnweightedBoundaryCueLoss",
     "SoftBoundaryLoss",
+    "FocalMSEBoundaryLoss",
     "build_loss",
 ]

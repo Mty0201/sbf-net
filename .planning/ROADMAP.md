@@ -49,27 +49,25 @@
 
 ### — Part 1: Boundary Proximity Cue Validation (Phase 5) —
 
-### Phase 5: Boundary proximity cue experiment (CR-C)
+### Phase 5: Boundary proximity cue experiments (CR-C/F/G)
 
-**Goal:** Validate that treating support as a boundary proximity indicator (confidence-weighted BCE, not geometric regression) produces a positive semantic effect — matching or exceeding CR-A (semantic-only, 0.7336 mIoU).
+**Goal:** Validate that treating support as a boundary proximity indicator (BCE, not geometric regression) produces a positive semantic effect — matching or exceeding CR-A (semantic-only, 0.7336 mIoU).
 **Requires:** CUE-01, CUE-02, CUE-03, CUE-04
 **Depends on:** Phase 4
 
-**Changes from CR-B:**
-1. Loss: Replace SmoothL1+Tversky regression with confidence-weighted BCE classification (Option L1 from route redesign)
-2. Target interpretation: `valid` = boundary/not-boundary label. `support` = confidence weight for boundary points.
-3. Auxiliary weight: 0.2–0.5 (mild regularizer, not competing primary objective)
-4. No other changes to data, model, or optimization
+**Experiment evolution:**
+- **CR-C** (BoundaryProximityCueLoss): confidence-weighted BCE on binary valid. First attempt at BCE classification.
+- **CR-F** (UnweightedBoundaryCueLoss): unweighted BCE on binary valid. Simplified variant.
+- **CR-G** (SoftBoundaryLoss): BCE on continuous support (Gaussian decay, σ=0.02m). Eliminates the meaningless hard valid boundary — target is a smooth scalar field that naturally peaks at semantic boundaries and decays to zero away from them.
+  - **Problem discovered:** ~2% positive samples → BCE gradient dominated by negatives → trivial all-zero collapse. Raising aux_weight (0.3→1.0) did not help (scales entire BCE, doesn't change internal ratio).
+  - **Fix:** per-batch `pos_weight = sqrt(neg/pos)` ≈ 8 in BCE. Rebalances gradient contribution. Edge branch confirmed learning by epoch 5.
+  - **Key insight:** pos_weight is only needed at training start. Once converged, non-boundary points have near-zero target and near-zero loss, so they naturally stop contributing gradient. The edge branch becomes a "boundary highlighter" — only producing gradient at semantic transition zones.
 
-**What Phase 5 does NOT include:**
-- No direction field prediction (columns 0-2 of edge.npy)
-- No distance field prediction (column 3 of edge.npy)
-- No geometric field regression of any kind
-- No complex feature fusion, gating, or attention
-- No data pipeline changes
+**Infrastructure:** Trainer refactored to dynamic metric dispatch (commit 35b91bd). Adding new losses no longer requires any trainer changes. All 7 pipelines (CR-A through CR-G) smoke-validated.
 
-**Success criterion:** CR-C mIoU ≥ CR-A (0.7336). Any positive delta confirms boundary-aware auxiliary supervision helps when the target is properly aligned.
-**Failure diagnosis:** If CR-C also fails, the problem is deeper than target design — likely architectural or in the backbone feature-sharing mechanism.
+**CR-H** (FocalMSEBoundaryLoss): MSE + soft Dice replaces BCE. BCE on continuous Gaussian target has irreducible entropy lower bound (~0.2) causing persistent noise gradient. MSE (lower bound=0) + Dice (imbalance-immune, anti-collapse) combo solves this. 2-epoch validation: healthy learning, no collapse, aux_weighted ~9% of total.
+
+**Success criterion:** CR-G or CR-H mIoU ≥ CR-A (0.7336). Any positive delta confirms boundary-aware auxiliary supervision helps when the target is properly aligned.
 
 ---
 

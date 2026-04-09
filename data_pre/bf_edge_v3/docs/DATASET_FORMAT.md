@@ -67,7 +67,56 @@ dataset
 - `support_geometry.xyz` 是快速人工验收用的可视化文件。
 
 
-## 3. 第二步 edge 数据集结构
+## 3. 一步式原地重建（推荐）
+
+运行 `rebuild_edge_dataset_inplace.py` 后，在原始样本目录原地生成/覆盖三个文件：
+
+- `edge.npy`
+- `edge_supervision.xyz`
+- `support_geometry.xyz`
+
+不保留中间产物（boundary_centers.npz、local_clusters.npz、supports.npz）。
+
+示例：
+
+```text
+dataset
+├─ training
+│  └─ 020101
+│     ├─ coord.npy
+│     ├─ color.npy
+│     ├─ normal.npy
+│     ├─ segment.npy
+│     ├─ edge.npy                  ← 生成
+│     ├─ edge_supervision.xyz      ← 生成
+│     └─ support_geometry.xyz      ← 生成
+└─ validation
+   └─ 010101
+      ├─ coord.npy
+      ├─ color.npy
+      ├─ normal.npy
+      ├─ segment.npy
+      ├─ edge.npy
+      ├─ edge_supervision.xyz
+      └─ support_geometry.xyz
+```
+
+用法：
+
+```bash
+cd data_pre/bf_edge_v3
+python scripts/rebuild_edge_dataset_inplace.py \
+    --input /path/to/dataset --workers 4
+```
+
+
+## 4. 两步式 edge 数据集结构（旧流程）
+
+### 4.1 第一步补 supports
+
+同上文第 2 节。运行 `build_support_dataset_v3.py` 原地补 `supports.npz` + `support_geometry.xyz`。
+
+### 4.2 第二步生成 edge 数据集
 
 运行 `build_edge_dataset_v3.py` 后，会生成一个新的紧凑 edge 数据集。
 
@@ -105,7 +154,7 @@ dataset_edge
 ```
 
 
-## 4. `edge.npy` 定义
+## 5. `edge.npy` 定义
 
 `edge.npy` 是最终训练友好的紧凑监督。
 
@@ -136,14 +185,11 @@ edge[:, 4] = edge_valid
 兼容说明：
 - 逐点导出仍会额外保留 `edge_strength.npy` 和 `edge_mask.npy`，它们分别等价于 `edge_support.npy` 和 `edge_valid.npy`。
 
-当前 `edge.npy` 不包含：
-
-- `edge_dist`
-- `edge_dir`
-- `edge_support_id`
+当前 `edge.npy` 不包含 `edge_dist`、`edge_dir`、`edge_support_id`。
+这些字段仅在逐阶段运行时单独输出，一步式批处理不生成。
 
 
-## 5. `edge_supervision.xyz` 作用
+## 6. `edge_supervision.xyz` 作用
 
 `edge_supervision.xyz` 是 pointwise 监督的快速人工验收文件。
 
