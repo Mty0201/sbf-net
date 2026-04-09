@@ -78,8 +78,8 @@ class SoftBoundaryLoss(nn.Module):
             loss_lovasz=loss_lovasz,
             loss_aux=loss_aux,
             loss_aux_weighted=loss_aux_weighted,
+            valid_ratio=(support_gt > 0.5).float().mean(),
             support_positive_ratio=(support_gt > 1e-3).float().mean(),
-            support_high_ratio=(support_gt > 0.5).float().mean(),
             aux_prob_mean=aux_prob_mean,
             aux_prob_boundary_mean=aux_prob_boundary_mean,
         )
