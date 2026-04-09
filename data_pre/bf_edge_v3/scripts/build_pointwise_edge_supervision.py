@@ -54,6 +54,7 @@ def run_scene(input_dir: Path, output_dir: Path, args: argparse.Namespace) -> No
         support_radius=cfg.support_radius,
         ignore_index=cfg.ignore_index,
         skip_supports=hollow_ids,
+        sigma=cfg.sigma,
     )
 
     validate_edge_supervision(payload, num_scene_points=scene["coord"].shape[0])

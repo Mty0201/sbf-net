@@ -89,6 +89,7 @@ def run_scene(src_scene_dir: Path, dst_scene_dir: Path, cfg: Stage4Config) -> No
         support_radius=cfg.support_radius,
         ignore_index=cfg.ignore_index,
         skip_supports=hollow_ids,
+        sigma=cfg.sigma,
     )
 
     copy_base_files(src_scene_dir=src_scene_dir, dst_scene_dir=dst_scene_dir)

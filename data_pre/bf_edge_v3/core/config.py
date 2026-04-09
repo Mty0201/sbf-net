@@ -135,9 +135,10 @@ class Stage4Config:
     """Pointwise edge supervision parameters."""
 
     support_radius: float = 0.08
+    support_sigma: float = 0.02
     ignore_index: int = -1
 
     @property
     def sigma(self) -> float:
-        """Gaussian decay sigma. Currently ``support_radius / 2``."""
-        return max(self.support_radius / 2.0, 1e-8)
+        """Gaussian decay sigma. Decoupled from support_radius."""
+        return max(self.support_sigma, 1e-8)

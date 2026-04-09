@@ -147,6 +147,7 @@ def _run_scene_cpp(scene_dir: Path) -> dict:
         sup["cluster_id"], sup["support_type"],
         s4.support_radius, s4.ignore_index,
         skip_supports=hollow_ids,
+        sigma=s4.sigma,
     )
 
     # Build full supports_payload dict for export functions
@@ -239,7 +240,7 @@ def _run_scene_python(scene_dir: Path) -> dict:
     edge_payload, edge_meta = build_pointwise_edge_supervision(
         scene=scene, supports=supports_payload,
         support_radius=s4.support_radius, ignore_index=s4.ignore_index,
-        skip_supports=hollow_ids,
+        skip_supports=hollow_ids, sigma=s4.sigma,
     )
 
     np.save(scene_dir / "edge.npy", build_edge_array(edge_payload))

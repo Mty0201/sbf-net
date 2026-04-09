@@ -121,7 +121,11 @@ class TestStage4Defaults:
 
     def test_stage4_sigma(self) -> None:
         cfg = Stage4Config()
-        assert cfg.sigma == 0.04
+        assert cfg.sigma == 0.02
+
+    def test_stage4_sigma_custom(self) -> None:
+        cfg = Stage4Config(support_sigma=0.01)
+        assert cfg.sigma == 0.01
 
 
 # ---------------------------------------------------------------------------

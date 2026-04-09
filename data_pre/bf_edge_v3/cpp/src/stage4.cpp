@@ -119,7 +119,8 @@ void build_pointwise_edge_supervision(
     float support_radius,
     int ignore_index,
     const std::set<int>& skip_supports,
-    PointwiseResult& result
+    PointwiseResult& result,
+    float sigma
 ) {
     result.edge_dist.assign(n_points, std::numeric_limits<float>::infinity());
     result.edge_dir.assign(n_points * 3, 0.0f);
@@ -223,8 +224,8 @@ void build_pointwise_edge_supervision(
     }
 
     // Gaussian support weights
-    float sigma = std::max(support_radius / 2.0f, EPS);
-    float inv_2sigma2 = 1.0f / (2.0f * sigma * sigma);
+    float eff_sigma = (sigma > 0.0f) ? sigma : std::max(support_radius / 2.0f, EPS);
+    float inv_2sigma2 = 1.0f / (2.0f * eff_sigma * eff_sigma);
 
     #pragma omp parallel for schedule(static)
     for (int i = 0; i < n_points; ++i) {

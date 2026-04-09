@@ -50,7 +50,8 @@ void build_pointwise_edge_supervision(
     float support_radius,
     int ignore_index,
     const std::set<int>& skip_supports,
-    PointwiseResult& result
+    PointwiseResult& result,
+    float sigma = -1.0f
 );
 
 std::set<int> find_bad_supports(

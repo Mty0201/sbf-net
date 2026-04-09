@@ -269,9 +269,10 @@ def build_edge_support(
     edge_dist: np.ndarray,
     edge_valid: np.ndarray,
     support_radius: float,
+    sigma: float | None = None,
 ) -> tuple[np.ndarray, float]:
     """Build truncated Gaussian boundary support weights inside the supervision radius."""
-    sigma = max(float(support_radius) / 2.0, EPS)
+    sigma = max(float(sigma), EPS) if sigma is not None else max(float(support_radius) / 2.0, EPS)
     edge_support = np.zeros(edge_dist.shape, dtype=np.float32)
     valid_mask = edge_valid == 1
     if np.any(valid_mask):
@@ -288,6 +289,7 @@ def build_pointwise_edge_supervision(
     support_radius: float,
     ignore_index: int,
     skip_supports: set[int] | None = None,
+    sigma: float | None = None,
 ) -> tuple[dict, dict]:
     """Build nearest-support boundary snapping supervision."""
     coord = scene["coord"]
@@ -347,6 +349,7 @@ def build_pointwise_edge_supervision(
         edge_dist=edge_dist,
         edge_valid=edge_valid,
         support_radius=float(support_radius),
+        sigma=sigma,
     )
 
     payload = {

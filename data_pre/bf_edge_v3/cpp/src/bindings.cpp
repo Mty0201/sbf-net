@@ -204,7 +204,8 @@ static py::dict py_build_pointwise_edge_supervision(
     py::array_t<int32_t> support_type,
     float support_radius,
     int ignore_index,
-    py::object skip_supports_obj
+    py::object skip_supports_obj,
+    float sigma = -1.0f
 ) {
     auto c = ensure_c_contiguous(coord);
     auto seg = ensure_c_contiguous(segment);
@@ -257,7 +258,7 @@ static py::dict py_build_pointwise_edge_supervision(
     build_pointwise_edge_supervision(
         c.data(), n_points, seg.data(),
         sup, support_radius, ignore_index, skip,
-        result
+        result, sigma
     );
 
     py::dict out;
@@ -389,6 +390,7 @@ PYBIND11_MODULE(bf_edge_cpp, m) {
         py::arg("cluster_id"), py::arg("support_type"),
         py::arg("support_radius"), py::arg("ignore_index"),
         py::arg("skip_supports") = py::none(),
+        py::arg("sigma") = -1.0f,
         "Stage 4: build pointwise edge supervision");
 
     m.def("find_bad_supports", &py_find_bad_supports,
