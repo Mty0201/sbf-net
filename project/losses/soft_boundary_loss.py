@@ -55,8 +55,13 @@ class SoftBoundaryLoss(nn.Module):
 
         # Term 2: BCE with support as continuous target
         support_logit = support_pred[:, 0]
+        with torch.no_grad():
+            pos_mask = support_gt > 0.5
+            neg_ratio = (~pos_mask).float().mean()
+            pos_ratio = pos_mask.float().mean().clamp_min(1e-6)
+            pw = (neg_ratio / pos_ratio).sqrt()
         loss_aux = F.binary_cross_entropy_with_logits(
-            support_logit, support_gt, reduction="mean"
+            support_logit, support_gt, pos_weight=pw, reduction="mean"
         )
 
         loss_aux_weighted = self.aux_weight * loss_aux
@@ -78,6 +83,7 @@ class SoftBoundaryLoss(nn.Module):
             loss_lovasz=loss_lovasz,
             loss_aux=loss_aux,
             loss_aux_weighted=loss_aux_weighted,
+            pos_weight=pw,
             valid_ratio=(support_gt > 0.5).float().mean(),
             support_positive_ratio=(support_gt > 1e-3).float().mean(),
             aux_prob_mean=aux_prob_mean,
