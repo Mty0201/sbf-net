@@ -236,109 +236,13 @@ class SemanticBoundaryTrainer:
                 result[key] = float(value.detach().cpu())
         return result
 
+    _NON_LOSS_KEYS = {"optimizer_steps"}
+
     @staticmethod
     def _loss_log_keys(loss_dict: dict[str, torch.Tensor] | dict[str, float]) -> list[str]:
-        if "loss_axis" in loss_dict:
-            # AxisSideSemanticBoundaryLoss
-            return [
-                "loss",
-                "loss_semantic",
-                "loss_edge",
-                "loss_support",
-                "loss_support_reg",
-                "loss_support_cover",
-                "loss_axis",
-                "loss_side",
-                "valid_ratio",
-                "support_positive_ratio",
-                "axis_valid_ratio",
-                "axis_cosine",
-                "side_accuracy",
-                "dir_cosine",
-            ]
-        if "loss_ordinal" in loss_dict:
-            # SupportShapeLoss
-            return [
-                "loss",
-                "loss_semantic",
-                "loss_edge",
-                "loss_support",
-                "loss_support_reg",
-                "loss_support_cover",
-                "loss_ordinal",
-                "valid_ratio",
-                "support_positive_ratio",
-                "support_cover",
-                "ordinal_pairs",
-            ]
-        if "loss_edge" in loss_dict:
-            keys = [
-                "loss",
-                "loss_semantic",
-                "loss_edge",
-                "loss_support",
-                "loss_support_reg",
-                "loss_support_cover",
-                "loss_dir",
-                "loss_dist",
-                "valid_ratio",
-                "support_positive_ratio",
-                "dir_valid_ratio",
-                "dist_gt_valid_mean",
-                "dir_cosine",
-                "dist_error",
-            ]
-            if "loss_coherence" in loss_dict:
-                keys.append("loss_coherence")
-            return keys
-        if "loss_offset" in loss_dict and "loss_aux" in loss_dict:
-            # SerialDerivationLoss (dual-branch + module g)
-            return [
-                "loss",
-                "loss_semantic",
-                "loss_aux",
-                "loss_aux_weighted",
-                "loss_offset",
-                "loss_offset_weighted",
-                "offset_mae",
-                "valid_ratio",
-                "support_positive_ratio",
-                "aux_prob_mean",
-                "aux_prob_boundary_mean",
-            ]
-        if "loss_offset" in loss_dict:
-            # SerialDerivationOnlyLoss (single-branch + module g)
-            return [
-                "loss",
-                "loss_semantic",
-                "loss_offset",
-                "loss_offset_weighted",
-                "offset_mae",
-                "valid_ratio",
-            ]
-        if "loss_aux" in loss_dict:
-            # BoundaryProximityCueLoss
-            return [
-                "loss",
-                "loss_semantic",
-                "loss_aux",
-                "loss_aux_weighted",
-                "valid_ratio",
-                "support_positive_ratio",
-                "aux_prob_mean",
-                "aux_prob_boundary_mean",
-            ]
-        if "loss_focus" in loss_dict:
-            # SupportGuidedSemanticFocusLoss
-            return [
-                "loss",
-                "loss_semantic",
-                "loss_support",
-                "loss_focus",
-                "valid_ratio",
-                "support_positive_ratio",
-            ]
-        return ["loss", "loss_semantic"]
+        skip = {"loss"} | SemanticBoundaryTrainer._NON_LOSS_KEYS
+        keys = sorted(k for k in loss_dict if k not in skip)
+        return ["loss"] + keys
 
     @staticmethod
     def _build_loss_inputs(output: dict, batch: dict) -> dict:
@@ -536,94 +440,7 @@ class SemanticBoundaryTrainer:
 
     def validate(self) -> dict[str, float]:
         self.model.eval()
-        metrics = ["val_mIoU", "val_mAcc", "val_allAcc"]
-        if self.cfg.get("loss", {}).get("type", "SemanticBoundaryLoss") in (
-            "SemanticBoundaryLoss",
-            "RouteASemanticBoundaryLoss",
-        ):
-            metrics.extend(
-                [
-                    "val_loss_edge",
-                    "val_loss_support",
-                    "val_loss_dir",
-                    "val_loss_dist",
-                    "val_loss_support_reg",
-                    "val_loss_support_cover",
-                    "valid_ratio",
-                    "support_positive_ratio",
-                    "dir_valid_ratio",
-                    "dist_gt_valid_mean",
-                    "support_cover",
-                    "support_error",
-                    "dir_cosine",
-                    "dist_error",
-                ]
-            )
-        elif self.cfg.get("loss", {}).get("type") == "SupportShapeLoss":
-            # Evaluator uses SemanticBoundaryEvaluator internally, which
-            # returns the full key set.  dir/dist metrics will be zero.
-            metrics.extend(
-                [
-                    "val_loss_edge",
-                    "val_loss_support",
-                    "val_loss_dir",
-                    "val_loss_dist",
-                    "val_loss_support_reg",
-                    "val_loss_support_cover",
-                    "valid_ratio",
-                    "support_positive_ratio",
-                    "dir_valid_ratio",
-                    "dist_gt_valid_mean",
-                    "support_cover",
-                    "support_error",
-                    "dir_cosine",
-                    "dist_error",
-                ]
-            )
-        elif self.cfg.get("loss", {}).get("type") == "AxisSideSemanticBoundaryLoss":
-            metrics.extend(
-                [
-                    "val_loss_edge",
-                    "val_loss_support",
-                    "val_loss_axis",
-                    "val_loss_side",
-                    "val_loss_support_reg",
-                    "val_loss_support_cover",
-                    "valid_ratio",
-                    "support_positive_ratio",
-                    "axis_valid_ratio",
-                    "support_cover",
-                    "support_error",
-                    "axis_cosine",
-                    "side_accuracy",
-                    "dir_cosine",
-                ]
-            )
-        elif self.cfg.get("loss", {}).get("type") == "SupportGuidedSemanticFocusLoss":
-            metrics.extend([
-                "val_loss_semantic",
-                "val_boundary_mIoU",
-                "val_boundary_mAcc",
-                "boundary_point_ratio",
-                "support_bce",
-                "support_cover",
-                "valid_ratio",
-                "support_positive_ratio",
-            ])
-        elif self.cfg.get("loss", {}).get("type") == "RedesignedSupportFocusLoss":
-            metrics.extend([
-                "val_loss_semantic",
-                "val_boundary_mIoU",
-                "val_boundary_mAcc",
-                "boundary_point_ratio",
-                "support_reg_error",
-                "support_cover",
-                "valid_ratio",
-                "support_positive_ratio",
-            ])
-        else:
-            metrics.append("val_loss_semantic")
-        metric_meters = {key: AverageMeter() for key in metrics}
+        metric_meters = None
         max_batches = self.trainer_cfg.get("max_val_batches")
         num_classes = int(self.cfg["model"]["num_classes"])
         semantic_intersection = torch.zeros(num_classes, dtype=torch.float64)
@@ -642,138 +459,29 @@ class SemanticBoundaryTrainer:
                 semantic_intersection += metric_dict["semantic_intersection"].detach().cpu().double()
                 semantic_union += metric_dict["semantic_union"].detach().cpu().double()
                 semantic_target += metric_dict["semantic_target"].detach().cpu().double()
-                for key in metrics:
-                    metric_meters[key].update(detached[key])
+                if metric_meters is None:
+                    metric_meters = {key: AverageMeter() for key in detached.keys()}
+                for key in metric_meters:
+                    if key in detached:
+                        metric_meters[key].update(detached[key])
                 processed_iter = batch_idx + 1
                 if processed_iter % self.val_log_freq == 0 or processed_iter == (
                     min(len(self.val_loader), max_batches) if max_batches is not None else len(self.val_loader)
                 ):
-                    if "val_loss_axis" in metric_meters:
-                        self.logger.info(
-                            "Val/Test: [{iter}/{max_iter}] val_loss_edge: {loss_edge:.4f} "
-                            "val_loss_support: {loss_support:.4f} "
-                            "val_loss_axis: {loss_axis:.4f} "
-                            "val_loss_side: {loss_side:.4f} "
-                            "support_cover: {support_cover:.4f} "
-                            "axis_cosine: {axis_cosine:.4f} "
-                            "side_accuracy: {side_accuracy:.4f} "
-                            "dir_cosine: {dir_cosine:.4f} "
-                            "mIoU: {miou:.4f} mAcc: {macc:.4f} allAcc: {allacc:.4f}".format(
-                                iter=processed_iter,
-                                max_iter=min(len(self.val_loader), max_batches) if max_batches is not None else len(self.val_loader),
-                                loss_edge=metric_meters["val_loss_edge"].val,
-                                loss_support=metric_meters["val_loss_support"].val,
-                                loss_axis=metric_meters["val_loss_axis"].val,
-                                loss_side=metric_meters["val_loss_side"].val,
-                                support_cover=metric_meters["support_cover"].val,
-                                axis_cosine=metric_meters["axis_cosine"].val,
-                                side_accuracy=metric_meters["side_accuracy"].val,
-                                dir_cosine=metric_meters["dir_cosine"].val,
-                                miou=metric_meters["val_mIoU"].val,
-                                macc=metric_meters["val_mAcc"].val,
-                                allacc=metric_meters["val_allAcc"].val,
-                            )
-                        )
-                    elif "val_loss_edge" in metric_meters:
-                        self.logger.info(
-                            "Val/Test: [{iter}/{max_iter}] val_loss_edge: {loss_edge:.4f} "
-                            "val_loss_support: {loss_support:.4f} "
-                            "val_loss_support_reg: {loss_support_reg:.4f} "
-                            "val_loss_support_cover: {loss_support_cover:.4f} "
-                            "val_loss_dir: {loss_dir:.4f} "
-                            "val_loss_dist: {loss_dist:.4f} "
-                            "support_cover: {support_cover:.4f} "
-                            "valid_ratio: {valid_ratio:.4f} "
-                            "support_positive_ratio: {support_positive_ratio:.4f} "
-                            "dir_valid_ratio: {dir_valid_ratio:.4f} "
-                            "dist_gt_valid_mean: {dist_gt_valid_mean:.4f} "
-                            "dir_cosine: {dir_cosine:.4f} "
-                            "dist_error: {dist_error:.4f} "
-                            "support_error: {support_error:.4f} "
-                            "mIoU: {miou:.4f} mAcc: {macc:.4f} allAcc: {allacc:.4f}".format(
-                                iter=processed_iter,
-                                max_iter=min(len(self.val_loader), max_batches) if max_batches is not None else len(self.val_loader),
-                                loss_edge=metric_meters["val_loss_edge"].val,
-                                loss_support=metric_meters["val_loss_support"].val,
-                                loss_support_reg=metric_meters["val_loss_support_reg"].val,
-                                loss_support_cover=metric_meters["val_loss_support_cover"].val,
-                                loss_dir=metric_meters["val_loss_dir"].val,
-                                loss_dist=metric_meters["val_loss_dist"].val,
-                                support_cover=metric_meters["support_cover"].val,
-                                valid_ratio=metric_meters["valid_ratio"].val,
-                                support_positive_ratio=metric_meters["support_positive_ratio"].val,
-                                dir_valid_ratio=metric_meters["dir_valid_ratio"].val,
-                                dist_gt_valid_mean=metric_meters["dist_gt_valid_mean"].val,
-                                dir_cosine=metric_meters["dir_cosine"].val,
-                                dist_error=metric_meters["dist_error"].val,
-                                support_error=metric_meters["support_error"].val,
-                                miou=metric_meters["val_mIoU"].val,
-                                macc=metric_meters["val_mAcc"].val,
-                                allacc=metric_meters["val_allAcc"].val,
-                            )
-                        )
-                    elif "support_reg_error" in metric_meters:
-                        self.logger.info(
-                            "Val/Test: [{iter}/{max_iter}] "
-                            "val_boundary_mIoU: {boundary_miou:.4f} "
-                            "val_boundary_mAcc: {boundary_macc:.4f} "
-                            "boundary_point_ratio: {boundary_ratio:.4f} "
-                            "support_reg_error: {support_reg_error:.4f} "
-                            "support_cover: {support_cover:.4f} "
-                            "valid_ratio: {valid_ratio:.4f} "
-                            "support_positive_ratio: {support_positive_ratio:.4f} "
-                            "mIoU: {miou:.4f} mAcc: {macc:.4f} allAcc: {allacc:.4f}".format(
-                                iter=processed_iter,
-                                max_iter=min(len(self.val_loader), max_batches) if max_batches is not None else len(self.val_loader),
-                                boundary_miou=metric_meters["val_boundary_mIoU"].val,
-                                boundary_macc=metric_meters["val_boundary_mAcc"].val,
-                                boundary_ratio=metric_meters["boundary_point_ratio"].val,
-                                support_reg_error=metric_meters["support_reg_error"].val,
-                                support_cover=metric_meters["support_cover"].val,
-                                valid_ratio=metric_meters["valid_ratio"].val,
-                                support_positive_ratio=metric_meters["support_positive_ratio"].val,
-                                miou=metric_meters["val_mIoU"].val,
-                                macc=metric_meters["val_mAcc"].val,
-                                allacc=metric_meters["val_allAcc"].val,
-                            )
-                        )
-                    elif "val_boundary_mIoU" in metric_meters:
-                        self.logger.info(
-                            "Val/Test: [{iter}/{max_iter}] "
-                            "val_boundary_mIoU: {boundary_miou:.4f} "
-                            "val_boundary_mAcc: {boundary_macc:.4f} "
-                            "boundary_point_ratio: {boundary_ratio:.4f} "
-                            "support_bce: {support_bce:.4f} "
-                            "support_cover: {support_cover:.4f} "
-                            "valid_ratio: {valid_ratio:.4f} "
-                            "mIoU: {miou:.4f} mAcc: {macc:.4f} allAcc: {allacc:.4f}".format(
-                                iter=processed_iter,
-                                max_iter=min(len(self.val_loader), max_batches) if max_batches is not None else len(self.val_loader),
-                                boundary_miou=metric_meters["val_boundary_mIoU"].val,
-                                boundary_macc=metric_meters["val_boundary_mAcc"].val,
-                                boundary_ratio=metric_meters["boundary_point_ratio"].val,
-                                support_bce=metric_meters["support_bce"].val,
-                                support_cover=metric_meters["support_cover"].val,
-                                valid_ratio=metric_meters["valid_ratio"].val,
-                                miou=metric_meters["val_mIoU"].val,
-                                macc=metric_meters["val_mAcc"].val,
-                                allacc=metric_meters["val_allAcc"].val,
-                            )
-                        )
-                    else:
-                        self.logger.info(
-                            "Val/Test: [{iter}/{max_iter}] val_loss_semantic: {loss_semantic:.4f} "
-                            "mIoU: {miou:.4f} mAcc: {macc:.4f} allAcc: {allacc:.4f}".format(
-                                iter=processed_iter,
-                                max_iter=min(len(self.val_loader), max_batches) if max_batches is not None else len(self.val_loader),
-                                loss_semantic=metric_meters["val_loss_semantic"].val,
-                                miou=metric_meters["val_mIoU"].val,
-                                macc=metric_meters["val_mAcc"].val,
-                                allacc=metric_meters["val_allAcc"].val,
-                            )
-                        )
+                    total_iter = min(len(self.val_loader), max_batches) if max_batches is not None else len(self.val_loader)
+                    core_keys = {"val_mIoU", "val_mAcc", "val_allAcc"}
+                    info = f"Val/Test: [{processed_iter}/{total_iter}] "
+                    for key in metric_meters:
+                        if key not in core_keys:
+                            info += f"{key}: {metric_meters[key].val:.4f} "
+                    info += (
+                        f"mIoU: {metric_meters['val_mIoU'].val:.4f} "
+                        f"mAcc: {metric_meters['val_mAcc'].val:.4f} "
+                        f"allAcc: {metric_meters['val_allAcc'].val:.4f}"
+                    )
+                    self.logger.info(info)
 
-        if metric_meters["val_mIoU"].count == 0:
+        if metric_meters is None or metric_meters["val_mIoU"].count == 0:
             raise RuntimeError("No validation batches were processed.")
         summary = {key: meter.avg for key, meter in metric_meters.items()}
         per_class_iou, per_class_acc = self._compute_per_class_from_stats(
@@ -861,70 +569,47 @@ class SemanticBoundaryTrainer:
             if self.save_freq and epoch % int(self.save_freq) == 0:
                 self.save_checkpoint(f"epoch_{epoch}.pth", epoch, val_metrics)
 
-            if "loss_ordinal" in train_metrics:
-                self.logger.info(
-                    "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
-                    "loss_edge={loss_edge:.4f} loss_support={loss_support:.4f} "
-                    "loss_support_reg={loss_support_reg:.4f} "
-                    "loss_support_cover={loss_support_cover:.4f} "
-                    "loss_ordinal={loss_ordinal:.4f} "
-                    "ordinal_pairs={ordinal_pairs:.0f} "
-                    "optimizer_steps={optimizer_steps}".format(
-                        **train_metrics
-                    )
-                )
-            elif "loss_axis" in train_metrics:
-                self.logger.info(
-                    "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
-                    "loss_edge={loss_edge:.4f} loss_support={loss_support:.4f} "
-                    "loss_axis={loss_axis:.4f} loss_side={loss_side:.4f} "
-                    "axis_cosine={axis_cosine:.4f} side_accuracy={side_accuracy:.4f} "
-                    "optimizer_steps={optimizer_steps}".format(
-                        **train_metrics
-                    )
-                )
-            elif "loss_edge" in train_metrics:
-                self.logger.info(
-                    "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
-                    "loss_edge={loss_edge:.4f} loss_support={loss_support:.4f} "
-                    "loss_support_reg={loss_support_reg:.4f} "
-                    "loss_support_cover={loss_support_cover:.4f} "
-                    "loss_dir={loss_dir:.4f} loss_dist={loss_dist:.4f} "
-                    "optimizer_steps={optimizer_steps}".format(
-                        **train_metrics
-                    )
-                )
-            elif "loss_aux" in train_metrics:
-                # BoundaryProximityCueLoss
-                self.logger.info(
-                    "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
-                    "loss_aux={loss_aux:.4f} loss_aux_weighted={loss_aux_weighted:.4f} "
-                    "valid_ratio={valid_ratio:.4f} "
-                    "aux_prob_mean={aux_prob_mean:.4f} "
-                    "optimizer_steps={optimizer_steps}".format(**train_metrics)
-                )
-            elif "loss_focus" in train_metrics:
-                if "loss_support_reg" in train_metrics:
-                    # Redesigned loss: has separate support_reg and support_cover
-                    self.logger.info(
-                        "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
-                        "loss_support={loss_support:.4f} loss_support_reg={loss_support_reg:.4f} "
-                        "loss_support_cover={loss_support_cover:.4f} loss_focus={loss_focus:.4f} "
-                        "optimizer_steps={optimizer_steps}".format(**train_metrics)
-                    )
-                else:
-                    # Old Phase 7 loss: no separate reg/cover breakdown
-                    self.logger.info(
-                        "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
-                        "loss_support={loss_support:.4f} loss_focus={loss_focus:.4f} "
-                        "optimizer_steps={optimizer_steps}".format(**train_metrics)
-                    )
-            else:
-                self.logger.info(
-                    "Train result: loss={loss:.4f} loss_semantic={loss_semantic:.4f} "
-                    "optimizer_steps={optimizer_steps}".format(**train_metrics)
-                )
+            info = "Train result: "
+            for key in self._loss_log_keys(train_metrics):
+                info += f"{key}={train_metrics[key]:.4f} "
+            info += f"optimizer_steps={train_metrics['optimizer_steps']}"
+            self.logger.info(info)
             self.logger.info(f"Current val_mIoU: {current_miou:.4f}")
             self.logger.info(f"Current best_val_mIoU: {self.best_val_miou:.4f}")
             self.logger.info(f"Checkpoint last: {last_path}")
             self.logger.info(f"Checkpoint best: {best_path}")
+
+        self.logger.info(">>>>>>>>>>>>>>>> End Training >>>>>>>>>>>>>>>>")
+        self._run_test_after_training()
+
+    def _run_test_after_training(self):
+        """Run fragment-based test with best checkpoint after training completes."""
+        if "test" not in self.cfg.get("data", {}):
+            self.logger.info("No data.test configured, skipping post-training test.")
+            return
+
+        best_path = os.path.join(self.model_dir, "model_best.pth")
+        if not os.path.isfile(best_path):
+            self.logger.warning(
+                f"Best checkpoint not found at {best_path}, skipping post-training test."
+            )
+            return
+
+        self.logger.info(">>>>>>>>>>>>>>>> Post-Training Test >>>>>>>>>>>>>>>>")
+        self.logger.info(f"Loading best checkpoint: {best_path}")
+
+        from project.tester import SemanticBoundaryTester
+
+        test_cfg = dict(self.cfg)
+        test_cfg["weight"] = best_path
+        test_cfg["test_num_workers"] = self.trainer_cfg.get("num_workers", 4)
+
+        tester = SemanticBoundaryTester(test_cfg)
+        result = tester.test()
+
+        self.logger.info(
+            "Post-training test result: mIoU/mAcc/allAcc "
+            "{:.4f}/{:.4f}/{:.4f}".format(
+                result["mIoU"], result["mAcc"], result["allAcc"]
+            )
+        )

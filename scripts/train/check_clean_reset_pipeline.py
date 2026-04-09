@@ -231,6 +231,12 @@ def main():
             dict(type="UnweightedBoundaryCueLoss", aux_weight=0.3),
             dict(type="RedesignedSupportFocusEvaluator"),
         ),
+        (
+            "CR-G (soft-boundary)",
+            config_dir / "clean_reset_support_model.py",
+            dict(type="SoftBoundaryLoss", aux_weight=0.3),
+            dict(type="RedesignedSupportFocusEvaluator"),
+        ),
     ]
 
     results = {}
