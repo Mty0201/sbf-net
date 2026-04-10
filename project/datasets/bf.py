@@ -25,6 +25,11 @@ class BFDataset(DefaultDataset):
         support_id_path = data_path / "edge_support_id.npy"
         if support_id_path.is_file():
             data_dict["support_id"] = np.load(support_id_path).astype(np.int32)
+        boundary_mask_path = data_path / "boundary_mask_r060.npy"
+        if boundary_mask_path.is_file():
+            data_dict["boundary_mask"] = (
+                np.load(boundary_mask_path).reshape(-1).astype(np.float32)
+            )
         return data_dict
 
     def get_data_name(self, idx):

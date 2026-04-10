@@ -16,6 +16,7 @@ from .boundary_weighted_semantic_loss import BoundaryWeightedSemanticLoss
 from .boundary_binary_loss import BoundaryBinaryLoss
 from .dual_supervision_boundary_binary_loss import DualSupervisionBoundaryBinaryLoss
 from .pure_bfanet_loss import PureBFANetLoss
+from .dual_supervision_pure_bfanet_loss import DualSupervisionPureBFANetLoss
 from .soft_weighted_semantic_loss import SoftWeightedSemanticLoss
 
 
@@ -75,6 +76,9 @@ def build_loss(cfg: dict | None):
     if loss_type == "PureBFANetLoss":
         kwargs = {key: value for key, value in cfg.items() if key != "type"}
         return PureBFANetLoss(**kwargs)
+    if loss_type == "DualSupervisionPureBFANetLoss":
+        kwargs = {key: value for key, value in cfg.items() if key != "type"}
+        return DualSupervisionPureBFANetLoss(**kwargs)
     if loss_type == "SoftWeightedSemanticLoss":
         kwargs = {key: value for key, value in cfg.items() if key != "type"}
         return SoftWeightedSemanticLoss(**kwargs)
@@ -100,6 +104,7 @@ __all__ = [
     "BoundaryBinaryLoss",
     "DualSupervisionBoundaryBinaryLoss",
     "PureBFANetLoss",
+    "DualSupervisionPureBFANetLoss",
     "SoftWeightedSemanticLoss",
     "build_loss",
 ]

@@ -31,7 +31,7 @@ data = dict(
         split=("training",),
         data_root=data_root,
         transform=[
-            dict(type="InjectIndexValidKeys", keys=("edge",)),
+            dict(type="InjectIndexValidKeys", keys=("edge", "boundary_mask")),
             dict(type="CenterShift", apply_z=True),
             dict(type="RandomDropout", dropout_ratio=0.2, dropout_application_ratio=0.2),
             dict(type="RandomRotate", angle=[-1, 1], axis="z", center=[0, 0, 0], p=0.5),
@@ -57,7 +57,7 @@ data = dict(
             dict(type="ToTensor"),
             dict(
                 type="Collect",
-                keys=("coord", "grid_coord", "segment", "edge"),
+                keys=("coord", "grid_coord", "segment", "edge", "boundary_mask"),
                 feat_keys=("color", "normal"),
             ),
         ],
@@ -68,7 +68,7 @@ data = dict(
         split="validation",
         data_root=data_root,
         transform=[
-            dict(type="InjectIndexValidKeys", keys=("edge",)),
+            dict(type="InjectIndexValidKeys", keys=("edge", "boundary_mask")),
             dict(type="CenterShift", apply_z=True),
             dict(type="Copy", keys_dict={"segment": "origin_segment"}),
             dict(
@@ -84,7 +84,7 @@ data = dict(
             dict(type="ToTensor"),
             dict(
                 type="Collect",
-                keys=("coord", "grid_coord", "segment", "origin_segment", "inverse", "edge"),
+                keys=("coord", "grid_coord", "segment", "origin_segment", "inverse", "edge", "boundary_mask"),
                 feat_keys=("color", "normal"),
             ),
         ],
@@ -95,7 +95,7 @@ data = dict(
         split="validation",
         data_root=data_root,
         transform=[
-            dict(type="InjectIndexValidKeys", keys=("edge",)),
+            dict(type="InjectIndexValidKeys", keys=("edge", "boundary_mask")),
             dict(type="CenterShift", apply_z=True),
             dict(type="NormalizeColor"),
         ],

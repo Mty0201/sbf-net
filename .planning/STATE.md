@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: semantic-first boundary supervision reboot
-status: "Phase 5 post-hoc log analysis: CR-L vs CR-A gap (0.7251 vs 0.7336, 0.85pp) is WITHIN seed noise — both val_mIoU curves oscillate by ~0.05-0.07 after ep25. CR-L train_loss_semantic sits 0.15-0.7 ABOVE CR-A for the entire run — aux is choking semantic from ep1, not ep30. 'Zombie aux' hypothesis downgraded: the real symptom is structural gradient competition from step 0, not late-training saturation. CR-L still running (ep72/100) — do not intervene. CR-O (SoftWeightedSemanticLoss) added as minimal smooth extension of CR-A: w = 1 + s*9 full-continuous soft band, no aux head, no boundary branch."
-stopped_at: "CR-O implemented (loss + config + smoke). Queue after CR-L completes. Do not intervene CR-L run."
-last_updated: "2026-04-10T22:30:00Z"
-last_activity: 2026-04-10
+status: "CR-P (full BFANet reproduction) fully wired and smoke-tested. BFANet radius truth corrected in memory: r=0.06 m is absolute physical on ScanNet, not '3× voxel' (the voxel-ratio framing was a mink-path coincidence). r=0.06 m boundary_mask_r060.npy preprocessing pipeline built (scripts/data/probe_boundary_radius.py + generate_boundary_mask.py) and run on all 264 chunks: min 1.65%, mean 7.19%, median 6.76%, max 14.11%, 202/264 (76.5%) in [5,15]% window. Dataset/transforms/trainer/PureBFANetLoss all now accept precomputed boundary_mask. CR-P = CR-M's BoundaryGatedSemanticModelV4 (v1+v2) + DualSupervisionPureBFANetLoss with v1:v2 = 0.5:1.0 BFANet-faithful weighting. Smoke test passed: (1) dataset emits boundary_mask, (2) model forwards all 4 outputs, (3) v1==v2 exact at step 0, (4) loss = 0.5*v1 + 1.0*v2 numerically correct, (5) backward flows to v1+v2 heads and fusion.out_proj (q/k/v proj zero as expected from zero-init residual). CR-N pos_weight reverted 8→1 to preserve faithful BFANet control."
+stopped_at: "CR-P code landed and smoke-passed; uncommitted. Next session: commit CR-P atomically (scripts/data/*, dual_supervision_pure_bfanet_loss.py, pure_bfanet_v4_train.py, bf.py/clean_reset_data.py/trainer.py/pure_bfanet_loss.py/losses/__init__.py modifications, pure_bfanet_train.py pos_weight revert, STATE.md, phase plan update). Then queue CR-P for real-env training alongside CR-N."
+last_updated: "2026-04-11T00:00:00Z"
+last_activity: 2026-04-11
 progress:
   total_phases: 7
   completed_phases: 5
@@ -21,14 +21,14 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-04-06)
 
 **Core value:** Semantic segmentation remains the primary objective, and any boundary-aware supervision must improve boundary-region semantic quality without dragging the semantic branch into explicit geometric-field learning.
-**Current focus:** v2.0 Phase 5 — boundary proximity cue experiments. Active matrix narrowed to CR-K (pending ablation), CR-L (full train running, positive signals), CR-M (committed, awaiting queue). CR-H failed (net negative, matches CR-B). CR-J dropped (g iterated from v3 to v4, superseded by CR-M).
+**Current focus:** v2.0 Phase 5 — boundary proximity cue experiments. Active matrix: CR-K (pending ablation), CR-L (full train landed), CR-M (committed), CR-N (reset to faithful BFANet, now consumes r=0.06 precomputed mask), CR-O (soft semantic baseline), **CR-P (new: full BFANet reproduction = CR-M dual-stream + PureBFANetLoss + v1:v2 = 0.5:1.0)**. CR-H failed, CR-J dropped.
 
 ## Current Position
 
-Phase: 5 — Boundary proximity cue experiments (CR-K/L/M active; CR-H/J closed out)
+Phase: 5 — Boundary proximity cue experiments (CR-K/L/M/N/O/P active; CR-H/J closed out)
 Plan: `.planning/phases/06-serial-derivation-module/06-01-PLAN.md`
-Status: CR-L full train running in real environment with positive signals. CR-M committed and awaiting queue. CR-K retained as pending ablation. CR-H verified failed. CR-J dropped (superseded by CR-M g v4).
-Last activity: 2026-04-10
+Status: CR-P smoke-tested and code complete; awaiting commit + real-env queue. CR-N loss path now consumes precomputed `boundary_mask_r060.npy` (pos_weight reverted 8→1 to restore BFANet-faithful semantics). CR-M deliberately still uses `edge[:,3]>0.5` threshold — not migrated to new mask so CR-L vs CR-M stays an architectural (dual-stream) ablation. CR-O queued. CR-L full train landed.
+Last activity: 2026-04-11
 
 ## Recent Context
 
@@ -81,6 +81,9 @@ Last activity: 2026-04-10
   3. **val_mIoU 0.0085 gap is within noise floor.** Both CR-L (ep15+) and CR-A (ep25+) oscillate with amplitude ~0.05-0.07 — 5-8× the 0.0085 gap. "CR-L 0.7251 vs CR-A 0.7336" is **not statistically significant** in single-seed comparison. Implication: the relative ordering of ALL v2.0 single-seed results (CR-B 0.7184, CR-G 0.7240, CR-L 0.7251, CR-A 0.7336) may largely be noise.
   4. **CR-L aux descent rate collapse happens at ep10, not ep30** (per memory). Ep1-10 loss_aux drops 0.27, ep10-30 drops 0.08, ep30-72 drops 0.10. Classic fast-early + long slow tail. Slow tail is 70% of training.
 - **[2026-04-10] CR-O added to experiment matrix.** Minimal smooth extension of CR-A: same semantic-only model, `SoftWeightedSemanticLoss` = CE · (1 + s·9) + Lovasz, fully continuous soft weighting across [0,1], no truncation, no aux head. Tests whether continuous boundary-proximity weighting alone moves val_mIoU above CR-A within seed noise. Files: `project/losses/soft_weighted_semantic_loss.py`, `configs/semantic_boundary/clean_reset_s38873367/soft_weighted_semantic_train.py`. Smoke-validated: `mean_point_weight ≈ 5.43` (analytical uniform[0,1] expectation 5.5), grad finite. Queued after CR-L completes.
+- **[2026-04-11] BFANet radius truth corrected and boundary_mask preprocessing pipeline landed.** Previous framing (`r = 3 × voxel`) was retracted — BFANet's radius on ScanNet is **r = 0.06 m absolute physical**; the 3× identity was a mink-path coincidence (`0.06 = 3 × 0.02`). Built `scripts/data/probe_boundary_radius.py` (10-chunk pilot sweep over r ∈ {0.03, 0.06, 0.09, 0.12}) and `scripts/data/generate_boundary_mask.py` (multiprocessing.Pool(8) generator). Pilot: r=0.06 landed 7/10 chunks in [5,15]% window. Full run over 264 chunks at r=0.06 m: **min 1.65%, mean 7.19%, median 6.76%, max 14.11%, 202/264 (76.5%) in [5,15]%**, all ≤15%, 25.8 s total. Visually verified on chunk 020101 (11.0% positive). Output: `/home/mty0201/data/BF_edge_chunk_npy/{training,validation}/<id>/boundary_mask_r060.npy` shape `(N, 1) uint8`. Dataset (`bf.py`), transforms (`clean_reset_data.py` InjectIndexValidKeys + Collect), trainer (`_build_loss_inputs` / `_build_eval_inputs`), and `PureBFANetLoss.forward` all now accept an optional precomputed `boundary_mask`, falling back silently to `edge[:,3]>0.5` when absent. CR-M deliberately **not** migrated — still uses `edge[:,3]>0.5` to keep the CR-L vs CR-M comparison architecture-only.
+- **[2026-04-11] CR-N reset to faithful BFANet control.** Previous session had bumped `pos_weight=8` as a collapse-prevention hack; reverted to `pos_weight=1.0` to preserve the "naive BFANet at 7% positive" semantics. CR-N now consumes `boundary_mask_r060.npy`. Smoke-validated end-to-end: new mask path gives positive ratio 7.86% vs 2.31% from the legacy `edge[:,3]>0.5` fallback (exactly the delta that motivated the refactor). Gradients land on both `seg_logits` (norm 0.011) and `support_pred` (norm 0.0007), no NaN. **BFANet's naive BCE collapse at 7% positive is now an explicit test** — if CR-N's `prob_pos_mean - prob_neg_mean` stays near zero past ep5, that's a real finding, not a bug.
+- **[2026-04-11] CR-P added — full BFANet reproduction.** The "one-shot" control that combines CR-M's dual-stream architecture with CR-N's BFANet-faithful loss. Files added: `project/losses/dual_supervision_pure_bfanet_loss.py` (wraps `PureBFANetLoss`, applies to v1 + v2, combines `v1_weight * L_v1 + v2_weight * L_v2`, raises if v2 outputs missing, emits v1_/v2_ prefixed metrics) and `configs/semantic_boundary/clean_reset_s38873367/pure_bfanet_v4_train.py` (reuses `clean_reset_gated_v4_model.py` + `clean_reset_data.py`, loss kwargs `v1_weight=0.5, v2_weight=1.0`, `work_dir=outputs/clean_reset_s38873367/pure_bfanet_v4`, optimizer/scheduler/seed/epochs byte-identical to CR-M/N/L). **v1:v2 = 0.5:1.0 is BFANet-faithful**, not CR-M's 1:1 — v2 is the primary refined prediction, v1 is an auxiliary regularizer preventing the backbone from degenerating. Loss term breakdown (per stream): hard-mask 10× CE on `boundary_mask_r060`, unweighted BCE with pos_weight=1, global Dice over the whole scene. **CR-P smoke test PASSED**: (1) dataset emits `boundary_mask` (positive ratio 6.93% on 2-sample batch, within expected 5–15%), (2) model forwards all 4 outputs (`seg_logits_v1/v2`, `support_pred_v1/v2`), (3) step-0 `max|v1-v2| == 0` exact, (4) `loss = 7.4503 = 0.5·4.9669 + 1.0·4.9669`, (5) backward grads: semantic_head_v1=2.35, support_head_v1=0.25, semantic_head_v2=4.71 (exactly 2× v1 as expected from weighting + identity outputs), support_head_v2=0.51, fusion.out_proj=0.776, fusion q/k/v projections zero (expected — zero-init residual zeros out their forward contribution, they come alive on step 1 after SGD updates `out_proj`). **Purpose of CR-P**: definitively answer "does faithful BFANet beat CR-A (0.7336) on our building-facade data?". Differences from CR-N are architectural only (dual-stream + g v4); differences from CR-M are loss-only (PureBFANetLoss + r=0.06 mask + 0.5:1.0 weighting).
 
 ## Experiment Evolution Summary
 
@@ -95,8 +98,9 @@ Last activity: 2026-04-10
 | CR-K | GT support-weighted CE + Lovasz (no aux, no head) | — | Implemented, pending ablation |
 | CR-L | support-weighted binary BCE + local Dice + GT-weighted CE | **binary (s>0.5)** | **Full train running, positive signals** |
 | CR-M | CR-L loss on **v1 + v2** (dual supervision) via g v4 cross-stream fusion attn (K=48) | **binary (s>0.5)** | Committed (3fdfbd1), awaiting real-env queue |
-| CR-N | **Pure BFANet control**: semantic CE with **10× hard-mask upweight** (weight=10 on `s>0.5`, else 1) + unweighted BCE + **global** Dice on binary aux | **binary (s>0.5)** | Queued post-CR-M (added 2026-04-10) |
+| CR-N | **Pure BFANet control** (reset 2026-04-11): hard-mask 10× CE + unweighted BCE (`pos_weight=1`) + **global** Dice; boundary target now `boundary_mask_r060.npy` (radius search r=0.06 m absolute) | **binary (r=0.06 m)** | Reset 2026-04-11 (pos_weight 8→1); queued alongside CR-P |
 | CR-O | **Fully soft-weighted semantic**: CE · (1 + s·9) + Lovasz, no truncation, no aux, no boundary head. Semantic-only model (same as CR-A). | — | Implemented + smoke-validated (added 2026-04-10); queued post-CR-L |
+| **CR-P** | **Full BFANet reproduction**: CR-M's dual-stream model (`BoundaryGatedSemanticModelV4`) + `DualSupervisionPureBFANetLoss` (PureBFANetLoss on v1 and v2) with **v1:v2 = 0.5:1.0** BFANet-faithful weighting; boundary target = `boundary_mask_r060.npy` | **binary (r=0.06 m)** | **Smoke test PASSED 2026-04-11**; queued for real-env training |
 
 ## Decisions
 
@@ -114,13 +118,19 @@ Last activity: 2026-04-10
 - [v2.0] Grid voxel size (6cm) caps achievable positive ratio — threshold cannot be raised beyond 0.5 without data pre-processing changes
 - [v2.0] **CR-H failed on full train** — continuous support target (even with MSE+Dice) does not recover the CR-B gap. Further continuous-target work under Part 1 is deprioritized; the active path is the BFANet-style binary threshold (CR-L/M).
 - [v2.0] **CR-J dropped before training** — g v3 (per-channel gate) superseded by g v4 (cross-stream fusion attention) in CR-M. No value in running CR-J with the older gating module.
+- [v2.0] **BFANet radius is r=0.06 m absolute** (not "3× voxel"). On ScanNet `0.06 = 3 × 0.02` is a coincidence of the mink-path voxel size; octformer uses `r=0.006` because coords are pre-scaled by /10.25. Do NOT port the 3× voxel identity to other datasets — use the absolute 6 cm. Evidence: `train.py:82-87` in weiguangzhao/BFANet@master.
+- [v2.0] **CR-M deliberately kept on `edge[:,3]>0.5`** — not migrated to `boundary_mask_r060` so the CR-L vs CR-M comparison isolates architecture (single-stream vs dual-stream g v4), not boundary-target definition. CR-N and CR-P are the experiments that get the new precomputed mask.
+- [v2.0] **CR-P v1:v2 = 0.5:1.0, not 1:1** — BFANet-faithful dual supervision, where v2 is the primary refined prediction and v1 is an auxiliary regularizer. CR-M's 1:1 weighting is a clean architectural control; CR-P's 0.5:1.0 is the faithful reproduction. Both will run; different questions.
 
 ## Blockers / Concerns
 
+- **[ACTIVE]** CR-P code complete and smoke-tested on 2026-04-11; awaits commit + real-env queue. Config: `configs/semantic_boundary/clean_reset_s38873367/pure_bfanet_v4_train.py`; work_dir: `outputs/clean_reset_s38873367/pure_bfanet_v4`.
+- **[ACTIVE]** CR-N reset to faithful BFANet (pos_weight 8→1) on 2026-04-11 and now consumes `boundary_mask_r060.npy`. Awaits real-env queue alongside CR-P. Known risk: BFANet's naive BCE (`pos_weight=1`) at our 7% positive ratio may collapse — that's an intentional test, not a bug; if `prob_pos_mean - prob_neg_mean` stays near zero past ep5 it's a real finding about BFANet's default recipe on sparse-positive data.
 - **[ACTIVE]** CR-L full training at ep52/100 on real environment. Peak `val_mIoU = 0.7169 at ep31`, currently oscillating 0.69–0.72 while train loss still declining (early overfitting). Trajectory suggests CR-L will ceiling at CR-B level 0.7184, -1.67pp below CR-A 0.7336. **Do not intervene** — let it run to ep100 for the full curve. Log: `outputs/clean_reset_s38873367/boundary_binary/train.log`.
 - **[DIAGNOSED — NOT A BLOCKER]** CR-L `loss_dice` was suspected of stalling around 0.6. Verified single-monotone decrease ep1→ep52: 0.778→0.582. `prob_pos` 0.249→0.575, `prob_neg` 0.186→0.046. The apparent stall is a Dice slope-geometry artifact at the single-batch level — epoch means descend cleanly. No change needed.
 - **[ACTIVE]** CR-M queued for real-environment submission after CR-L result lands.
 - **[PENDING]** CR-K full training decision — run only if CR-L and CR-M results leave the CE-upweight-only ablation still interesting.
+- **[CLOSED 2026-04-11]** Boundary-mask preprocessing handoff — r=0.06 m decided (pilot + full stats verified), `scripts/data/probe_boundary_radius.py` + `scripts/data/generate_boundary_mask.py` built, 264 chunks generated, dataset/transforms/trainer/loss all consume it. CR-N and CR-P now wired end-to-end.
 - **[CLOSED]** CR-H — verified failed (net negative, matches CR-B).
 - **[CLOSED]** CR-J — dropped (g v3 superseded by g v4 in CR-M).
 
@@ -143,7 +153,7 @@ Last activity: 2026-04-10
 
 ## Session Continuity
 
-Last session: 2026-04-10 (ep52 mid-train diagnosis)
-Stopped at: CR-L at ep52/100 on real env. Peak val_mIoU=0.7169 at ep31, now in overfitting regime. loss_dice concern diagnosed and dismissed (epoch-mean descending cleanly, single-batch noise was the visual artifact). CR-M committed (3fdfbd1), awaiting real-env queue. CR-H closed (failed). CR-J closed (dropped). CR-K pending.
-Resume file: `outputs/clean_reset_s38873367/boundary_binary/train.log`
-Next action: (1) Wait for CR-L to finish ep100 — do not intervene. (2) Record final best val_mIoU. (3) If best ≥ 0.72 → submit CR-M to real env. (4) If best stays ≈ CR-B 0.7184 → single-stream boundary-aux has structural ceiling; CR-M is last architectural lever before falling back to CR-K or voxel grid reduction.
+Last session: 2026-04-11 (BFANet radius truth + boundary_mask preprocessing + CR-N reset + CR-P full reproduction, all code landed, CR-P smoke-passed, single atomic commit pending)
+Stopped at: Smoke test complete, STATE.md updated. Remaining: phase plan artifact (task #6) + single atomic commit (task #7). CR-L full curve at ep100 still needs to be recorded separately.
+Resume file: `.continue-here.md` (previous handoff, task #4 now done) + this STATE.md
+Next action: (1) Decide whether CR-P goes in `.planning/phases/05-boundary-proximity-cue-experiment/05-02-PLAN.md` or a new 05-03. (2) Single atomic commit (config + code + preprocessing scripts + STATE.md + plan artifact). (3) Queue CR-N and CR-P on real env when GPU frees. (4) CR-L ep100 recording is a separate task — not blocked on CR-P.

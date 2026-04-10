@@ -58,13 +58,19 @@ class PureBFANetLoss(nn.Module):
         support_pred: torch.Tensor,
         segment: torch.Tensor,
         edge: torch.Tensor,
+        boundary_mask: torch.Tensor | None = None,
         **_extra,
     ) -> dict[str, torch.Tensor]:
         segment = segment.reshape(-1).long()
         edge = edge.float()
 
-        support_gt = edge[:, 3].float().clamp(0.0, 1.0)
-        boundary_mask = (support_gt > self.boundary_threshold).float()
+        # Prefer precomputed radius-based BFANet boundary mask (r=0.06 m).
+        # Fallback: threshold continuous support — legacy CR-L-style derivation.
+        if boundary_mask is not None:
+            boundary_mask = boundary_mask.reshape(-1).float()
+        else:
+            support_gt = edge[:, 3].float().clamp(0.0, 1.0)
+            boundary_mask = (support_gt > self.boundary_threshold).float()
 
         # === Term 1: Hard-mask 10x weighted semantic CE (BFANet original) ===
         ce_per_point = F.cross_entropy(

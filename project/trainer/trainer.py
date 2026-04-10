@@ -278,6 +278,8 @@ class SemanticBoundaryTrainer:
             kwargs["seg_logits_v2"] = output["seg_logits_v2"]
         if "support_pred_v2" in output:
             kwargs["support_pred_v2"] = output["support_pred_v2"]
+        if "boundary_mask" in batch:
+            kwargs["boundary_mask"] = batch["boundary_mask"]
         return kwargs
 
     @staticmethod
@@ -301,6 +303,8 @@ class SemanticBoundaryTrainer:
             kwargs["seg_logits_v2"] = output["seg_logits_v2"]
         if "support_pred_v2" in output:
             kwargs["support_pred_v2"] = output["support_pred_v2"]
+        if "boundary_mask" in batch:
+            kwargs["boundary_mask"] = batch["boundary_mask"]
         return kwargs
 
     @staticmethod
