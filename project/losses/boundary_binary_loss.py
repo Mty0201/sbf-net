@@ -12,7 +12,10 @@ Sample weight: base + support_gt * K. Three semantic levels:
   - Background (support = 0, negative): base weight only
 
 Binary target means BCE converges cleanly to 0 (no continuous residual).
-Support weighting handles class imbalance without Dice.
+Support weighting handles per-point imbalance. Local Dice (computed only
+on support > 0 points) provides region-level overlap pressure to push
+positive predictions up — BCE alone is too easily dominated by negatives
+when positive ratio is <1% after SphereCrop.
 """
 
 from __future__ import annotations
@@ -25,7 +28,7 @@ from pointcept.models.losses.lovasz import LovaszLoss
 
 
 class BoundaryBinaryLoss(nn.Module):
-    """Support-weighted binary BCE aux + GT-support-weighted semantic CE."""
+    """Support-weighted binary BCE + local Dice aux + GT-support-weighted semantic CE."""
 
     def __init__(
         self,
@@ -33,7 +36,9 @@ class BoundaryBinaryLoss(nn.Module):
         boundary_ce_weight: float = 10.0,
         sample_weight_scale: float = 9.0,
         boundary_threshold: float = 0.9,
-        pos_weight: float = 5.0,
+        pos_weight: float = 1.0,
+        dice_weight: float = 1.0,
+        dice_smooth: float = 1.0,
     ):
         super().__init__()
         self.aux_weight = float(aux_weight)
@@ -41,6 +46,8 @@ class BoundaryBinaryLoss(nn.Module):
         self.sample_weight_scale = float(sample_weight_scale)
         self.boundary_threshold = float(boundary_threshold)
         self.pos_weight = float(pos_weight)
+        self.dice_weight = float(dice_weight)
+        self.dice_smooth = float(dice_smooth)
         self.lovasz_loss = LovaszLoss(
             mode="multiclass", ignore_index=-1, loss_weight=1.0
         )
@@ -80,20 +87,31 @@ class BoundaryBinaryLoss(nn.Module):
         # Per-point sample weight: background=1, transition=1+s*K, core≈1+K
         sample_weight = 1.0 + support_gt * self.sample_weight_scale
 
-        # pos_weight inside BCE for additional positive class balance
+        # pos_weight inside BCE for positive class balance
         pw = torch.tensor(self.pos_weight, device=support_logit.device)
         bce_per_point = F.binary_cross_entropy_with_logits(
             support_logit, binary_target, pos_weight=pw, reduction="none"
         )
         loss_bce = (sample_weight * bce_per_point).mean()
 
-        loss_aux = loss_bce
+        # === Term 2b: Local Dice on support > 0 region only ===
+        support_prob = torch.sigmoid(support_logit)
+        local_mask = support_gt > 0  # ~18% of points
+        local_prob = support_prob[local_mask]
+        local_target = binary_target[local_mask]
+        smooth = self.dice_smooth
+        intersection = (local_prob * local_target).sum()
+        local_dice = (2.0 * intersection + smooth) / (
+            local_prob.sum() + local_target.sum() + smooth
+        )
+        loss_local_dice = 1.0 - local_dice
+
+        loss_aux = loss_bce + self.dice_weight * loss_local_dice
         loss_aux_weighted = self.aux_weight * loss_aux
         total = loss_semantic + loss_aux_weighted
 
         # Monitoring metrics (detached)
         with torch.no_grad():
-            support_prob = torch.sigmoid(support_logit)
             positive = binary_target > 0.5
             negative = ~positive
             pos_sum = positive.float().sum().clamp_min(1e-6)
@@ -113,6 +131,8 @@ class BoundaryBinaryLoss(nn.Module):
             loss_aux=loss_aux,
             loss_aux_weighted=loss_aux_weighted,
             loss_bce=loss_bce,
+            loss_local_dice=loss_local_dice,
+            local_dice_score=local_dice,
             prob_pos_mean=prob_pos_mean,
             prob_neg_mean=prob_neg_mean,
             positive_ratio=positive.float().mean(),
