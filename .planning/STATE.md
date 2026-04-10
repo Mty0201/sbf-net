@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: semantic-first boundary supervision reboot
-status: "CR-L full train at ep52/100. Peak val_mIoU=0.7169 at ep31, now oscillating 0.69-0.72 with train loss still declining — early overfitting signal. loss_dice diagnosed as NOT blocking (ep1→ep52 single-monotone decrease 0.778→0.582; prob_pos 0.25→0.58, prob_neg 0.19→0.046). Dice slope geometry makes it look stalled while it is not. Real concern: CR-L likely ceilings at 0.71-0.72, matching CR-B, below CR-A 0.7336."
-stopped_at: "CR-L training continues unchanged — do not intervene. Let it reach ep100 to collect full curve before deciding CR-M priority. CR-M committed (3fdfbd1) awaiting real-env queue."
-last_updated: "2026-04-10T19:30:00Z"
+status: "Phase 5 post-hoc log analysis: CR-L vs CR-A gap (0.7251 vs 0.7336, 0.85pp) is WITHIN seed noise — both val_mIoU curves oscillate by ~0.05-0.07 after ep25. CR-L train_loss_semantic sits 0.15-0.7 ABOVE CR-A for the entire run — aux is choking semantic from ep1, not ep30. 'Zombie aux' hypothesis downgraded: the real symptom is structural gradient competition from step 0, not late-training saturation. CR-L still running (ep72/100) — do not intervene. CR-O (SoftWeightedSemanticLoss) added as minimal smooth extension of CR-A: w = 1 + s*9 full-continuous soft band, no aux head, no boundary branch."
+stopped_at: "CR-O implemented (loss + config + smoke). Queue after CR-L completes. Do not intervene CR-L run."
+last_updated: "2026-04-10T22:30:00Z"
 last_activity: 2026-04-10
 progress:
   total_phases: 7
@@ -75,6 +75,12 @@ Last activity: 2026-04-10
        - **Boundary branch**: `BCE(boundary_logits, boundary_target) + Dice(boundary_logits, boundary_target)`, **unweighted** (`pos_weight=1`). Dice is **global** (whole-scene binary Dice, not local-to-support region). `boundary_target = support > 0.5` hard threshold.
        - **Total**: `L = L_sem + λ · L_boundary`, λ inherits CR-L's current value.
        - **Purpose**: isolate CR-L's deviations from BFANet — (a) `sample_weight_scale=9` on continuous support vs BFANet's 10× on hard mask; (b) local Dice vs global Dice. CR-N is the apples-to-apples BFANet baseline. Queues after CR-M.
+- **[2026-04-10 post-hoc log analysis]** Parsed CR-L ep1-72 and CR-A ep1-100 epoch-mean train/val loss curves (`/tmp/cr_l_epochs.csv`, `/tmp/cr_a_epochs.csv`; plot at `.planning/phases/05-boundary-proximity-cue-experiment/cr_l_vs_cr_a_diagnosis.png`). Four findings:
+  1. **CR-L train_loss_semantic is 0.15-0.7 higher than CR-A for the ENTIRE run** (ep1: 1.57 vs 0.85, ep70: 0.25 vs 0.09). The two curves never cross. Aux is choking semantic from step 0, not ep30. The "zombie aux ep30+" hypothesis is downgraded — the real symptom is **structural gradient competition from ep1**.
+  2. **val_loss_semantic curves are indistinguishable** between CR-L and CR-A (both ~0.55-0.65 oscillating from ep10 onward). Aux pays 0.16-0.72 train-side semantic cost for **zero** val-side regularization benefit.
+  3. **val_mIoU 0.0085 gap is within noise floor.** Both CR-L (ep15+) and CR-A (ep25+) oscillate with amplitude ~0.05-0.07 — 5-8× the 0.0085 gap. "CR-L 0.7251 vs CR-A 0.7336" is **not statistically significant** in single-seed comparison. Implication: the relative ordering of ALL v2.0 single-seed results (CR-B 0.7184, CR-G 0.7240, CR-L 0.7251, CR-A 0.7336) may largely be noise.
+  4. **CR-L aux descent rate collapse happens at ep10, not ep30** (per memory). Ep1-10 loss_aux drops 0.27, ep10-30 drops 0.08, ep30-72 drops 0.10. Classic fast-early + long slow tail. Slow tail is 70% of training.
+- **[2026-04-10] CR-O added to experiment matrix.** Minimal smooth extension of CR-A: same semantic-only model, `SoftWeightedSemanticLoss` = CE · (1 + s·9) + Lovasz, fully continuous soft weighting across [0,1], no truncation, no aux head. Tests whether continuous boundary-proximity weighting alone moves val_mIoU above CR-A within seed noise. Files: `project/losses/soft_weighted_semantic_loss.py`, `configs/semantic_boundary/clean_reset_s38873367/soft_weighted_semantic_train.py`. Smoke-validated: `mean_point_weight ≈ 5.43` (analytical uniform[0,1] expectation 5.5), grad finite. Queued after CR-L completes.
 
 ## Experiment Evolution Summary
 
@@ -90,6 +96,7 @@ Last activity: 2026-04-10
 | CR-L | support-weighted binary BCE + local Dice + GT-weighted CE | **binary (s>0.5)** | **Full train running, positive signals** |
 | CR-M | CR-L loss on **v1 + v2** (dual supervision) via g v4 cross-stream fusion attn (K=48) | **binary (s>0.5)** | Committed (3fdfbd1), awaiting real-env queue |
 | CR-N | **Pure BFANet control**: semantic CE with **10× hard-mask upweight** (weight=10 on `s>0.5`, else 1) + unweighted BCE + **global** Dice on binary aux | **binary (s>0.5)** | Queued post-CR-M (added 2026-04-10) |
+| CR-O | **Fully soft-weighted semantic**: CE · (1 + s·9) + Lovasz, no truncation, no aux, no boundary head. Semantic-only model (same as CR-A). | — | Implemented + smoke-validated (added 2026-04-10); queued post-CR-L |
 
 ## Decisions
 
