@@ -50,8 +50,8 @@ class BoundaryUpweightLoss(nn.Module):
         segment = segment.reshape(-1).long()
         edge = edge.float()
 
-        # Continuous support target: edge column 4, Gaussian decay from boundary
-        support_gt = edge[:, 4].float().clamp(0.0, 1.0)
+        # Continuous support target: edge column 3, Gaussian decay from boundary
+        support_gt = edge[:, 3].float().clamp(0.0, 1.0)
 
         # === Term 1: Support-weighted semantic CE ===
         ce_per_point = F.cross_entropy(
