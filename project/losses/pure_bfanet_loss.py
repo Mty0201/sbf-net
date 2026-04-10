@@ -88,17 +88,20 @@ class PureBFANetLoss(nn.Module):
         loss_semantic = loss_ce_weighted + loss_lovasz
 
         # === Term 2: Unweighted binary BCE (pos_weight=1, no sample weight) ===
-        # BFANet writes this as BCELoss(sigmoid(margin), target); we use
-        # sigmoid + F.binary_cross_entropy to mirror that style. Numerically
-        # and gradient-wise this is identical to binary_cross_entropy_with_logits
-        # (log-sum-exp trick inside the latter), but the surface form matches
-        # BFANet network/BFANet.py line 166-168 exactly.
+        # BFANet writes this as BCELoss(sigmoid(margin), target) in fp32
+        # (network/BFANet.py line 166-168). We use binary_cross_entropy_with_logits
+        # because F.binary_cross_entropy is NOT AMP-safe — under torch.autocast
+        # the fp16 sigmoid output can underflow and PyTorch explicitly forbids
+        # it with "unsafe to autocast". BCEWithLogits is mathematically and
+        # gradient-wise identical to BCELoss(sigmoid(.)) (log-sum-exp trick
+        # internally), so this is a surface-form deviation forced by AMP
+        # compatibility, not a numerical difference.
         binary_target = boundary_mask
         support_logit = support_pred[:, 0]
-        support_prob = torch.sigmoid(support_logit)
+        support_prob = torch.sigmoid(support_logit)  # kept for Dice + monitoring
 
-        bce_per_point = F.binary_cross_entropy(
-            support_prob, binary_target, reduction="none"
+        bce_per_point = F.binary_cross_entropy_with_logits(
+            support_logit, binary_target, reduction="none"
         )
         loss_bce = bce_per_point.mean()
 
