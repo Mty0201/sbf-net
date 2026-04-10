@@ -28,7 +28,7 @@ loss = dict(
     aux_weight=0.3,
     boundary_ce_weight=10.0,
     sample_weight_scale=9.0,
-    boundary_threshold=0.9,
+    boundary_threshold=0.5,
     pos_weight=1.0,
 )
 evaluator = dict(type="RedesignedSupportFocusEvaluator")

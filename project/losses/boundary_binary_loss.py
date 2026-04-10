@@ -12,10 +12,9 @@ Sample weight: base + support_gt * K. Three semantic levels:
   - Background (support = 0, negative): base weight only
 
 Binary target means BCE converges cleanly to 0 (no continuous residual).
-Support weighting handles per-point imbalance. Local Dice (computed only
-on support > 0 points) provides region-level overlap pressure to push
-positive predictions up — BCE alone is too easily dominated by negatives
-when positive ratio is <1% after SphereCrop.
+Support weighting handles per-point BCE imbalance. Global Dice (unweighted,
+BFANet-style) provides ratio-level overlap pressure — background prob→0
+quickly so Dice denominator stays clean.
 """
 
 from __future__ import annotations
@@ -28,7 +27,7 @@ from pointcept.models.losses.lovasz import LovaszLoss
 
 
 class BoundaryBinaryLoss(nn.Module):
-    """Support-weighted binary BCE + local Dice aux + GT-support-weighted semantic CE."""
+    """Support-weighted binary BCE + global Dice aux + GT-support-weighted semantic CE."""
 
     def __init__(
         self,
@@ -94,19 +93,19 @@ class BoundaryBinaryLoss(nn.Module):
         )
         loss_bce = (sample_weight * bce_per_point).mean()
 
-        # === Term 2b: Local Dice on support > 0 region only ===
+        # === Term 2b: Local Dice on support > 0, unweighted ===
         support_prob = torch.sigmoid(support_logit)
-        local_mask = support_gt > 0  # ~18% of points
+        local_mask = support_gt > 0
         local_prob = support_prob[local_mask]
         local_target = binary_target[local_mask]
         smooth = self.dice_smooth
         intersection = (local_prob * local_target).sum()
-        local_dice = (2.0 * intersection + smooth) / (
+        dice_score = (2.0 * intersection + smooth) / (
             local_prob.sum() + local_target.sum() + smooth
         )
-        loss_local_dice = 1.0 - local_dice
+        loss_dice = 1.0 - dice_score
 
-        loss_aux = loss_bce + self.dice_weight * loss_local_dice
+        loss_aux = loss_bce + self.dice_weight * loss_dice
         loss_aux_weighted = self.aux_weight * loss_aux
         total = loss_semantic + loss_aux_weighted
 
@@ -131,8 +130,8 @@ class BoundaryBinaryLoss(nn.Module):
             loss_aux=loss_aux,
             loss_aux_weighted=loss_aux_weighted,
             loss_bce=loss_bce,
-            loss_local_dice=loss_local_dice,
-            local_dice_score=local_dice,
+            loss_dice=loss_dice,
+            dice_score=dice_score,
             prob_pos_mean=prob_pos_mean,
             prob_neg_mean=prob_neg_mean,
             positive_ratio=positive.float().mean(),
