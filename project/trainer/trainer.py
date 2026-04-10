@@ -272,6 +272,12 @@ class SemanticBoundaryTrainer:
             # Fallback: pass edge GT even without model edge/support outputs.
             # Enables losses that only need GT edge for weighting (no aux head).
             kwargs["edge"] = batch["edge"]
+        # CR-M dual-supervision: forward v2 outputs when the model emits them.
+        # Purely additive — only DualSupervisionBoundaryBinaryLoss reads these.
+        if "seg_logits_v2" in output:
+            kwargs["seg_logits_v2"] = output["seg_logits_v2"]
+        if "support_pred_v2" in output:
+            kwargs["support_pred_v2"] = output["support_pred_v2"]
         return kwargs
 
     @staticmethod
@@ -290,6 +296,11 @@ class SemanticBoundaryTrainer:
         elif "offset_pred" in output and "edge" in batch:
             kwargs["offset_pred"] = output["offset_pred"]
             kwargs["edge"] = batch["edge"]
+        # CR-M dual-supervision: forward v2 outputs when the model emits them.
+        if "seg_logits_v2" in output:
+            kwargs["seg_logits_v2"] = output["seg_logits_v2"]
+        if "support_pred_v2" in output:
+            kwargs["support_pred_v2"] = output["support_pred_v2"]
         return kwargs
 
     @staticmethod

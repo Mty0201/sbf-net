@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: semantic-first boundary supervision reboot
-status: "CR-L debugging: boundary_threshold 0.9→0.5 + pos_weight 5→1 after root-cause analysis (positive ratio too sparse at 0.9, combined weighting too heavy). Smoke test showing healthy separation."
-stopped_at: "CR-L parameter sweep: threshold=0.5, pos_weight=1, sample_weight_scale=9, local Dice on support>0. Support distribution verified from raw data (s>0.5 = 3.32% raw, s>0.9 = 0.62% raw). 4-epoch smoke at threshold=0.5 + pos_weight=5 showed healthy separation (dice 0.28, ppos-pneg gap growing). Reducing pos_weight to 1 since sample_weight_scale=9 already handles rebalancing. Next: full smoke test → full training."
-last_updated: "2026-04-10T05:30:00Z"
+status: "CR-M implemented end-to-end and smoke-validated. CrossStreamFusionAttention (gv4.py) + BoundaryGatedSemanticModelV4 + DualSupervisionBoundaryBinaryLoss wrapper + additive trainer kwargs forwarding + CR-M config. Local smoke (check_cr_m_smoke.py) passes 6.1–6.5: step-0 v1==v2 equivalence exact, g v4 two-step gradient flow, loss wrapper v1_/v2_ keys, trainer _build_loss_inputs forwards v2 outputs, CR-L regression-free."
+stopped_at: "CR-M ready for real-env submission. Code uncommitted; next: commit atomic, then queue boundary_gated_v4_train.py on the real training environment."
+last_updated: "2026-04-10T14:30:00Z"
 last_activity: 2026-04-10
 progress:
   total_phases: 7
@@ -56,6 +56,7 @@ Last activity: 2026-04-10
 - **[2026-04-10]** CR-K and CR-L implemented: BFANet-style binary BCE instead of continuous regression. CR-K = GT support weighting only (no aux, no boundary head) = CR-I ablation baseline. CR-L = support-weighted binary BCE + local Dice.
 - **[2026-04-10]** CR-L root cause analysis: initial config (threshold=0.9, pos_weight=5, sample_weight_scale=9) had boundary head collapse (prob_pos=0.075, dice_score=0.05). Diagnosed via support distribution: s>0.9 = 0.62% raw → ~0.35% after voxelize (grid_size=0.06), far below what BCE+Dice can learn. Voxel (6cm) > support σ (2cm) caps achievable positive ratio.
 - **[2026-04-10]** CR-L parameter fix: `boundary_threshold 0.9→0.5` (positive ratio 2% raw → clean Dice math), `pos_weight 5→1` (sample_weight_scale=9 already handles class-level rebalancing, combined 45x was too heavy). Local Dice kept on `support>0` region. 4-epoch smoke at threshold=0.5 + pos_weight=5 showed dice=0.28 and prob_pos/neg separating (gap 0.005→0.063 in 4 epochs). Next smoke: pos_weight=1.
+- **[2026-04-10]** CR-M implemented end-to-end per plan 05-02. New files: `project/models/gv4.py` (CrossStreamFusionAttention, K=patch_size fusion-query cross-stream attention), `project/models/boundary_gated_v4_model.py` (BoundaryGatedSemanticModelV4 with v1 CR-L heads + g v4 + v2 heads cloned from v1), `project/losses/dual_supervision_boundary_binary_loss.py` (wrapper runs BoundaryBinaryLoss on v1 and v2, sums totals, v1_/v2_ prefixed keys), `configs/.../clean_reset_gated_v4_model.py` + `boundary_gated_v4_train.py`, `scripts/train/check_cr_m_smoke.py`. Modified: `project/trainer/trainer.py` — additive kwargs forwarding of `seg_logits_v2`/`support_pred_v2` in `_build_loss_inputs` / `_build_eval_inputs`. Smoke (46.2M params, fusion 58k = 0.13%): 6.1 step-0 equivalence `max|v1-v2|=0` exact, 6.2 two-step gradient flow (step1 only `out_proj_*`+v2_head receive grad because zero-init kills upstream, step2 after SGD update full g v4 path gradient-live), 6.3 wrapper key prefixing + summation check, 6.4 trainer `_build_loss_inputs` forwards v2 kwargs through to the wrapper loss, 6.5 CR-L no-regression on SharedBackboneSemanticSupportModel + BoundaryBinaryLoss. Ready for real-env submission.
 
 ## Experiment Evolution Summary
 
@@ -69,6 +70,7 @@ Last activity: 2026-04-10
 | CR-J | CR-I loss + g v3 (boundary→semantic gating) | continuous support | Implemented, awaiting training |
 | CR-K | GT support-weighted CE + Lovasz (no aux, no head) | — | Implemented, CR-I ablation |
 | CR-L | support-weighted binary BCE + local Dice + GT-weighted CE | **binary (s>0.5)** | threshold=0.5, pos_weight=1 — smoke running |
+| CR-M | CR-L loss on **v1 + v2** (dual supervision) via g v4 cross-stream fusion attn (K=48) | **binary (s>0.5)** | Implemented, local smoke passed, ready for real-env submission |
 
 ## Decisions
 

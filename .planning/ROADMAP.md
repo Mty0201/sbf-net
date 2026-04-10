@@ -49,7 +49,7 @@
 
 ### — Part 1: Boundary Proximity Cue Validation (Phase 5) —
 
-### Phase 5: Boundary proximity cue experiments (CR-C/F/G/H/I/J/K/L)
+### Phase 5: Boundary proximity cue experiments (CR-C/F/G/H/I/J/K/L/M)
 
 **Goal:** Validate that treating support as a boundary proximity indicator produces a positive semantic effect — matching or exceeding CR-A (semantic-only, 0.7336 mIoU).
 **Requires:** CUE-01, CUE-02, CUE-03, CUE-04

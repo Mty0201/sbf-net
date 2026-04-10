@@ -12,10 +12,13 @@ from .semantic_model import SharedBackboneSemanticModel
 from .semantic_support_model import SharedBackboneSemanticSupportModel
 from .serial_derivation_model import SerialDerivationModel
 from .boundary_gated_model import BoundaryGatedSemanticModel
+from .boundary_gated_v4_model import BoundaryGatedSemanticModelV4
+from .gv4 import CrossStreamFusionAttention
 
 __all__ = [
     "BoundaryConsistencyModule",
     "BoundaryGatingModule",
+    "CrossStreamFusionAttention",
     "EdgeHead",
     "ResidualFeatureAdapter",
     "SemanticHead",
@@ -26,4 +29,5 @@ __all__ = [
     "SharedBackboneSemanticSupportModel",
     "SerialDerivationModel",
     "BoundaryGatedSemanticModel",
+    "BoundaryGatedSemanticModelV4",
 ]
