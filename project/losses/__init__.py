@@ -15,6 +15,7 @@ from .boundary_upweight_loss import BoundaryUpweightLoss
 from .boundary_weighted_semantic_loss import BoundaryWeightedSemanticLoss
 from .boundary_binary_loss import BoundaryBinaryLoss
 from .dual_supervision_boundary_binary_loss import DualSupervisionBoundaryBinaryLoss
+from .pure_bfanet_loss import PureBFANetLoss
 
 
 def build_loss(cfg: dict | None):
@@ -70,6 +71,9 @@ def build_loss(cfg: dict | None):
     if loss_type == "DualSupervisionBoundaryBinaryLoss":
         kwargs = {key: value for key, value in cfg.items() if key != "type"}
         return DualSupervisionBoundaryBinaryLoss(**kwargs)
+    if loss_type == "PureBFANetLoss":
+        kwargs = {key: value for key, value in cfg.items() if key != "type"}
+        return PureBFANetLoss(**kwargs)
     raise ValueError(f"Unsupported loss type: {loss_type}")
 
 
@@ -91,5 +95,6 @@ __all__ = [
     "BoundaryWeightedSemanticLoss",
     "BoundaryBinaryLoss",
     "DualSupervisionBoundaryBinaryLoss",
+    "PureBFANetLoss",
     "build_loss",
 ]

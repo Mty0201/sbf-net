@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: semantic-first boundary supervision reboot
-status: "CR-L full train running on real environment with positive signals. CR-H verified failed (net negative, matches CR-B). CR-J dropped (g version iterated to v4, superseded by CR-M). CR-K retained as pending ablation. CR-M implemented and smoke-validated, committed (3fdfbd1), awaiting real-env submission."
-stopped_at: "CR-L full train in flight. CR-M code committed, awaiting real-env queue. Active matrix reduced to CR-K (pending), CR-L (running), CR-M (queued)."
-last_updated: "2026-04-10T16:00:00Z"
+status: "CR-L full train at ep52/100. Peak val_mIoU=0.7169 at ep31, now oscillating 0.69-0.72 with train loss still declining — early overfitting signal. loss_dice diagnosed as NOT blocking (ep1→ep52 single-monotone decrease 0.778→0.582; prob_pos 0.25→0.58, prob_neg 0.19→0.046). Dice slope geometry makes it look stalled while it is not. Real concern: CR-L likely ceilings at 0.71-0.72, matching CR-B, below CR-A 0.7336."
+stopped_at: "CR-L training continues unchanged — do not intervene. Let it reach ep100 to collect full curve before deciding CR-M priority. CR-M committed (3fdfbd1) awaiting real-env queue."
+last_updated: "2026-04-10T19:30:00Z"
 last_activity: 2026-04-10
 progress:
   total_phases: 7
@@ -63,6 +63,18 @@ Last activity: 2026-04-10
   - **CR-K retained** — pending ablation to isolate whether the GT-only boundary-region CE upweight on its own moves mIoU without any aux or boundary head.
   - **CR-L full train running** on real environment with positive signals.
   - **CR-M committed (3fdfbd1)**, awaiting real-env queue.
+- **[2026-04-10 ep52 mid-train diagnosis]** CR-L at ep52/100 (log: `outputs/clean_reset_s38873367/boundary_binary/train.log`):
+  - **loss_dice is NOT blocked** — epoch-mean trajectory is single-monotone decreasing ep1→ep52: 0.778→0.693→0.661→0.625→0.603→0.582. `prob_pos_mean` 0.249→0.575, `prob_neg_mean` 0.186→0.046. `loss_bce` 0.486→0.268. Dice gradient `d(dice)/d(p_pos) ≈ 0.09` in current regime — the slope geometry makes it *look* stalled at the single-batch level while the epoch average is cleanly descending.
+  - **Real concern: early overfitting + val ceiling.** Peak `val_mIoU = 0.7169 at ep31`. Ep32-52 val oscillates 0.69–0.72 while train loss continues to decline 22% (loss_semantic 0.371→0.292). CR-L peak 0.7169 is only +0.002 above CR-B 0.7184 — current trajectory suggests CR-L will ceiling at CR-B level, -1.67pp below CR-A 0.7336.
+  - **Decision: do not intervene, let CR-L run to ep100.** Full curve is needed as the comparison baseline for CR-M dual-stream fusion. Early stop loses diagnostic signal.
+  - **Post-CR-L action plan:**
+    1. If CR-L best ≥ 0.72 but < 0.7336 → CR-M is the primary next experiment (fusion may close the 1–2pp gap).
+    2. If CR-L best stays at 0.71–0.72 matching CR-B → single-stream boundary-aux route has a structural ceiling under the current voxel/threshold geometry. CR-M becomes the last architectural lever; if CR-M also fails, consider voxel grid reduction (6cm→4cm) to break the physical constraint, or fall back to CR-K (pure CE-upweight, no aux head).
+    3. **CR-N — pure BFANet control** (added 2026-04-10, refined): faithful BFANet reproduction. Loss structure:
+       - **Semantic branch**: `CE(semantic_logits, semantic_gt)` with per-voxel weight. Boundary-positive voxels (`support > 0.5`, hard mask) get weight = **10**, all others = **1**. This is BFANet's 10× semantic upweight on the hard boundary region, distinct from CR-L's `sample_weight_scale=9` on continuous support.
+       - **Boundary branch**: `BCE(boundary_logits, boundary_target) + Dice(boundary_logits, boundary_target)`, **unweighted** (`pos_weight=1`). Dice is **global** (whole-scene binary Dice, not local-to-support region). `boundary_target = support > 0.5` hard threshold.
+       - **Total**: `L = L_sem + λ · L_boundary`, λ inherits CR-L's current value.
+       - **Purpose**: isolate CR-L's deviations from BFANet — (a) `sample_weight_scale=9` on continuous support vs BFANet's 10× on hard mask; (b) local Dice vs global Dice. CR-N is the apples-to-apples BFANet baseline. Queues after CR-M.
 
 ## Experiment Evolution Summary
 
@@ -77,6 +89,7 @@ Last activity: 2026-04-10
 | CR-K | GT support-weighted CE + Lovasz (no aux, no head) | — | Implemented, pending ablation |
 | CR-L | support-weighted binary BCE + local Dice + GT-weighted CE | **binary (s>0.5)** | **Full train running, positive signals** |
 | CR-M | CR-L loss on **v1 + v2** (dual supervision) via g v4 cross-stream fusion attn (K=48) | **binary (s>0.5)** | Committed (3fdfbd1), awaiting real-env queue |
+| CR-N | **Pure BFANet control**: semantic CE with **10× hard-mask upweight** (weight=10 on `s>0.5`, else 1) + unweighted BCE + **global** Dice on binary aux | **binary (s>0.5)** | Queued post-CR-M (added 2026-04-10) |
 
 ## Decisions
 
@@ -97,7 +110,8 @@ Last activity: 2026-04-10
 
 ## Blockers / Concerns
 
-- **[ACTIVE]** CR-L full training in flight on real environment (threshold=0.5, pos_weight=1). Positive signals so far. Success criterion: mIoU ≥ CR-A (0.7336).
+- **[ACTIVE]** CR-L full training at ep52/100 on real environment. Peak `val_mIoU = 0.7169 at ep31`, currently oscillating 0.69–0.72 while train loss still declining (early overfitting). Trajectory suggests CR-L will ceiling at CR-B level 0.7184, -1.67pp below CR-A 0.7336. **Do not intervene** — let it run to ep100 for the full curve. Log: `outputs/clean_reset_s38873367/boundary_binary/train.log`.
+- **[DIAGNOSED — NOT A BLOCKER]** CR-L `loss_dice` was suspected of stalling around 0.6. Verified single-monotone decrease ep1→ep52: 0.778→0.582. `prob_pos` 0.249→0.575, `prob_neg` 0.186→0.046. The apparent stall is a Dice slope-geometry artifact at the single-batch level — epoch means descend cleanly. No change needed.
 - **[ACTIVE]** CR-M queued for real-environment submission after CR-L result lands.
 - **[PENDING]** CR-K full training decision — run only if CR-L and CR-M results leave the CE-upweight-only ablation still interesting.
 - **[CLOSED]** CR-H — verified failed (net negative, matches CR-B).
@@ -122,7 +136,7 @@ Last activity: 2026-04-10
 
 ## Session Continuity
 
-Last session: 2026-04-10
-Stopped at: CR-L smoke complete, full train in flight on real environment (positive signals). CR-M committed (3fdfbd1), awaiting real-env queue. CR-H closed (failed). CR-J closed (dropped). CR-K retained as pending ablation.
-Resume file: None
-Next action: Monitor CR-L full-train result; submit CR-M to real env; then evaluate whether to run CR-K before Phase 7 (canonical update + milestone close).
+Last session: 2026-04-10 (ep52 mid-train diagnosis)
+Stopped at: CR-L at ep52/100 on real env. Peak val_mIoU=0.7169 at ep31, now in overfitting regime. loss_dice concern diagnosed and dismissed (epoch-mean descending cleanly, single-batch noise was the visual artifact). CR-M committed (3fdfbd1), awaiting real-env queue. CR-H closed (failed). CR-J closed (dropped). CR-K pending.
+Resume file: `outputs/clean_reset_s38873367/boundary_binary/train.log`
+Next action: (1) Wait for CR-L to finish ep100 — do not intervene. (2) Record final best val_mIoU. (3) If best ≥ 0.72 → submit CR-M to real env. (4) If best stays ≈ CR-B 0.7184 → single-stream boundary-aux has structural ceiling; CR-M is last architectural lever before falling back to CR-K or voxel grid reduction.
