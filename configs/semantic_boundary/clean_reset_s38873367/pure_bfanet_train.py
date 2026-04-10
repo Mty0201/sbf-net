@@ -31,7 +31,7 @@ data["val_batch_size"] = 1
 
 loss = dict(
     type="PureBFANetLoss",
-    aux_weight=0.3,
+    aux_weight=1.0,
     boundary_ce_weight=10.0,
     boundary_threshold=0.5,
     pos_weight=1.0,

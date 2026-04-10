@@ -34,7 +34,7 @@ class PureBFANetLoss(nn.Module):
 
     def __init__(
         self,
-        aux_weight: float = 0.3,
+        aux_weight: float = 1.0,
         boundary_ce_weight: float = 10.0,
         boundary_threshold: float = 0.5,
         pos_weight: float = 1.0,
@@ -73,31 +73,36 @@ class PureBFANetLoss(nn.Module):
             boundary_mask = (support_gt > self.boundary_threshold).float()
 
         # === Term 1: Hard-mask 10x weighted semantic CE (BFANet original) ===
+        # BFANet normalizes by total point count (ignore_index points contribute 0
+        # via F.cross_entropy(ignore_index=-1, reduction="none")), matching
+        # train.py line 150-153 where semantic_loss * sem_weight is followed by
+        # an unmasked .mean() over all points including -100.
         ce_per_point = F.cross_entropy(
             seg_logits, segment, ignore_index=-1, reduction="none"
         )
         ce_point_weight = 1.0 + boundary_mask * (self.boundary_ce_weight - 1.0)
+        loss_ce_weighted = (ce_per_point * ce_point_weight).mean()
         valid_semantic = segment != -1
-        loss_ce_weighted = (
-            (ce_per_point * ce_point_weight * valid_semantic.float()).sum()
-            / valid_semantic.float().sum().clamp_min(1.0)
-        )
 
         loss_lovasz = self.lovasz_loss(seg_logits, segment)
         loss_semantic = loss_ce_weighted + loss_lovasz
 
         # === Term 2: Unweighted binary BCE (pos_weight=1, no sample weight) ===
+        # BFANet writes this as BCELoss(sigmoid(margin), target); we use
+        # sigmoid + F.binary_cross_entropy to mirror that style. Numerically
+        # and gradient-wise this is identical to binary_cross_entropy_with_logits
+        # (log-sum-exp trick inside the latter), but the surface form matches
+        # BFANet network/BFANet.py line 166-168 exactly.
         binary_target = boundary_mask
         support_logit = support_pred[:, 0]
+        support_prob = torch.sigmoid(support_logit)
 
-        pw = torch.tensor(self.pos_weight, device=support_logit.device)
-        bce_per_point = F.binary_cross_entropy_with_logits(
-            support_logit, binary_target, pos_weight=pw, reduction="none"
+        bce_per_point = F.binary_cross_entropy(
+            support_prob, binary_target, reduction="none"
         )
         loss_bce = bce_per_point.mean()
 
         # === Term 2b: Global Dice over the whole output (BFANet original) ===
-        support_prob = torch.sigmoid(support_logit)
         smooth = self.dice_smooth
         intersection = (support_prob * binary_target).sum()
         dice_score = (2.0 * intersection + smooth) / (

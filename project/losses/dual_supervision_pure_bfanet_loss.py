@@ -1,10 +1,11 @@
 """Dual-supervision wrapper around PureBFANetLoss (CR-P).
 
 Runs a single ``PureBFANetLoss`` instance on both the v1 (pre-attention)
-and v2 (post-attention) outputs of ``BoundaryGatedSemanticModelV4``, with
-v1 loss weighted 0.5 and v2 loss weighted 1.0 — matching BFANet's original
-dual-supervision scheme where the refined prediction is primary and the
-initial prediction is an auxiliary regularizer.
+and v2 (post-attention) outputs of ``BoundaryGatedSemanticModelV4`` with
+equal weights — BFANet's original ``train.py`` lines 187-188 sum all
+eight loss terms (sem_v1 + dice_v1 + margin_v1 + margin_dice_v1 +
+sem_v2 + dice_v2 + margin_v2 + margin_dice_v2) directly without any
+v1/v2 scaling, so defaults are ``v1_weight=1.0`` and ``v2_weight=1.0``.
 
 Internal telemetry exposes every ``PureBFANetLoss`` metric under prefixed
 ``v1_`` / ``v2_`` keys, picked up by the trainer's dynamic metric dispatch.
@@ -34,19 +35,20 @@ class DualSupervisionPureBFANetLoss(nn.Module):
     """v1 + v2 BFANet-faithful supervision wrapper for CR-P.
 
     Weighting: ``loss = v1_weight * L_v1 + v2_weight * L_v2``.
-    Defaults (``v1_weight=0.5``, ``v2_weight=1.0``) match BFANet's original
-    dual-supervision scheme.
+    Defaults (``v1_weight=1.0``, ``v2_weight=1.0``) match BFANet's original
+    dual-supervision scheme where all eight loss terms are summed directly
+    without per-stream scaling (``train.py`` lines 187-188).
     """
 
     def __init__(
         self,
-        aux_weight: float = 0.3,
+        aux_weight: float = 1.0,
         boundary_ce_weight: float = 10.0,
         boundary_threshold: float = 0.5,
         pos_weight: float = 1.0,
         dice_weight: float = 1.0,
         dice_smooth: float = 1.0,
-        v1_weight: float = 0.5,
+        v1_weight: float = 1.0,
         v2_weight: float = 1.0,
     ):
         super().__init__()

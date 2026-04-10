@@ -12,9 +12,12 @@ reproduction" control:
     unweighted BCE with pos_weight=1, global Dice over the whole output),
     wrapped in dual-supervision over v1 (pre-attention) and v2
     (post-attention) outputs.
-  - Dual-layer supervision weights: v1 = 0.5, v2 = 1.0 — BFANet-faithful,
-    v2 is the primary refined prediction and v1 is an auxiliary
-    regularizer preventing the backbone from degenerating.
+  - Dual-layer supervision weights: v1 = 1.0, v2 = 1.0 — BFANet-faithful,
+    matching ``train.py`` lines 187-188 where all eight loss terms are
+    summed directly without per-stream scaling.
+  - aux_weight = 1.0 — BFANet sums the four per-stream terms (semantic CE,
+    semantic Dice, margin BCE, margin Dice) with equal weight; CR-P keeps
+    the three terms we do have (CE, BCE, Dice) at equal weight as well.
   - Model: BoundaryGatedSemanticModelV4 — shared PTv3 backbone, v1 heads,
     CrossStreamFusionAttention (g v4, zero-init residual), v2 heads
     cloned from v1 at init so step 0 is numerically equivalent to a
@@ -48,13 +51,13 @@ data["val_batch_size"] = 1
 
 loss = dict(
     type="DualSupervisionPureBFANetLoss",
-    aux_weight=0.3,
+    aux_weight=1.0,
     boundary_ce_weight=10.0,
     boundary_threshold=0.5,
     pos_weight=1.0,
     dice_weight=1.0,
     dice_smooth=1.0,
-    v1_weight=0.5,
+    v1_weight=1.0,
     v2_weight=1.0,
 )
 evaluator = dict(type="RedesignedSupportFocusEvaluator")
