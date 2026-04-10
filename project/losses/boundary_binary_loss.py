@@ -2,19 +2,29 @@
 
 BFANet-inspired binary boundary classification, enhanced with continuous
 support weighting. Replaces continuous support regression (CR-H/I) with
-a clean binary task: "is this point a core boundary point?"
+a clean binary task: "is this point near a semantic boundary?"
 
-Target: (support_gt > 0.9) → binary {0, 1}.
+Target: (support_gt > boundary_threshold) → binary {0, 1}.
+Threshold rationale: the physical lower bound is set by the voxel radius
+(grid 6cm → radius ~2.35cm), since support σ = 2cm. Raising the threshold
+above 0.5 pushes the positive ratio below what BCE + Dice can learn after
+voxelization. See STATE.md CR-L root-cause analysis (2026-04-10).
+
+Active config: threshold=0.5 (~2% positive post-voxel), pos_weight=1,
+sample_weight_scale=9. Class rebalancing is handled entirely by the
+per-point sample weight; an additional BCE pos_weight on top was found
+to double-count and drive the boundary head to collapse.
+
 Sample weight: base + support_gt * K. Three semantic levels:
-  - Core boundary (support > 0.9, positive): highest weight
-  - Transition zone (0 < support ≤ 0.9, negative): medium weight,
+  - Core boundary (support > threshold, positive): highest weight
+  - Transition zone (0 < support ≤ threshold, negative): medium weight,
     hard negatives that also reflect boundary proximity
   - Background (support = 0, negative): base weight only
 
 Binary target means BCE converges cleanly to 0 (no continuous residual).
-Support weighting handles per-point BCE imbalance. Global Dice (unweighted,
-BFANet-style) provides ratio-level overlap pressure — background prob→0
-quickly so Dice denominator stays clean.
+Local Dice restricted to the `support > 0` region (the transition zone +
+positives) supplies ratio-level overlap pressure without being dominated
+by the overwhelming background class.
 """
 
 from __future__ import annotations
@@ -27,14 +37,14 @@ from pointcept.models.losses.lovasz import LovaszLoss
 
 
 class BoundaryBinaryLoss(nn.Module):
-    """Support-weighted binary BCE + global Dice aux + GT-support-weighted semantic CE."""
+    """Support-weighted binary BCE + local Dice aux + GT-support-weighted semantic CE."""
 
     def __init__(
         self,
         aux_weight: float = 0.3,
         boundary_ce_weight: float = 10.0,
         sample_weight_scale: float = 9.0,
-        boundary_threshold: float = 0.9,
+        boundary_threshold: float = 0.5,
         pos_weight: float = 1.0,
         dice_weight: float = 1.0,
         dice_smooth: float = 1.0,
@@ -93,7 +103,7 @@ class BoundaryBinaryLoss(nn.Module):
         )
         loss_bce = (sample_weight * bce_per_point).mean()
 
-        # === Term 2b: Local Dice on support > 0, unweighted ===
+        # === Term 2b: Local Dice on support > 0 (transition zone + positives) ===
         support_prob = torch.sigmoid(support_logit)
         local_mask = support_gt > 0
         local_prob = support_prob[local_mask]

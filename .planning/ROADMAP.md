@@ -49,7 +49,7 @@
 
 ### — Part 1: Boundary Proximity Cue Validation (Phase 5) —
 
-### Phase 5: Boundary proximity cue experiments (CR-C/F/G/H/I/J)
+### Phase 5: Boundary proximity cue experiments (CR-C/F/G/H/I/J/K/L)
 
 **Goal:** Validate that treating support as a boundary proximity indicator produces a positive semantic effect — matching or exceeding CR-A (semantic-only, 0.7336 mIoU).
 **Requires:** CUE-01, CUE-02, CUE-03, CUE-04
@@ -62,10 +62,12 @@
 - **CR-H** (FocalMSEBoundaryLoss): MSE + soft Dice replaces BCE. MSE lower bound=0, Dice handles imbalance. Real training positive: fast separation, Dice improving, mIoU not degraded. MSE maintains ~0.05-0.1 dynamic equilibrium (not dead weight).
 - **CR-I** (BoundaryUpweightLoss): CR-H aux + BFANet-inspired semantic CE upweight. Boundary points (support>0.5) get up to 10x CE weight using continuous support, truncated to prevent tail inflation. 1-epoch validation: dice_score 0.27 (2.5x faster than CR-H), boundary_ce_frac 16%.
 - **CR-J** (BoundaryGatedSemanticModel + BoundaryUpweightLoss): CR-I loss + g v3 architecture. BoundaryGatingModule uses boundary_feat + PTv3 patch self-attention to produce per-channel gates that modulate semantic_feat. Boundary→semantic direction (replacing failed semantic→boundary g v1/v2). No dedicated loss — semantic loss drives g through the gate, creating a feedback loop where semantic loss also supervises boundary features.
+- **CR-K** (GT support-weighted CE + Lovasz, no aux, no boundary head): CR-I ablation baseline. Removes both the Focal MSE+Dice aux and the support head to isolate the effect of the boundary-region semantic CE upweight on its own. If CR-K ≥ CR-I, the boundary head is not paying for itself and the aux term is redundant.
+- **CR-L** (BoundaryBinaryLoss): BFANet-style binary classification instead of continuous regression. Aux = support-weighted binary BCE + local Dice on the `support>0` transition zone; semantic CE keeps the CR-I boundary upweighting. First config (`threshold=0.9, pos_weight=5, sample_weight_scale=9`) had boundary head collapse — root cause: voxel radius (~2.35cm at grid 6cm) is larger than support σ (2cm), so `s>0.9` leaves only ~0.35% positives post-voxel, below what BCE+Dice can learn. Fixed config: `threshold=0.5` (physical lower bound → ~2% positive), `pos_weight=1` (the `1 + s*9` sample weight already handles class rebalancing; stacking BCE pos_weight drove collapse), local Dice kept on the `support>0` region.
 
 **Infrastructure:** Trainer refactored to dynamic metric dispatch (commit 35b91bd). Adding new losses requires zero trainer changes.
 
-**Success criterion:** CR-I or CR-J mIoU ≥ CR-A (0.7336). Any positive delta confirms boundary-aware auxiliary supervision helps when the target is properly aligned.
+**Success criterion:** Any of CR-I / CR-J / CR-K / CR-L reaches mIoU ≥ CR-A (0.7336). Any positive delta confirms boundary-aware auxiliary supervision helps when the target is properly aligned.
 
 ---
 

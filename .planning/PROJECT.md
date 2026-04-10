@@ -16,11 +16,11 @@ Semantic segmentation remains the primary objective, and any boundary-aware supe
 - **Canonical repo facts:** `docs/canonical/README.md`
 - **Legacy historical lookup:** `docs/archive/workflow-legacy/README.md`
 - **Milestone archives:** `.planning/milestones/`
-- **Active work:** v2.0 Phase 5 — Part 1 boundary proximity cue experiment (CR-C). Route redesign complete: support reinterpreted as confidence-weighted boundary supervision.
+- **Active work:** v2.0 Phase 5 — Part 1 boundary proximity cue experiments. Route redesign complete: support reinterpreted as confidence-weighted boundary supervision. Active experiment matrix: CR-G (BCE on continuous support, failed), CR-H (Focal MSE + Dice, positive signals), CR-I (BFANet-style semantic CE upweight on top of CR-H), CR-J (CR-I + boundary→semantic gating module g v3), CR-K (GT-only CE upweight ablation), CR-L (BFANet-style binary BCE + local Dice, threshold 0.5 + pos_weight 1 after root-cause fix).
 
 ## Active Milestone: v2.0 — Semantic-first boundary supervision reboot
 
-Fix integration defects, run controlled CR-A/CR-B comparison, diagnose why support regression fails, and redesign the route. The diagnosis is complete: continuous Gaussian regression produces competing gradient; the concept is valid but the implementation was wrong. The new route reinterprets `valid + support` as a boundary proximity cue (confidence-weighted BCE) and validates via a CR-C experiment. Geometric field objectives are deferred to Part 2, conditional on Part 1 success. Phase numbering reset to 1. See `.planning/ROADMAP.md` for phase structure and `.planning/REQUIREMENTS.md` for scoped requirements.
+Fix integration defects, run controlled CR-A/CR-B comparison, diagnose why support regression fails, and redesign the route. The diagnosis is complete: continuous Gaussian regression produces competing gradient; the concept is valid but the implementation was wrong. The new route reinterprets `valid + support` as a boundary proximity cue and validates via a CR-C→CR-L experiment sweep. The sweep evolved beyond the initial CR-C confidence-weighted BCE design after CR-G revealed BCE's irreducible entropy lower bound on continuous targets — CR-H replaced BCE with Focal MSE+Dice, CR-I added a BFANet-inspired boundary-region semantic CE upweight, CR-J added a boundary→semantic gating module g v3, CR-K isolates the CE upweight as an ablation, and CR-L returns to a BFANet-style binary BCE with the threshold/weighting parameters chosen against the voxelization physical bounds. Geometric field objectives remain deferred to Part 2, conditional on Part 1 success. Phase numbering reset to 1. See `.planning/ROADMAP.md` for phase structure and `.planning/REQUIREMENTS.md` for scoped requirements.
 
 ## Validated
 
@@ -46,7 +46,7 @@ Fix integration defects, run controlled CR-A/CR-B comparison, diagnose why suppo
 
 ## Active
 
-- **CUE-01, CUE-02, CUE-03, CUE-04**: Implement confidence-weighted BCE loss, create CR-C config, run 100-epoch experiment, validate against CR-A baseline (Phase 5)
+- **CUE-01, CUE-02, CUE-03, CUE-04**: Boundary proximity cue experiment sweep — CR-C→CR-L. Implementation for CR-G/H/I/J/K/L complete; full training + CR-A baseline comparison pending. Success criterion: at least one variant reaches mIoU ≥ 0.7336 (Phase 5)
 - **GEO-01, GEO-02**: Geometric field extension — conditional on CUE-04 success (Phase 6)
 - **GUARD-01, GUARD-02, GUARD-03**: Extension boundary, no overstatement, canonical doc update (Phase 7)
 
@@ -56,7 +56,7 @@ Fix integration defects, run controlled CR-A/CR-B comparison, diagnose why suppo
 - ~~Run CR-A and CR-B for 100 epochs with seed=38873367 under controlled conditions~~ ✅
 - ~~Produce a structured comparison with a clear verdict on support's effect~~ ✅
 - ~~Diagnose why support regression fails and determine the redesigned route~~ ✅
-- **Part 1:** Validate boundary proximity cue (confidence-weighted BCE) via CR-C experiment — target: mIoU ≥ CR-A (0.7336)
+- **Part 1:** Validate boundary proximity cue through the CR-G→CR-L experiment sweep (continuous BCE failed; MSE+Dice, semantic CE upweight, boundary→semantic gating, and BFANet binary BCE variants under evaluation) — target: mIoU ≥ CR-A (0.7336)
 - **Part 2 (conditional):** If Part 1 succeeds, add geometric field objectives with gradient isolation from backbone
 - Update canonical docs to reflect findings and close milestone
 
@@ -104,6 +104,11 @@ The preferred milestone posture is to keep the backbone and main training archit
 | Semantic performance is the governing objective for boundary supervision | Boundary-aware signals are useful only if they help semantic quality, especially near edges | `v1.1` removes support-shape from the candidate-mainline role and advances a support-centric route for implementation. The reference baseline is being re-established by workstream clean-reset-s38873367 |
 | Retract flawed baseline before further tuning | support-only = 74.6 was based on variable cover_weight and no fixed seed; conclusions built on it are unreliable | Phase 12 formally retracted the narrative; clean-reset workstream re-establishes the comparison with fixed seed |
 | Reinterpret support as boundary proximity cue, not geometric regression | Mechanism analysis shows binary edge classification produces semantically-aligned gradient while continuous Gaussian regression produces competing gradient. DLA-Net and author's PTv3 reproduction confirm the concept works with aligned targets. | v2.0 Phase 4 route redesign: confidence-weighted BCE (Option L1) replaces SmoothL1+Tversky. Geometric field deferred to Part 2. |
+| BCE on a continuous target has an irreducible entropy lower bound | CR-G (SoftBoundaryLoss) plateaued at BCE ≈ 0.2 regardless of convergence because the cross-entropy floor is `H(support_gt)`, producing persistent competing gradient against semantics. Switching to MSE (lower bound = 0) plus Dice removes the floor. | v2.0 Phase 5 CR-H replaces BCE with Focal MSE + soft Dice on the continuous target. |
+| Boundary-region semantic CE upweight should use the continuous support, truncated | BFANet-style boundary upweighting amplifies semantic CE where it matters, and truncating at `support > 0.5` prevents the Gaussian tail from inflating too many interior points. | v2.0 Phase 5 CR-I introduces `BoundaryUpweightLoss`; CR-K keeps only this CE upweight as an ablation to isolate its effect from the support head. |
+| Module g direction reversed from semantic→boundary to boundary→semantic | g v1/v2 (deriving offset from semantic logits) failed — semantic logits are too weak at boundaries to derive geometric information. Reversing the direction lets boundary features gate semantic features, driven entirely by semantic loss gradients through the gate (BFANet-inspired). | v2.0 Phase 5 CR-J introduces `BoundaryGatedSemanticModel` + `BoundaryGatingModule` (g v3); Phase 6 is subsumed. |
+| CR-L binary threshold is bounded from below by the voxel radius | Support σ = 2cm but grid voxel size is 6cm (radius ~2.35cm). Raising the binary threshold above 0.5 makes positive ratio post-voxelization fall below what BCE + Dice can learn. The physical lower bound sets the threshold, not training heuristics. | v2.0 Phase 5 CR-L: `boundary_threshold = 0.5` (≈2% positives post-voxel). Preprocessing changes would be required to push it higher. |
+| CR-L class rebalancing is handled entirely by the per-point sample weight | With `sample_weight_scale = 9`, core boundary points already get 10× the background weight. Stacking a BCE `pos_weight = 5` on top multiplies the effective imbalance correction to ~45×, which collapses the boundary head. | v2.0 Phase 5 CR-L: `pos_weight = 1`. Any future rebalancing must go through `sample_weight_scale`, not a second layer inside BCE. |
 
 ## Evolution
 
@@ -123,4 +128,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-07 after v2.0 Phase 4 route redesign*
+*Last updated: 2026-04-10 after v2.0 Phase 5 CR-K/L implementation and CR-L root-cause fix*

@@ -266,3 +266,51 @@ These questions are premature now. Part 1 comes first.
 3. The simplest Part 1 experiment — confidence-weighted BCE with `w_aux` = 0.2-0.5 — directly tests whether the target alignment hypothesis holds. No data pipeline change, no architecture change, one loss function replacement.
 
 4. Part 2 (geometric field objectives) is deferred until Part 1 validates the foundation. The staged approach prevents premature geometric burden from contaminating the boundary-awareness benefit.
+
+---
+
+## 9. Implementation Evolution Log (2026-04-08 → 2026-04-10)
+
+Sections 1–8 above are the 2026-04-07 design record. This section logs what actually happened when Option L1 was executed and why the route branched beyond the original single-variant plan. These entries are updates, not retractions — the core reframing (support as proximity cue, geometric field deferred to Part 2) still holds.
+
+### 9.1 CR-C / CR-F / CR-G: Option L1 as specified, and why continuous BCE did not land
+
+CR-C (confidence-weighted BCE on binary `valid`) and CR-F (unweighted BCE on binary `valid`) were implemented as direct realizations of Option L1. Neither reached CR-A. The deeper lesson arrived with CR-G (`SoftBoundaryLoss`), which applied BCE directly to the continuous support target instead of the binary mask: best mIoU = 0.7240 < CR-A = 0.7336.
+
+The failure mode is structural, not tunable: `BCE(p, s_gt) ≥ H(s_gt)`, where `H(s_gt)` is the entropy of the continuous target distribution. On this dataset `H(s_gt) ≈ 0.2`. The BCE loss cannot be driven below that floor no matter how well the network predicts, so the auxiliary loss retains a persistent gradient that competes with the semantic branch for the entire training run. Section 5.3's Option L2 ("soft binary classification") inherits the same floor in a different form and would have hit the same wall.
+
+**Correction to Section 5.3:** BCE is an acceptable loss on a binary target, but it is not acceptable on a continuous `support_gt ∈ [0, 1]` target. Any future continuous-target variant must use a loss whose lower bound is 0.
+
+### 9.2 CR-H: MSE + Dice replaces BCE on the continuous target
+
+CR-H (`FocalMSEBoundaryLoss`) replaces BCE with Focal MSE plus a soft Dice term. MSE's lower bound on a continuous target is 0, and Dice addresses the imbalance between the dense background and the sparse boundary zone. Real-training telemetry showed fast separation of `prob_pos` vs `prob_neg`, Dice steadily improving, and MSE settling into a ~0.05–0.1 dynamic equilibrium without flatlining — the auxiliary task converges without going dead. Full-run result pending.
+
+### 9.3 CR-I: BFANet-style boundary-region semantic CE upweight
+
+CR-I (`BoundaryUpweightLoss`) keeps CR-H's aux and adds a BFANet-inspired upweight on the semantic CE itself: points with `support_gt > 0.5` get up to 10× CE weight, using the continuous support as the weight and truncating at 0.5 to prevent the Gaussian tail from dragging in too many interior points. This is the first design in the sweep where the semantic branch is *explicitly* told which points are the difficult-near-boundary ones, rather than relying only on gradient flow from the aux head. 1-epoch validation: `dice_score` 0.27 (~2.5× faster than CR-H), `boundary_ce_frac` 16%, healthy training.
+
+### 9.4 CR-J: g direction reversed from semantic→boundary to boundary→semantic
+
+Phase 6's original plan was a module g that derives a boundary offset vector field from the semantic logits (semantic→boundary, Part 2 spirit). Two iterations of that design (g v1 consistency MSE, g v2 cosine offset) both came back neutral in fair retests: semantic logits are too weak at boundaries to derive useful geometric information from.
+
+g was redesigned as a **boundary→semantic gate** (g v3, `BoundaryGatingModule`). It takes the boundary adapter's feature map, runs PTv3 serialized patch self-attention over it, and emits a per-channel gate that modulates the semantic feature map multiplicatively (`semantic_feat * (1 + gate)`). The output layer is zero-initialized so the initial multiplier is ≈1.5 and the model starts near identity. There is no dedicated loss for g — the semantic loss drives g through the gate, creating a feedback loop where boundary features that help semantic classification get reinforced and those that do not get suppressed. This is the missing implicit-coupling mechanism Section 4 suggested might eventually be needed. Phase 6 is subsumed into CR-J.
+
+### 9.5 CR-K / CR-L: Ablation and BFANet binary return
+
+Two additional variants were added to isolate what is actually paying its way:
+
+- **CR-K** keeps only the CR-I semantic CE upweight — no aux, no boundary head, no g. If CR-K ≥ CR-I, the auxiliary support head is redundant and the CE upweight is doing all the work. This is the purest ablation of the "boundary-region semantic emphasis" hypothesis.
+
+- **CR-L** (`BoundaryBinaryLoss`) returns to a BFANet-style *binary* BCE + local Dice on the support>0 transition zone, while keeping the CR-I semantic CE upweight. This is Option L1's spirit — binary target, classification-like behavior — but with a hard-fought parameterization. The initial attempt (`threshold=0.9, pos_weight=5, sample_weight_scale=9`) made the boundary head collapse (`prob_pos=0.075, dice_score=0.05`).
+
+  Root cause: the grid voxel size is 6cm (radius ~2.35cm) but support σ = 2cm. At `support > 0.9` the true positives are only ~0.62% of the raw data, and after voxelization collapse the ratio drops to ~0.35%. That is below what a BCE+Dice combination can learn at all. Secondary cause: `sample_weight_scale = 9` already makes core boundary points carry 10× the background weight, so stacking `pos_weight = 5` on top of it produces ~45× effective imbalance correction, which also drives collapse.
+
+  Fix: `boundary_threshold = 0.5` (≈2% post-voxel, clean Dice math), `pos_weight = 1` (rebalancing handled entirely by the sample weight), local Dice restricted to `support > 0` so the background class cannot dominate the Dice denominator. The 0.5 threshold is a *physical lower bound* set by the voxel radius, not a heuristic — pushing it higher would require preprocessing changes.
+
+### 9.6 Updated success criterion
+
+The original criterion — "CR-C reaches mIoU ≥ CR-A (0.7336)" — is generalized to the sweep:
+
+> Any of CR-H / CR-I / CR-J / CR-K / CR-L reaches mIoU ≥ CR-A (0.7336).
+
+A positive delta from *any* variant confirms boundary-aware auxiliary supervision helps when the target is aligned. The sweep also supports structural conclusions independent of any single outcome: CR-K vs CR-I isolates whether the support head pays for itself; CR-J vs CR-I isolates whether explicit coupling (the gate) provides additional benefit beyond implicit coupling; CR-L vs CR-H isolates whether binary vs continuous auxiliary targets produce different semantic outcomes. Phase 7 (canonical update + milestone close) consumes these comparisons directly.

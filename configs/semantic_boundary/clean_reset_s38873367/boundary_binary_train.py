@@ -4,8 +4,13 @@ Part of workstream clean-reset-s38873367.
 Same dual-head model as CR-I (SharedBackboneSemanticSupportModel).
 Loss: BoundaryBinaryLoss — BFANet-inspired binary boundary classification
 enhanced with continuous support sample weighting.
-  - Aux: binary BCE (support > 0.9 = positive), sample weight = 1 + support * 9
-  - Semantic CE: GT support weighted (truncated > 0.5), same as CR-I
+  - Aux: binary BCE (support > 0.5 = positive, ~2% post-voxel) + local Dice
+    on the support>0 transition zone. sample weight = 1 + support * 9,
+    pos_weight=1 (class rebalancing already handled by sample weight).
+  - Semantic CE: GT support weighted (truncated > 0.5), same as CR-I.
+
+Threshold 0.5 is a physical lower bound set by the voxel radius
+(grid 6cm → ~2.35cm vs support σ = 2cm). See STATE.md 2026-04-10 entry.
 """
 
 from __future__ import annotations
