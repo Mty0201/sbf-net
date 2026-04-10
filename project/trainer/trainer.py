@@ -268,6 +268,10 @@ class SemanticBoundaryTrainer:
         elif "offset_pred" in output and "edge" in batch:
             kwargs["offset_pred"] = output["offset_pred"]
             kwargs["edge"] = batch["edge"]
+        elif "edge" in batch:
+            # Fallback: pass edge GT even without model edge/support outputs.
+            # Enables losses that only need GT edge for weighting (no aux head).
+            kwargs["edge"] = batch["edge"]
         return kwargs
 
     @staticmethod

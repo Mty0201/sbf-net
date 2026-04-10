@@ -3,10 +3,9 @@
 CR-I = CR-H (proven aux) + BFANet-inspired semantic boundary upweight.
 
 Two mechanisms, different roles:
-  - Semantic upweight: CE per-point weight = 1 + support_gt * (K - 1).
-    Continuous Gaussian support gives smooth weighting — points closer to
-    the semantic boundary get proportionally higher CE weight.  No hard
-    cutoff artifacts from binary valid.
+  - Semantic upweight: CE per-point weight = 1 + mask * support_gt * (K - 1),
+    where mask = (support_gt > 0.5). Truncated at 0.5 so only points
+    near the boundary core get upweighted; tail stays at weight 1.0.
   - Focal MSE aux: identical to CR-H.  Focal MSE provides stable
     per-point gradients (lower bound = 0, no BCE entropy floor).
     Dice was removed after CR-H analysis showed it dominated the aux
