@@ -16,11 +16,11 @@ Semantic segmentation remains the primary objective, and any boundary-aware supe
 - **Canonical repo facts:** `docs/canonical/README.md`
 - **Legacy historical lookup:** `docs/archive/workflow-legacy/README.md`
 - **Milestone archives:** `.planning/milestones/`
-- **Active work:** v2.0 Phase 5 — Part 1 boundary proximity cue experiments. Route redesign complete: support reinterpreted as confidence-weighted boundary supervision. Active experiment matrix: CR-G (BCE on continuous support, failed), CR-H (Focal MSE + Dice, positive signals), CR-I (BFANet-style semantic CE upweight on top of CR-H), CR-J (CR-I + boundary→semantic gating module g v3), CR-K (GT-only CE upweight ablation), CR-L (BFANet-style binary BCE + local Dice, threshold 0.5 + pos_weight 1 after root-cause fix).
+- **Active work:** v2.0 Phase 5 — Part 1 boundary proximity cue experiments. Route redesign complete: support reinterpreted as confidence-weighted boundary supervision. Experiment matrix has been culled by full-training evidence. **Closed:** CR-G (BCE lower bound failed), CR-H (MSE+Dice on continuous target failed — matches CR-B net negative), CR-J (g v3 superseded by g v4 before full training). **Active:** CR-L (BFANet-style binary BCE + local Dice with threshold 0.5 / pos_weight 1, full training running, positive signals), CR-M (CR-L loss on dual v1+v2 streams via g v4 cross-stream fusion attention, committed 3fdfbd1, awaiting real-env queue). **Pending:** CR-K (GT-only CE upweight ablation, to be run only if CR-L / CR-M leave the question interesting).
 
 ## Active Milestone: v2.0 — Semantic-first boundary supervision reboot
 
-Fix integration defects, run controlled CR-A/CR-B comparison, diagnose why support regression fails, and redesign the route. The diagnosis is complete: continuous Gaussian regression produces competing gradient; the concept is valid but the implementation was wrong. The new route reinterprets `valid + support` as a boundary proximity cue and validates via a CR-C→CR-L experiment sweep. The sweep evolved beyond the initial CR-C confidence-weighted BCE design after CR-G revealed BCE's irreducible entropy lower bound on continuous targets — CR-H replaced BCE with Focal MSE+Dice, CR-I added a BFANet-inspired boundary-region semantic CE upweight, CR-J added a boundary→semantic gating module g v3, CR-K isolates the CE upweight as an ablation, and CR-L returns to a BFANet-style binary BCE with the threshold/weighting parameters chosen against the voxelization physical bounds. Geometric field objectives remain deferred to Part 2, conditional on Part 1 success. Phase numbering reset to 1. See `.planning/ROADMAP.md` for phase structure and `.planning/REQUIREMENTS.md` for scoped requirements.
+Fix integration defects, run controlled CR-A/CR-B comparison, diagnose why support regression fails, and redesign the route. The diagnosis is complete: continuous Gaussian regression produces competing gradient; the concept is valid but the implementation was wrong. The new route reinterprets `valid + support` as a boundary proximity cue and validates via a CR-C→CR-M experiment sweep. The sweep evolved beyond the initial CR-C confidence-weighted BCE design through three waves: (1) CR-G/H tried to rescue continuous regression (BCE then MSE+Dice) — both closed out, with CR-H's full training matching CR-B net negative and proving that no continuous-target loss alone fixes the gradient mismatch; (2) CR-I/J/K added a BFANet-style semantic CE upweight and a boundary→semantic gate (g v3) — CR-J was dropped once g iterated to v4, CR-K remains a pending ablation; (3) CR-L/M moved to a BFANet-style binary threshold (physically bounded by voxel radius) with CR-L running full training on the real environment with positive signals and CR-M applying the same loss to a dual v1+v2 stream coupled by g v4 cross-stream fusion attention. Geometric field objectives remain deferred to Part 2, conditional on Part 1 success. Phase numbering reset to 1. See `.planning/ROADMAP.md` for phase structure and `.planning/REQUIREMENTS.md` for scoped requirements.
 
 ## Validated
 
@@ -46,7 +46,7 @@ Fix integration defects, run controlled CR-A/CR-B comparison, diagnose why suppo
 
 ## Active
 
-- **CUE-01, CUE-02, CUE-03, CUE-04**: Boundary proximity cue experiment sweep — CR-C→CR-L. Implementation for CR-G/H/I/J/K/L complete; full training + CR-A baseline comparison pending. Success criterion: at least one variant reaches mIoU ≥ 0.7336 (Phase 5)
+- **CUE-01, CUE-02, CUE-03, CUE-04**: Boundary proximity cue experiment sweep — CR-C→CR-M. Implementation for CR-G/H/I/J/K/L/M complete. CR-G and CR-H closed out as failed (continuous-target losses do not recover the CR-A gap). CR-J dropped (g v3 superseded by g v4 before full training). **CR-L full training running on real environment with positive signals; CR-M committed (3fdfbd1) awaiting real-env queue; CR-K retained as a pending ablation.** Success criterion: at least one variant reaches mIoU ≥ 0.7336 (Phase 5)
 - **GEO-01, GEO-02**: Geometric field extension — conditional on CUE-04 success (Phase 6)
 - **GUARD-01, GUARD-02, GUARD-03**: Extension boundary, no overstatement, canonical doc update (Phase 7)
 
@@ -56,7 +56,7 @@ Fix integration defects, run controlled CR-A/CR-B comparison, diagnose why suppo
 - ~~Run CR-A and CR-B for 100 epochs with seed=38873367 under controlled conditions~~ ✅
 - ~~Produce a structured comparison with a clear verdict on support's effect~~ ✅
 - ~~Diagnose why support regression fails and determine the redesigned route~~ ✅
-- **Part 1:** Validate boundary proximity cue through the CR-G→CR-L experiment sweep (continuous BCE failed; MSE+Dice, semantic CE upweight, boundary→semantic gating, and BFANet binary BCE variants under evaluation) — target: mIoU ≥ CR-A (0.7336)
+- **Part 1:** Validate boundary proximity cue through the CR-G→CR-M experiment sweep. Continuous-target losses (CR-G BCE, CR-H MSE+Dice) are closed out as failed. g v3 (CR-J) is dropped in favour of g v4 (CR-M). Active validation now runs through CR-L (BFANet binary BCE + local Dice) and CR-M (dual v1+v2 supervision via cross-stream fusion attention), with CR-K as a pending ablation. Target: mIoU ≥ CR-A (0.7336)
 - **Part 2 (conditional):** If Part 1 succeeds, add geometric field objectives with gradient isolation from backbone
 - Update canonical docs to reflect findings and close milestone
 
@@ -128,4 +128,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-10 after v2.0 Phase 5 CR-K/L implementation and CR-L root-cause fix*
+*Last updated: 2026-04-10 after v2.0 Phase 5 matrix cull — CR-H closed (failed), CR-J dropped (g v3 superseded by g v4), CR-L full train in flight, CR-M committed awaiting real-env queue, CR-K retained as pending ablation*

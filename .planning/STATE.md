@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: semantic-first boundary supervision reboot
-status: "CR-M implemented end-to-end and smoke-validated. CrossStreamFusionAttention (gv4.py) + BoundaryGatedSemanticModelV4 + DualSupervisionBoundaryBinaryLoss wrapper + additive trainer kwargs forwarding + CR-M config. Local smoke (check_cr_m_smoke.py) passes 6.1–6.5: step-0 v1==v2 equivalence exact, g v4 two-step gradient flow, loss wrapper v1_/v2_ keys, trainer _build_loss_inputs forwards v2 outputs, CR-L regression-free."
-stopped_at: "CR-M ready for real-env submission. Code uncommitted; next: commit atomic, then queue boundary_gated_v4_train.py on the real training environment."
-last_updated: "2026-04-10T14:30:00Z"
+status: "CR-L full train running on real environment with positive signals. CR-H verified failed (net negative, matches CR-B). CR-J dropped (g version iterated to v4, superseded by CR-M). CR-K retained as pending ablation. CR-M implemented and smoke-validated, committed (3fdfbd1), awaiting real-env submission."
+stopped_at: "CR-L full train in flight. CR-M code committed, awaiting real-env queue. Active matrix reduced to CR-K (pending), CR-L (running), CR-M (queued)."
+last_updated: "2026-04-10T16:00:00Z"
 last_activity: 2026-04-10
 progress:
   total_phases: 7
@@ -21,13 +21,13 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-04-06)
 
 **Core value:** Semantic segmentation remains the primary objective, and any boundary-aware supervision must improve boundary-region semantic quality without dragging the semantic branch into explicit geometric-field learning.
-**Current focus:** v2.0 Phase 5 — boundary proximity cue experiments (CR-G/H/I/J). Phase 6 g module redesigned as boundary→semantic gating (g v3).
+**Current focus:** v2.0 Phase 5 — boundary proximity cue experiments. Active matrix narrowed to CR-K (pending ablation), CR-L (full train running, positive signals), CR-M (committed, awaiting queue). CR-H failed (net negative, matches CR-B). CR-J dropped (g iterated from v3 to v4, superseded by CR-M).
 
 ## Current Position
 
-Phase: 5 — Boundary proximity cue experiments (CR-G/H/I/J)
+Phase: 5 — Boundary proximity cue experiments (CR-K/L/M active; CR-H/J closed out)
 Plan: `.planning/phases/06-serial-derivation-module/06-01-PLAN.md`
-Status: CR-I and CR-J implemented. Awaiting full training results.
+Status: CR-L full train running in real environment with positive signals. CR-M committed and awaiting queue. CR-K retained as pending ablation. CR-H verified failed. CR-J dropped (superseded by CR-M g v4).
 Last activity: 2026-04-10
 
 ## Recent Context
@@ -56,7 +56,13 @@ Last activity: 2026-04-10
 - **[2026-04-10]** CR-K and CR-L implemented: BFANet-style binary BCE instead of continuous regression. CR-K = GT support weighting only (no aux, no boundary head) = CR-I ablation baseline. CR-L = support-weighted binary BCE + local Dice.
 - **[2026-04-10]** CR-L root cause analysis: initial config (threshold=0.9, pos_weight=5, sample_weight_scale=9) had boundary head collapse (prob_pos=0.075, dice_score=0.05). Diagnosed via support distribution: s>0.9 = 0.62% raw → ~0.35% after voxelize (grid_size=0.06), far below what BCE+Dice can learn. Voxel (6cm) > support σ (2cm) caps achievable positive ratio.
 - **[2026-04-10]** CR-L parameter fix: `boundary_threshold 0.9→0.5` (positive ratio 2% raw → clean Dice math), `pos_weight 5→1` (sample_weight_scale=9 already handles class-level rebalancing, combined 45x was too heavy). Local Dice kept on `support>0` region. 4-epoch smoke at threshold=0.5 + pos_weight=5 showed dice=0.28 and prob_pos/neg separating (gap 0.005→0.063 in 4 epochs). Next smoke: pos_weight=1.
-- **[2026-04-10]** CR-M implemented end-to-end per plan 05-02. New files: `project/models/gv4.py` (CrossStreamFusionAttention, K=patch_size fusion-query cross-stream attention), `project/models/boundary_gated_v4_model.py` (BoundaryGatedSemanticModelV4 with v1 CR-L heads + g v4 + v2 heads cloned from v1), `project/losses/dual_supervision_boundary_binary_loss.py` (wrapper runs BoundaryBinaryLoss on v1 and v2, sums totals, v1_/v2_ prefixed keys), `configs/.../clean_reset_gated_v4_model.py` + `boundary_gated_v4_train.py`, `scripts/train/check_cr_m_smoke.py`. Modified: `project/trainer/trainer.py` — additive kwargs forwarding of `seg_logits_v2`/`support_pred_v2` in `_build_loss_inputs` / `_build_eval_inputs`. Smoke (46.2M params, fusion 58k = 0.13%): 6.1 step-0 equivalence `max|v1-v2|=0` exact, 6.2 two-step gradient flow (step1 only `out_proj_*`+v2_head receive grad because zero-init kills upstream, step2 after SGD update full g v4 path gradient-live), 6.3 wrapper key prefixing + summation check, 6.4 trainer `_build_loss_inputs` forwards v2 kwargs through to the wrapper loss, 6.5 CR-L no-regression on SharedBackboneSemanticSupportModel + BoundaryBinaryLoss. Ready for real-env submission.
+- **[2026-04-10]** CR-M implemented end-to-end per plan 05-02. New files: `project/models/gv4.py` (CrossStreamFusionAttention, K=patch_size fusion-query cross-stream attention), `project/models/boundary_gated_v4_model.py` (BoundaryGatedSemanticModelV4 with v1 CR-L heads + g v4 + v2 heads cloned from v1), `project/losses/dual_supervision_boundary_binary_loss.py` (wrapper runs BoundaryBinaryLoss on v1 and v2, sums totals, v1_/v2_ prefixed keys), `configs/.../clean_reset_gated_v4_model.py` + `boundary_gated_v4_train.py`, `scripts/train/check_cr_m_smoke.py`. Modified: `project/trainer/trainer.py` — additive kwargs forwarding of `seg_logits_v2`/`support_pred_v2` in `_build_loss_inputs` / `_build_eval_inputs`. Smoke (46.2M params, fusion 58k = 0.13%): 6.1 step-0 equivalence `max|v1-v2|=0` exact, 6.2 two-step gradient flow (step1 only `out_proj_*`+v2_head receive grad because zero-init kills upstream, step2 after SGD update full g v4 path gradient-live), 6.3 wrapper key prefixing + summation check, 6.4 trainer `_build_loss_inputs` forwards v2 kwargs through to the wrapper loss, 6.5 CR-L no-regression on SharedBackboneSemanticSupportModel + BoundaryBinaryLoss. Committed as 3fdfbd1; ready for real-env submission.
+- **[2026-04-10]** Active experiment matrix culled and updated:
+  - **CR-H verified failed** — full training on real environment matched CR-B (net negative vs CR-A 0.7336). Focal MSE+Dice on continuous support does not recover the gap; BCE→MSE fix alone is insufficient when target stays continuous.
+  - **CR-J dropped** — g architecture iterated from v3 (per-channel gate) to v4 (cross-stream fusion attention) under CR-M. Running CR-J (g v3) is no longer informative; its role is subsumed by CR-M.
+  - **CR-K retained** — pending ablation to isolate whether the GT-only boundary-region CE upweight on its own moves mIoU without any aux or boundary head.
+  - **CR-L full train running** on real environment with positive signals.
+  - **CR-M committed (3fdfbd1)**, awaiting real-env queue.
 
 ## Experiment Evolution Summary
 
@@ -65,12 +71,12 @@ Last activity: 2026-04-10
 | CR-A | CE + Lovasz (semantic only) | — | **0.7336** (baseline) |
 | CR-B | CE + Lovasz + SmoothL1/Tversky | continuous support | 0.7184 (net negative) |
 | CR-G | CE + Lovasz + BCE (pos_weight) | continuous support | 0.7240 (BCE lower bound problem) |
-| CR-H | CE + Lovasz + Focal MSE + Dice | continuous support | Running (positive signals) |
+| CR-H | CE + Lovasz + Focal MSE + Dice | continuous support | **Failed** — matches CR-B, net negative |
 | CR-I | **support-weighted** CE + Lovasz + Focal MSE + Dice | continuous support | 1-epoch healthy, awaiting full |
-| CR-J | CR-I loss + g v3 (boundary→semantic gating) | continuous support | Implemented, awaiting training |
-| CR-K | GT support-weighted CE + Lovasz (no aux, no head) | — | Implemented, CR-I ablation |
-| CR-L | support-weighted binary BCE + local Dice + GT-weighted CE | **binary (s>0.5)** | threshold=0.5, pos_weight=1 — smoke running |
-| CR-M | CR-L loss on **v1 + v2** (dual supervision) via g v4 cross-stream fusion attn (K=48) | **binary (s>0.5)** | Implemented, local smoke passed, ready for real-env submission |
+| CR-J | CR-I loss + g v3 (boundary→semantic gating) | continuous support | **Dropped** — g iterated to v4, superseded by CR-M |
+| CR-K | GT support-weighted CE + Lovasz (no aux, no head) | — | Implemented, pending ablation |
+| CR-L | support-weighted binary BCE + local Dice + GT-weighted CE | **binary (s>0.5)** | **Full train running, positive signals** |
+| CR-M | CR-L loss on **v1 + v2** (dual supervision) via g v4 cross-stream fusion attn (K=48) | **binary (s>0.5)** | Committed (3fdfbd1), awaiting real-env queue |
 
 ## Decisions
 
@@ -82,15 +88,20 @@ Last activity: 2026-04-10
 - [v2.0] Route redesign: reinterpret support as boundary proximity cue, not geometric regression
 - [v2.0] BCE on continuous target has irreducible entropy lower bound — replaced with MSE+Dice (CR-H)
 - [v2.0] Semantic CE boundary upweight uses continuous support with truncation at >0.5 (CR-I)
-- [v2.0] Module g redesigned from semantic→boundary (failed) to boundary→semantic gating (g v3, CR-J)
+- [v2.0] Module g redesigned from semantic→boundary (failed) to boundary→semantic gating (g v3 in CR-J, then g v4 cross-stream fusion in CR-M)
 - [v2.0] CR-L binary threshold = 0.5 (d < 2.35cm ≈ voxel radius), positive ratio ~2% after voxel (3.32% raw, verified from 10-scene sample)
 - [v2.0] CR-L pos_weight = 1: sample_weight_scale=9 already handles class imbalance; combined 45x was too heavy
 - [v2.0] Grid voxel size (6cm) caps achievable positive ratio — threshold cannot be raised beyond 0.5 without data pre-processing changes
+- [v2.0] **CR-H failed on full train** — continuous support target (even with MSE+Dice) does not recover the CR-B gap. Further continuous-target work under Part 1 is deprioritized; the active path is the BFANet-style binary threshold (CR-L/M).
+- [v2.0] **CR-J dropped before training** — g v3 (per-channel gate) superseded by g v4 (cross-stream fusion attention) in CR-M. No value in running CR-J with the older gating module.
 
 ## Blockers / Concerns
 
-- **[ACTIVE]** Awaiting CR-H/I/J/K/L full training results on real environment. Success criterion: mIoU ≥ CR-A (0.7336).
-- **[ACTIVE]** CR-L smoke validation at threshold=0.5 + pos_weight=1 in progress.
+- **[ACTIVE]** CR-L full training in flight on real environment (threshold=0.5, pos_weight=1). Positive signals so far. Success criterion: mIoU ≥ CR-A (0.7336).
+- **[ACTIVE]** CR-M queued for real-environment submission after CR-L result lands.
+- **[PENDING]** CR-K full training decision — run only if CR-L and CR-M results leave the CE-upweight-only ablation still interesting.
+- **[CLOSED]** CR-H — verified failed (net negative, matches CR-B).
+- **[CLOSED]** CR-J — dropped (g v3 superseded by g v4 in CR-M).
 
 ## Workstream Archival
 
@@ -99,9 +110,10 @@ Last activity: 2026-04-10
 ## Roadmap Evolution
 
 - Milestone v2.0 kicked off 2026-04-06. Originally 6 phases, now 7 after route redesign.
-- Phase 5 expanded: CR-C → CR-F → CR-G → CR-H → CR-I → CR-J experiment evolution.
-- Phase 6 (module g) redesigned: v1/v2 failed, v3 boundary→semantic gating merged into CR-J.
-- Phase 7 (canonical update + milestone close) depends on Phase 5 training results.
+- Phase 5 expanded: CR-C → CR-F → CR-G → CR-H → CR-I → CR-J → CR-K → CR-L → CR-M experiment evolution.
+- Phase 6 (module g) iterated three times: v1/v2 failed (semantic→boundary), v3 boundary→semantic gating merged into CR-J, v4 cross-stream fusion attention active in CR-M.
+- CR-H failed on full train (continuous target insufficient). CR-J dropped (g v3 superseded by g v4). Active matrix now CR-K/L/M.
+- Phase 7 (canonical update + milestone close) depends on CR-L and CR-M training results.
 
 ## Performance Metrics
 
@@ -111,6 +123,6 @@ Last activity: 2026-04-10
 ## Session Continuity
 
 Last session: 2026-04-10
-Stopped at: CR-I and CR-J implemented and pushed (f6bf775, fe63163). CR-H running on real training env with positive signals.
+Stopped at: CR-L smoke complete, full train in flight on real environment (positive signals). CR-M committed (3fdfbd1), awaiting real-env queue. CR-H closed (failed). CR-J closed (dropped). CR-K retained as pending ablation.
 Resume file: None
-Next action: Run CR-I and CR-J full training on real environment. Compare all results against CR-A baseline (0.7336). Then Phase 7 (canonical update + milestone close).
+Next action: Monitor CR-L full-train result; submit CR-M to real env; then evaluate whether to run CR-K before Phase 7 (canonical update + milestone close).

@@ -59,48 +59,35 @@
 - **CR-C** (BoundaryProximityCueLoss): confidence-weighted BCE on binary valid.
 - **CR-F** (UnweightedBoundaryCueLoss): unweighted BCE on binary valid.
 - **CR-G** (SoftBoundaryLoss): BCE on continuous support. Best mIoU=0.7240 < CR-A. Failed: BCE has irreducible entropy lower bound (~0.2) on continuous target, persistent noise gradient competes with semantic loss.
-- **CR-H** (FocalMSEBoundaryLoss): MSE + soft Dice replaces BCE. MSE lower bound=0, Dice handles imbalance. Real training positive: fast separation, Dice improving, mIoU not degraded. MSE maintains ~0.05-0.1 dynamic equilibrium (not dead weight).
-- **CR-I** (BoundaryUpweightLoss): CR-H aux + BFANet-inspired semantic CE upweight. Boundary points (support>0.5) get up to 10x CE weight using continuous support, truncated to prevent tail inflation. 1-epoch validation: dice_score 0.27 (2.5x faster than CR-H), boundary_ce_frac 16%.
-- **CR-J** (BoundaryGatedSemanticModel + BoundaryUpweightLoss): CR-I loss + g v3 architecture. BoundaryGatingModule uses boundary_feat + PTv3 patch self-attention to produce per-channel gates that modulate semantic_feat. Boundary→semantic direction (replacing failed semantic→boundary g v1/v2). No dedicated loss — semantic loss drives g through the gate, creating a feedback loop where semantic loss also supervises boundary features.
-- **CR-K** (GT support-weighted CE + Lovasz, no aux, no boundary head): CR-I ablation baseline. Removes both the Focal MSE+Dice aux and the support head to isolate the effect of the boundary-region semantic CE upweight on its own. If CR-K ≥ CR-I, the boundary head is not paying for itself and the aux term is redundant.
-- **CR-L** (BoundaryBinaryLoss): BFANet-style binary classification instead of continuous regression. Aux = support-weighted binary BCE + local Dice on the `support>0` transition zone; semantic CE keeps the CR-I boundary upweighting. First config (`threshold=0.9, pos_weight=5, sample_weight_scale=9`) had boundary head collapse — root cause: voxel radius (~2.35cm at grid 6cm) is larger than support σ (2cm), so `s>0.9` leaves only ~0.35% positives post-voxel, below what BCE+Dice can learn. Fixed config: `threshold=0.5` (physical lower bound → ~2% positive), `pos_weight=1` (the `1 + s*9` sample weight already handles class rebalancing; stacking BCE pos_weight drove collapse), local Dice kept on the `support>0` region.
+- **CR-H** (FocalMSEBoundaryLoss): MSE + soft Dice replaces BCE. Early signals looked healthy (MSE dynamic equilibrium, Dice improving), but **full training on the real environment matched CR-B (net negative vs CR-A 0.7336)**. Conclusion: switching from BCE to MSE+Dice removes the BCE floor but does not fix the core mismatch — continuous Gaussian regression does not generate a semantically aligned gradient. Closed out.
+- **CR-I** (BoundaryUpweightLoss): CR-H aux + BFANet-inspired semantic CE upweight. Boundary points (support>0.5) get up to 10x CE weight using continuous support, truncated to prevent tail inflation. 1-epoch validation: dice_score 0.27 (2.5x faster than CR-H), boundary_ce_frac 16%. Full training not yet scheduled.
+- **CR-J** (BoundaryGatedSemanticModel + BoundaryUpweightLoss with g v3): CR-I loss + g v3 (BoundaryGatingModule, PTv3 patch self-attention, per-channel gate). **Dropped before full training** — g v3 is superseded by g v4 (cross-stream fusion attention) in CR-M, so running CR-J with the older gating module is no longer informative.
+- **CR-K** (GT support-weighted CE + Lovasz, no aux, no boundary head): CR-I ablation baseline. Removes both the Focal MSE+Dice aux and the support head to isolate the effect of the boundary-region semantic CE upweight on its own. Retained as a pending ablation to be run only if CR-L / CR-M results leave the CE-upweight-only question still interesting.
+- **CR-L** (BoundaryBinaryLoss): BFANet-style binary classification instead of continuous regression. Aux = support-weighted binary BCE + local Dice on the `support>0` transition zone; semantic CE keeps the CR-I boundary upweighting. First config (`threshold=0.9, pos_weight=5, sample_weight_scale=9`) had boundary head collapse — root cause: voxel radius (~2.35cm at grid 6cm) is larger than support σ (2cm), so `s>0.9` leaves only ~0.35% positives post-voxel, below what BCE+Dice can learn. Fixed config: `threshold=0.5` (physical lower bound → ~2% positive), `pos_weight=1` (the `1 + s*9` sample weight already handles class rebalancing; stacking BCE pos_weight drove collapse), local Dice kept on the `support>0` region. **Smoke complete; full training in flight on real environment with positive signals.**
+- **CR-M** (BoundaryGatedSemanticModelV4 + DualSupervisionBoundaryBinaryLoss): CR-L loss applied to both a v1 (pre-fusion) and v2 (post-fusion) stream, coupled by g v4 (CrossStreamFusionAttention, K=patch_size fusion-query cross-stream attention). Model clones the v1 CR-L heads into v2; loss wrapper runs BoundaryBinaryLoss on both streams with v1_/v2_ prefixed keys and sums totals. Trainer `_build_loss_inputs` additively forwards `seg_logits_v2` / `support_pred_v2`. Local smoke 6.1–6.5 all pass (step-0 v1==v2 equivalence exact, two-step gradient flow through g v4, wrapper keys, trainer forwarding, CR-L no-regression). Committed as 3fdfbd1. **Awaiting real-environment queue.**
 
 **Infrastructure:** Trainer refactored to dynamic metric dispatch (commit 35b91bd). Adding new losses requires zero trainer changes.
 
-**Success criterion:** Any of CR-I / CR-J / CR-K / CR-L reaches mIoU ≥ CR-A (0.7336). Any positive delta confirms boundary-aware auxiliary supervision helps when the target is properly aligned.
+**Success criterion:** CR-L and/or CR-M reach mIoU ≥ CR-A (0.7336). Any positive delta confirms boundary-aware auxiliary supervision helps once the target is properly aligned (binary threshold within the voxel radius).
 
 ---
 
-### — Part 2: Boundary→Semantic Feature Gating (Phase 6, merged into CR-J) —
+### — Part 2: Boundary→Semantic Feature Gating (Phase 6, merged into Phase 5) —
 
-### Phase 6: Module g redesign — boundary→semantic gating ✅ (merged into Phase 5 CR-J)
+### Phase 6: Module g redesign — boundary→semantic gating ✅ (merged into Phase 5)
 
 **Original goal:** Serial derivation of boundary offset from semantic logits (semantic→boundary direction).
 **Outcome:** g v1 (consistency MSE) and v2 (cosine offset) both failed — semantic logits too weak at boundaries to derive useful geometric information. Direction reversed.
 
 **Redesigned goal:** Use boundary features to gate/enhance semantic features (boundary→semantic direction, BFANet-inspired).
 
-**Architecture (g v3, commit fe63163):**
+**g iteration history:**
+- **g v3** (BoundaryGatingModule, commit fe63163): PTv3 patch self-attention on boundary_feat → per-channel gate → `semantic_feat * (1 + gate)`. Carried in CR-J.
+- **g v4** (CrossStreamFusionAttention, commit 3fdfbd1): K=patch_size fusion-query cross-stream attention. Fuses v1 (pre-fusion) and v2 (post-fusion) semantic/boundary streams. Carried in CR-M with dual supervision. **Active version.**
 
-```
-backbone → feat
-             ├──→ boundary_adapter → boundary_feat → support_head → support_pred
-             │                             ↓
-             │                    g(boundary_feat, neighbors) → gate (sigmoid)
-             │                             ↓
-             └──→ semantic_adapter → semantic_feat * (1 + gate) → semantic_head → seg_logits
-```
+**CR-J status:** **Dropped before full training.** g v3 per-channel gating is superseded by g v4 cross-stream fusion; running CR-J alone (g v3 + CR-I loss) is no longer informative once CR-M exists.
 
-**Module g v3 design (BoundaryGatingModule):**
-- Input: boundary_feat (N, 64) from boundary adapter
-- Neighborhood: PTv3 serialized patch self-attention (patch_size=48, 4 heads)
-- Output: per-channel gate (N, 64) → sigmoid → residual gating on semantic_feat
-- Zero-init output layer → initial gate=0.5, multiplier=1.5 ≈ identity
-- No dedicated loss — semantic loss gradients flow through gate → g → boundary_feat → backbone
-
-**Key insight:** Semantic loss now supervises both branches. Gate creates a feedback loop: boundary features that help semantic classification get reinforced; those that don't get suppressed. This is the missing coupling mechanism that CR-A through CR-H lacked.
-
-**Status:** Implemented as CR-J (BoundaryGatedSemanticModel + BoundaryUpweightLoss). Awaiting full training.
+**Key insight (preserved):** Semantic loss now supervises both branches. Gate/fusion creates a feedback loop: boundary features that help semantic classification get reinforced; those that don't get suppressed. This is the coupling mechanism that CR-A through CR-H lacked.
 
 ---
 
@@ -108,4 +95,4 @@ backbone → feat
 
 **Goal:** Update canonical docs to reflect clean-reset findings, route redesign conclusions, and experiment results. Close milestone.
 **Requires:** GUARD-01, GUARD-02, GUARD-03
-**Depends on:** Phase 5 (or Phase 6 if executed)
+**Depends on:** Phase 5 CR-L and CR-M training results (CR-H closed out as failed; CR-J dropped; CR-K retained as optional ablation)
