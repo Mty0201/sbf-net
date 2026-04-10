@@ -4,8 +4,8 @@ Part of workstream clean-reset-s38873367.
 Model: BoundaryGatedSemanticModel — CR-I model + BoundaryGatingModule (g v3).
   g uses boundary_feat to gate semantic_feat (boundary→semantic direction).
   No extra loss for g — driven entirely by semantic loss gradients.
-Loss: BoundaryUpweightLoss (same as CR-I) — support-weighted CE + Focal MSE/Dice aux.
-  CR-J = CR-I (loss) + g v3 (architecture).
+Loss: BoundaryUpweightLoss (same as CR-I) — support-weighted CE + Focal MSE aux.
+  CR-J = CR-I (loss) + g v3 (architecture). Dice removed from aux.
 """
 
 from __future__ import annotations

@@ -2,10 +2,10 @@
 
 Part of workstream clean-reset-s38873367.
 Same dual-head model as CR-C/G/H (SharedBackboneSemanticSupportModel).
-Loss: BoundaryUpweightLoss = CR-H (Focal MSE+Dice on support) + BFANet-inspired
+Loss: BoundaryUpweightLoss = CR-H (Focal MSE on support) + BFANet-inspired
 semantic CE upweight using continuous support as soft weight.
   - Semantic CE: per-point weight = 1 + support_gt * 9 (smooth, no hard cutoff)
-  - Aux: Focal MSE + Dice on continuous support (validated in CR-H real training)
+  - Aux: Focal MSE on continuous support (Dice removed — dominated aux budget)
 """
 
 from __future__ import annotations
