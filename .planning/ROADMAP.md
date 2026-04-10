@@ -49,65 +49,56 @@
 
 ### — Part 1: Boundary Proximity Cue Validation (Phase 5) —
 
-### Phase 5: Boundary proximity cue experiments (CR-C/F/G)
+### Phase 5: Boundary proximity cue experiments (CR-C/F/G/H/I/J)
 
-**Goal:** Validate that treating support as a boundary proximity indicator (BCE, not geometric regression) produces a positive semantic effect — matching or exceeding CR-A (semantic-only, 0.7336 mIoU).
+**Goal:** Validate that treating support as a boundary proximity indicator produces a positive semantic effect — matching or exceeding CR-A (semantic-only, 0.7336 mIoU).
 **Requires:** CUE-01, CUE-02, CUE-03, CUE-04
 **Depends on:** Phase 4
 
 **Experiment evolution:**
-- **CR-C** (BoundaryProximityCueLoss): confidence-weighted BCE on binary valid. First attempt at BCE classification.
-- **CR-F** (UnweightedBoundaryCueLoss): unweighted BCE on binary valid. Simplified variant.
-- **CR-G** (SoftBoundaryLoss): BCE on continuous support (Gaussian decay, σ=0.02m). Eliminates the meaningless hard valid boundary — target is a smooth scalar field that naturally peaks at semantic boundaries and decays to zero away from them.
-  - **Problem discovered:** ~2% positive samples → BCE gradient dominated by negatives → trivial all-zero collapse. Raising aux_weight (0.3→1.0) did not help (scales entire BCE, doesn't change internal ratio).
-  - **Fix:** per-batch `pos_weight = sqrt(neg/pos)` ≈ 8 in BCE. Rebalances gradient contribution. Edge branch confirmed learning by epoch 5.
-  - **Key insight:** pos_weight is only needed at training start. Once converged, non-boundary points have near-zero target and near-zero loss, so they naturally stop contributing gradient. The edge branch becomes a "boundary highlighter" — only producing gradient at semantic transition zones.
+- **CR-C** (BoundaryProximityCueLoss): confidence-weighted BCE on binary valid.
+- **CR-F** (UnweightedBoundaryCueLoss): unweighted BCE on binary valid.
+- **CR-G** (SoftBoundaryLoss): BCE on continuous support. Best mIoU=0.7240 < CR-A. Failed: BCE has irreducible entropy lower bound (~0.2) on continuous target, persistent noise gradient competes with semantic loss.
+- **CR-H** (FocalMSEBoundaryLoss): MSE + soft Dice replaces BCE. MSE lower bound=0, Dice handles imbalance. Real training positive: fast separation, Dice improving, mIoU not degraded. MSE maintains ~0.05-0.1 dynamic equilibrium (not dead weight).
+- **CR-I** (BoundaryUpweightLoss): CR-H aux + BFANet-inspired semantic CE upweight. Boundary points (support>0.5) get up to 10x CE weight using continuous support, truncated to prevent tail inflation. 1-epoch validation: dice_score 0.27 (2.5x faster than CR-H), boundary_ce_frac 16%.
+- **CR-J** (BoundaryGatedSemanticModel + BoundaryUpweightLoss): CR-I loss + g v3 architecture. BoundaryGatingModule uses boundary_feat + PTv3 patch self-attention to produce per-channel gates that modulate semantic_feat. Boundary→semantic direction (replacing failed semantic→boundary g v1/v2). No dedicated loss — semantic loss drives g through the gate, creating a feedback loop where semantic loss also supervises boundary features.
 
-**Infrastructure:** Trainer refactored to dynamic metric dispatch (commit 35b91bd). Adding new losses no longer requires any trainer changes. All 7 pipelines (CR-A through CR-G) smoke-validated.
+**Infrastructure:** Trainer refactored to dynamic metric dispatch (commit 35b91bd). Adding new losses requires zero trainer changes.
 
-**CR-H** (FocalMSEBoundaryLoss): MSE + soft Dice replaces BCE. BCE on continuous Gaussian target has irreducible entropy lower bound (~0.2) causing persistent noise gradient. MSE (lower bound=0) + Dice (imbalance-immune, anti-collapse) combo solves this. 2-epoch validation: healthy learning, no collapse, aux_weighted ~9% of total.
-
-**Success criterion:** CR-G or CR-H mIoU ≥ CR-A (0.7336). Any positive delta confirms boundary-aware auxiliary supervision helps when the target is properly aligned.
+**Success criterion:** CR-I or CR-J mIoU ≥ CR-A (0.7336). Any positive delta confirms boundary-aware auxiliary supervision helps when the target is properly aligned.
 
 ---
 
-### — Part 2: Serial Derivation of Boundary Offset Field (Phase 6, conditional) —
+### — Part 2: Boundary→Semantic Feature Gating (Phase 6, merged into CR-J) —
 
-### Phase 6: Serial derivation module g — boundary offset field from semantic predictions
+### Phase 6: Module g redesign — boundary→semantic gating ✅ (merged into Phase 5 CR-J)
 
-**Goal:** Implement a learnable module g that derives a 3D boundary offset vector field from semantic logits, enabling boundary-nearby points to project onto the boundary surface. This replaces the original parallel geometric prediction approach (which failed due to gradient competition) with a serial derivation architecture where edge supervision reinforces semantic prediction quality.
+**Original goal:** Serial derivation of boundary offset from semantic logits (semantic→boundary direction).
+**Outcome:** g v1 (consistency MSE) and v2 (cosine offset) both failed — semantic logits too weak at boundaries to derive useful geometric information. Direction reversed.
 
-**Requires:** SER-01, SER-02, SER-03, SER-04, SER-05
-**Depends on:** Phase 5 (assumes CUE-04 success criterion met)
-**Precondition:** Phase 5 CR-C mIoU ≥ CR-A (0.7336)
+**Redesigned goal:** Use boundary features to gate/enhance semantic features (boundary→semantic direction, BFANet-inspired).
 
-**Architecture (from discussion 2026-04-07):**
+**Architecture (g v3, commit fe63163):**
 
 ```
-backbone → semantic_head → seg_logits
-                               ↓
-backbone → support_head → support (BCE, retained from CR-C)
-                               ↓
-               g(softmax(seg_logits), coord) → offset (3D, smooth-L1)
+backbone → feat
+             ├──→ boundary_adapter → boundary_feat → support_head → support_pred
+             │                             ↓
+             │                    g(boundary_feat, neighbors) → gate (sigmoid)
+             │                             ↓
+             └──→ semantic_adapter → semantic_feat * (1 + gate) → semantic_head → seg_logits
 ```
 
-**Module g design:**
-- Input: softmax(seg_logits) (N,8) + coord (N,3) → (N,11)
-- Neighborhood: KNN on coord (K neighbors per point, not reusing PTv3 Z-curve)
-- Edge features: [feat_i, feat_j - feat_i, coord_j - coord_i] per neighbor pair (dim=25)
-- Aggregation: shared MLP (25→64→64) + max-pool over K neighbors → (N,64)
-- Output head: MLP (64→32→3) → offset prediction
-- Support remains a separate head from backbone (CR-C route, not inside g)
+**Module g v3 design (BoundaryGatingModule):**
+- Input: boundary_feat (N, 64) from boundary adapter
+- Neighborhood: PTv3 serialized patch self-attention (patch_size=48, 4 heads)
+- Output: per-channel gate (N, 64) → sigmoid → residual gating on semantic_feat
+- Zero-init output layer → initial gate=0.5, multiplier=1.5 ≈ identity
+- No dedicated loss — semantic loss gradients flow through gate → g → boundary_feat → backbone
 
-**Edge representation:**
-- offset (3D): displacement vector from point to nearest boundary. `coord + offset` = projected boundary position
-- Supervised by smooth-L1 vs `dir_gt × dist_gt` (combined from existing edge ground truth)
-- Only valid points (edge[:,5]=1) receive offset supervision
-- This is a novel representation for 3D point cloud segmentation (literature gap — see §7 of part2_serial_derivation_discussion.md)
+**Key insight:** Semantic loss now supervises both branches. Gate creates a feedback loop: boundary features that help semantic classification get reinforced; those that don't get suppressed. This is the missing coupling mechanism that CR-A through CR-H lacked.
 
-**Training:** No extra warmup — g shares learning rate group with semantic head. Existing cosine annealing + LR grouping provides natural warmup.
-
-**Design principle:** Backbone only learns semantic features. Geometric field is derived FROM semantic output, not predicted in parallel. Edge supervision gradients through g reinforce "improve semantic predictions at boundaries" — fully aligned with semantic task. No gradient competition.
+**Status:** Implemented as CR-J (BoundaryGatedSemanticModel + BoundaryUpweightLoss). Awaiting full training.
 
 ---
 
