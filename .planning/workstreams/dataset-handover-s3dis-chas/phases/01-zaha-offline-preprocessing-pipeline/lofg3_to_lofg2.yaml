@@ -1,0 +1,69 @@
+# LoFG3 → LoFG2 remap for ZAHA dataset (Phase 1 of dataset-handover-s3dis-chas).
+#
+# IMPORTANT: class_id keys refer to the REMAPPED LoFG3 space [0, 15], NOT raw
+# settings_labeling.xml IDs [1, 16]. Raw-to-remapped shift (subtract 1) happens
+# in Phase 1 preprocessing BEFORE this file is consulted. VOID (raw ID 0) is
+# dropped in Phase 1 and never reaches this remap.
+#
+# The key → bucket map assumes the planner has already applied:
+#     raw ID k in [1, 16]  →  remapped class (k - 1) in [0, 15]
+# so the key `0` below corresponds to raw XML ID 1 (Wall), key `13` corresponds
+# to raw XML ID 14 (OuterCeilingSurface), etc.
+#
+# Authored: 2026-04-11. Source: Wysocki et al. WACV 2025 (arxiv 2411.04865)
+# Figure 3 + CONTEXT.md D-04 (OuterCeilingSurface → other_el LOCKED).
+#
+# 11 entries are HIGH confidence (paper Fig. 3). 4 entries are LOW confidence
+# placeholders; see `sources` block below and the Plan 01-01 SUMMARY for the
+# backlog email note to olaf.wysocki@tum.de. Entry 13 is LOCKED by D-04 even
+# though paper Fig. 3 does not cover it.
+
+schema_version: 1
+num_lofg3_classes: 16
+num_lofg2_classes: 5
+
+lofg2_buckets:
+  - { id: 0, name: floor }
+  - { id: 1, name: decoration }
+  - { id: 2, name: structural }
+  - { id: 3, name: opening }
+  - { id: 4, name: other_el }
+
+# Keys are REMAPPED 0..15. Values are LoFG2 bucket IDs from the block above.
+lofg3_to_lofg2:
+  0:  2   # Wall               -> structural       [paper Fig. 3]
+  1:  3   # Window             -> opening          [paper Fig. 3]
+  2:  3   # Door               -> opening          [paper Fig. 3]
+  3:  2   # Balcony            -> structural       [ASSUMED - LOW confidence]
+  4:  1   # Molding            -> decoration       [paper Fig. 3]
+  5:  1   # Deco               -> decoration       [paper Fig. 3]
+  6:  2   # Column             -> structural       [paper Fig. 3]
+  7:  2   # Arch               -> structural       [paper Fig. 3]
+  8:  0   # Stairs             -> floor            [ASSUMED - LOW confidence]
+  9:  0   # GroundSurface      -> floor            [paper Fig. 3]
+  10: 0   # Terrain            -> floor            [paper Fig. 3]
+  11: 2   # Roof               -> structural       [paper Fig. 3]
+  12: 1   # Blinds             -> decoration       [ASSUMED - LOW confidence]
+  13: 4   # OuterCeilingSurface -> other_el        [LOCKED by CONTEXT.md D-04]
+  14: 4   # Interior           -> other_el         [ASSUMED - LOW confidence]
+  15: 4   # Other              -> other_el         [paper Fig. 3 - catch-all]
+
+# Per-entry provenance. Strings prefixed `assumed -` are Wave-0 placeholders and
+# should be upgraded to `paper Fig. 3` (or author email response) as Phase 1 ships.
+sources:
+  0:  "paper Fig. 3"
+  1:  "paper Fig. 3"
+  2:  "paper Fig. 3"
+  3:  "assumed - LOW confidence, Balcony not resolved in paper Fig. 3 transcription"
+  4:  "paper Fig. 3"
+  5:  "paper Fig. 3"
+  6:  "paper Fig. 3"
+  7:  "paper Fig. 3"
+  8:  "assumed - LOW confidence, Stairs not resolved in paper Fig. 3 transcription"
+  9:  "paper Fig. 3"
+  10: "paper Fig. 3"
+  11: "paper Fig. 3"
+  12: "assumed - LOW confidence, Blinds not resolved in paper Fig. 3 transcription"
+  13: "CONTEXT.md D-04 - not in paper Fig. 3, catch-all bucket chosen"
+  14: "assumed - LOW confidence, Interior not resolved in paper Fig. 3 transcription"
+  15: "paper Fig. 3"
