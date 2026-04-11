@@ -73,9 +73,40 @@
 
 **Infrastructure:** Trainer refactored to dynamic metric dispatch (commit 35b91bd). Adding new losses requires zero trainer changes.
 
-**Success criterion:** CR-L and/or CR-M reach mIoU ≥ CR-A (0.7336). Any positive delta confirms boundary-aware auxiliary supervision helps once the target is properly aligned (binary threshold within the voxel radius).
+**Success criterion:** CR-L and/or CR-M reach mIoU ≥ CR-A (0.7336). Any positive delta confirms boundary-aware auxiliary supervision helps once the target is properly aligned (binary threshold within the voxel radius). **[Gated on grid=0.06 — preserved as the historical Phase 5 success criterion; Phase 8 carries the re-test at grid=0.04 under a pipeline where the r=0.06 m boundary band is no longer rasterised to a single voxel.]**
 
-**Status after CR-L ep100 + CR-P ep78:** Both the single-stream aux route (CR-L, 0.7251 @ ep68) and the dual-stream aux route (CR-P, 0.7241 @ ep45) ceiling at ~0.725, both −0.85 to −0.95pp below CR-A, Δ=0.001 between them (statistically identical). **Aux-head route ceiling at ~0.725 is confirmed across architectures.** Two of the three post-CR-L open questions are now answered: (a) dual-stream CR-M will likely land in the same band (predicted, low value to confirm); (b) faithful BFANet CR-P did NOT close the gap. The only remaining open question is (c) **does CR-O's pure soft-weighted CE (no aux head at all) beat CR-A?** CR-O is now the single gating experiment for the milestone verdict. CR-N matters independently as the single-stream BFANet cross-arch control for the "does naive BCE collapse at 7% positive" finding.
+**Status after CR-L ep100 + CR-P ep78:** Both the single-stream aux route (CR-L, 0.7251 @ ep68) and the dual-stream aux route (CR-P, 0.7241 @ ep45) ceiling at ~0.725, both −0.85 to −0.95pp below CR-A, Δ=0.001 between them (statistically identical). **Aux-head route ceiling at ~0.725 is confirmed across architectures.** Two of the three post-CR-L open questions are now answered: (a) dual-stream CR-M will likely land in the same band (predicted, low value to confirm); (b) faithful BFANet CR-P did NOT close the gap. The only remaining open question is (c) **does CR-O's pure soft-weighted CE (no aux head at all) beat CR-A?** CR-O is now the single gating experiment for the milestone verdict. CR-N matters independently as the single-stream BFANet cross-arch control for the "does naive BCE collapse at 7% positive" finding. **Root cause identified 2026-04-11; see Phase 8.** Phase 5 is preserved and gated on `grid_size = 0.06`; re-validation at grid=0.04 is carried by Phase 8.
+
+---
+
+### — Part 1b: Grid=0.04 Range-Shift Validation (Phase 8) —
+
+### Phase 8: Grid=0.04 range-shift validation sweep (CR-R / CR-S / CR-T / CR-Q / CR-U)
+
+**Goal:** Re-run the boundary-supervision sweep under a data pipeline where the r=0.06 m boundary band is no longer rasterised to a single voxel, and determine whether our weighted dual-branch approach (with or without the g module) reaches or exceeds a pure PTv3 semantic-only baseline.
+
+**Requires:** G04-01, G04-02, G04-03, G04-04, G04-05 (to be scoped by `/gsd-plan-phase 8`)
+**Depends on:** Phase 5 (historical verdict at grid=0.06 preserved and gated)
+
+**Root cause driving this phase (2026-04-11):** Direct measurement of the real training transform pipeline on BF_edge_chunk_npy (`/tmp/transform_probe*.py`, `.planning/phases/05-boundary-proximity-cue-experiment/cr_q_grid_rasterization_analysis.md`) showed that at `grid_size = 0.06` only **6.75%** of non-boundary voxels lie within 6 cm of a boundary, `b→nearest-nonb p50 = 6.03 cm = exactly 1 grid step`, and `b→b p50 = 3.47 cm`. The boundary band is rasterised to ~1 voxel thickness — cross-stream attention K neighbours cannot group it as a spatial structure. At `grid=0.04` with the user's validated ScanNet/PTv3 recipe (`SphereCrop sample_rate=0.4`, `point_max=80000`), `nonb<6cm` rises to **10.28% (+52%)**, `b→b p50` drops to 2.54 cm, and the raw boundary ratio stays at 11–12% (no class pollution). Widening the KNN radius r was measured and rejected — at r=0.12, wall coverage inflates from 15% to 33% for only +1.26pp density gain. **Grid is the only lever.** All Phase 5 aux-head results (CR-L 0.7251 @ ep68, CR-P 0.7241 @ ep45, Δ=0.001, both ~1pp below CR-A 0.7336) were measured under a pipeline that mechanically denied the aux head a resolvable boundary band; those verdicts are preserved and gated on grid=0.06.
+
+**Experiment matrix:**
+
+| # | Slot | CR code | Data config | Model | Loss |
+|---|---|---|---|---|---|
+| 1 | pure PTv3 (new baseline anchor) | **CR-R** | `clean_reset_data_g04.py` | `clean_reset_semantic_model.py` | `SemanticOnlyLoss` (CE + Lovasz) |
+| 2 | pure BFANet (faithful single-stream control) | **CR-S** | `clean_reset_data_g04.py` | CR-N model | `PureBFANetLoss` |
+| 3 | our weighted dual-branch | **CR-T** | `clean_reset_data_g04.py` | `SharedBackboneSemanticSupportModel` (CR-L model) | `BoundaryBinaryLoss` |
+| 4 | our weighted dual-branch + g module | **CR-Q** ✅ committed 338c0ce | `clean_reset_data_g04.py` | `BoundaryGatedSemanticModelV4` | `DualSupervisionPureBFANetLoss` |
+| 5 | legacy model +1 | **CR-U** (reserved, non-blocking) | TBD | TBD (DLA-Net / KPConv / Swin3D) | TBD |
+
+Config naming convention: `<base>_g04_train.py` under `configs/semantic_boundary/clean_reset_s38873367/`. CR-Q is adopted as the Phase 8 sentinel at slot #4; the other four slots are new.
+
+**Success criterion:** `min(best CR-T, best CR-Q) ≥ best CR-R`, i.e. at least one of our dual-branch variants reaches or exceeds the new grid=0.04 semantic-only baseline. Secondary expectation: CR-S ≤ CR-R (pure BFANet should not beat pure PTv3 on this dataset — if it does, the "BFANet recipe is architecture-agnostic" claim needs its own follow-up).
+
+**What Phase 8 does NOT do:** does not reopen the continuous-target route (CR-G/CR-H stay closed); does not re-run any pre-CR-L support design (support archaeology verdict stands); does not touch Part 2 geometric field objectives (still deferred); does not block on CR-U (reserved slot, non-blocking).
+
+**Phase artifacts:** `.planning/phases/08-grid04-range-shift-validation/08-CONTEXT.md` (Phase 8 container), `.planning/phases/05-boundary-proximity-cue-experiment/cr_q_grid_rasterization_analysis.md` (measurement writeup, quoted not edited), `configs/semantic_boundary/clean_reset_s38873367/clean_reset_data_g04.py` + `pure_bfanet_v4_g04_train.py` (CR-Q, committed 338c0ce), `scripts/train/check_cr_q_smoke.py` (real-dataloader end-to-end smoke under grid=0.04).
 
 ---
 
@@ -98,8 +129,10 @@
 
 ---
 
-### Phase 7: Canonical update and milestone close
+### Phase 7: Canonical update and milestone close (pending Phase 8)
 
 **Goal:** Update canonical docs to reflect clean-reset findings, route redesign conclusions, and experiment results. Close milestone.
 **Requires:** GUARD-01, GUARD-02, GUARD-03
-**Depends on:** Phase 5 CR-O training result (now the single gating experiment). CR-L ep100 landed 2026-04-11 (best 0.7251 @ ep68, −0.85pp vs CR-A). CR-P ep1-78 landed 2026-04-11 evening (best 0.7241 @ ep45, −0.95pp vs CR-A, Δ=0.001 vs CR-L). Aux-head route ceiling at ~0.725 confirmed across single-stream and dual-stream architectures. CR-M now low value (predicted to land in same band); CR-N queued as BFANet cross-arch control; CR-K conditional on CR-O. CR-H closed as failed; CR-J dropped. Post-training test hook separately broken and deferred — blocks test-split numbers but not the training-metric verdict.
+**Depends on:** Phase 8 Grid=0.04 range-shift validation sweep (CR-R / CR-S / CR-T / CR-Q / CR-U). Phase 7 does not fire until Phase 8 produces a verdict against the new grid=0.04 baseline.
+
+**[Grid=0.06 findings, gated and preserved:]** Phase 5 CR-O training result was the single gating experiment for the original milestone close. CR-L ep100 landed 2026-04-11 (best 0.7251 @ ep68, −0.85pp vs CR-A). CR-P ep1-78 landed 2026-04-11 evening (best 0.7241 @ ep45, −0.95pp vs CR-A, Δ=0.001 vs CR-L). Aux-head route ceiling at ~0.725 confirmed across single-stream and dual-stream architectures. CR-M now low value (predicted to land in same band); CR-N queued as BFANet cross-arch control; CR-K conditional on CR-O. CR-H closed as failed; CR-J dropped. Post-training test hook separately broken and deferred — blocks test-split numbers but not the training-metric verdict. All of the above is preserved for the grid=0.06 precondition; Phase 8 carries the re-test at grid=0.04.

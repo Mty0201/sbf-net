@@ -1,5 +1,18 @@
 # Phase 5 Context: Boundary Proximity Cue Experiment (CR-C)
 
+> **Retrospective note — 2026-04-11 (v2.0 Phase 8 precondition shift)**
+>
+> The verdict and analysis below were formed under the precondition `grid_size = 0.06`.
+> On 2026-04-11 direct measurement of the training transform pipeline showed that grid=0.06
+> rasterises the r=0.06 m boundary band to ~1 voxel thickness (6.75% of non-b voxels within
+> 6 cm; b→nearest-nonb p50 = 6.03 cm). At grid=0.04 this rises to 10.28% (+52%). This verdict
+> is therefore **gated on grid=0.06**; re-validation at grid=0.04 is pending in Phase 8
+> (CR-R..CR-U). Do not read the body below as "disproven" — it remains correct for the
+> precondition under which it was measured. Phase 5 closed 2026-04-11 with verdict
+> 'aux-head route ceilings at ~0.725 across single/dual-stream architectures at grid=0.06';
+> the verdict is preserved; re-validation at grid=0.04 is Phase 8. See
+> `.planning/phases/08-grid04-range-shift-validation/08-CONTEXT.md`.
+
 **Phase:** 5
 **Milestone:** v2.0
 **Status:** Ready for planning
