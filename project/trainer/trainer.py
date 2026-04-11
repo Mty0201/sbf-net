@@ -240,10 +240,17 @@ class SemanticBoundaryTrainer:
     _NON_LOSS_KEYS = {"optimizer_steps"}
 
     @staticmethod
-    @lru_cache(maxsize=8)
+    @lru_cache(maxsize=16)
     def _loss_accepted_kwargs(loss_fn_cls: type) -> frozenset[str] | None:
+        # Prefer .forward (nn.Module losses); fall back to .__call__ for
+        # plain-class evaluators that define only __call__.
+        callable_obj = getattr(loss_fn_cls, "forward", None)
+        if callable_obj is None:
+            callable_obj = getattr(loss_fn_cls, "__call__", None)
+        if callable_obj is None:
+            return None
         try:
-            sig = inspect.signature(loss_fn_cls.forward)
+            sig = inspect.signature(callable_obj)
         except (TypeError, ValueError):
             return None
         for p in sig.parameters.values():
