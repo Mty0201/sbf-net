@@ -6,7 +6,8 @@ import os
 import time
 import math
 import random
-from functools import partial
+import inspect
+from functools import partial, lru_cache
 
 import numpy as np
 import torch
@@ -239,6 +240,25 @@ class SemanticBoundaryTrainer:
     _NON_LOSS_KEYS = {"optimizer_steps"}
 
     @staticmethod
+    @lru_cache(maxsize=8)
+    def _loss_accepted_kwargs(loss_fn_cls: type) -> frozenset[str] | None:
+        try:
+            sig = inspect.signature(loss_fn_cls.forward)
+        except (TypeError, ValueError):
+            return None
+        for p in sig.parameters.values():
+            if p.kind is inspect.Parameter.VAR_KEYWORD:
+                return None
+        return frozenset(sig.parameters.keys())
+
+    @classmethod
+    def _filter_loss_kwargs(cls, loss_fn, kwargs: dict) -> dict:
+        accepted = cls._loss_accepted_kwargs(type(loss_fn))
+        if accepted is None:
+            return kwargs
+        return {k: v for k, v in kwargs.items() if k in accepted}
+
+    @staticmethod
     def _loss_log_keys(loss_dict: dict[str, torch.Tensor] | dict[str, float]) -> list[str]:
         skip = {"loss"} | SemanticBoundaryTrainer._NON_LOSS_KEYS
         keys = sorted(k for k in loss_dict if k not in skip)
@@ -413,7 +433,11 @@ class SemanticBoundaryTrainer:
 
                 with self._autocast_context():
                     output = self.model(self._forward_input_from_batch(batch))
-                    loss_dict = self.loss_fn(**self._build_loss_inputs(output, batch))
+                    loss_dict = self.loss_fn(
+                        **self._filter_loss_kwargs(
+                            self.loss_fn, self._build_loss_inputs(output, batch)
+                        )
+                    )
                 detached = self._detach_scalar_dict(loss_dict)
                 if loss_meters is None:
                     loss_meters = {key: AverageMeter() for key in detached.keys()}
@@ -486,7 +510,11 @@ class SemanticBoundaryTrainer:
                     break
                 batch = self._move_batch_to_device(batch)
                 output = self.model(self._forward_input_from_batch(batch))
-                metric_dict = self.evaluator(**self._build_eval_inputs(output, batch))
+                metric_dict = self.evaluator(
+                    **self._filter_loss_kwargs(
+                        self.evaluator, self._build_eval_inputs(output, batch)
+                    )
+                )
                 detached = self._detach_scalar_dict(metric_dict)
                 semantic_intersection += metric_dict["semantic_intersection"].detach().cpu().double()
                 semantic_union += metric_dict["semantic_union"].detach().cpu().double()
