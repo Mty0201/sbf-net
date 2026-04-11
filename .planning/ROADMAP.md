@@ -98,6 +98,7 @@
 | 2 | pure BFANet (faithful single-stream control) | **CR-S** | `clean_reset_data_g04.py` | CR-N model | `PureBFANetLoss` |
 | 3 | our weighted dual-branch | **CR-T** | `clean_reset_data_g04.py` | `SharedBackboneSemanticSupportModel` (CR-L model) | `BoundaryBinaryLoss` |
 | 4 | our weighted dual-branch + g module | **CR-Q** ✅ committed 338c0ce | `clean_reset_data_g04.py` | `BoundaryGatedSemanticModelV4` | `DualSupervisionPureBFANetLoss` |
+| 4b | CR-Q + continuous support-weighted semantic CE | **CR-V** ✅ committed 4459298/2103cb6/892fa4d | `clean_reset_data_g04.py` (adds `s_weight` key) | `BoundaryGatedSemanticModelV4` | `DualSupervisionSupportWeightedBFANetLoss` |
 | 5 | legacy model +1 | **CR-U** (reserved, non-blocking) | TBD | TBD (DLA-Net / KPConv / Swin3D) | TBD |
 
 Config naming convention: `<base>_g04_train.py` under `configs/semantic_boundary/clean_reset_s38873367/`. CR-Q is adopted as the Phase 8 sentinel at slot #4; the other four slots are new.
