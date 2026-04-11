@@ -269,9 +269,10 @@ class SemanticBoundaryTrainer:
         elif "offset_pred" in output and "edge" in batch:
             kwargs["offset_pred"] = output["offset_pred"]
             kwargs["edge"] = batch["edge"]
-        elif "edge" in batch:
+        elif "edge" in batch and "marg_logits" not in output:
             # Fallback: pass edge GT even without model edge/support outputs.
             # Enables losses that only need GT edge for weighting (no aux head).
+            # CR-SD opts out explicitly — its loss signature has no edge kwarg.
             kwargs["edge"] = batch["edge"]
         # CR-M dual-supervision: forward v2 outputs when the model emits them.
         # Purely additive — only DualSupervisionBoundaryBinaryLoss reads these.
@@ -279,6 +280,13 @@ class SemanticBoundaryTrainer:
             kwargs["seg_logits_v2"] = output["seg_logits_v2"]
         if "support_pred_v2" in output:
             kwargs["support_pred_v2"] = output["support_pred_v2"]
+        # CR-SD: forward marg_logits when the segmentor emits it.
+        if "marg_logits" in output:
+            kwargs["marg_logits"] = output["marg_logits"]
+        # CR-SD diagnostics: forward alpha/W scalars so they land in train.log.
+        for _diag in ("alpha_mean", "alpha_std", "alpha_abs_max", "w_fro"):
+            if _diag in output:
+                kwargs[_diag] = output[_diag]
         if "boundary_mask" in batch:
             kwargs["boundary_mask"] = batch["boundary_mask"]
         if "s_weight" in batch:

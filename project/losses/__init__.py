@@ -22,6 +22,7 @@ from .dual_supervision_support_weighted_bfanet_loss import (
     DualSupervisionSupportWeightedBFANetLoss,
 )
 from .soft_weighted_semantic_loss import SoftWeightedSemanticLoss
+from .cr_sd_loss import CRSDLoss
 
 
 def build_loss(cfg: dict | None):
@@ -92,6 +93,8 @@ def build_loss(cfg: dict | None):
     if loss_type == "SoftWeightedSemanticLoss":
         kwargs = {key: value for key, value in cfg.items() if key != "type"}
         return SoftWeightedSemanticLoss(**kwargs)
+    if loss_type == "CRSDLoss":
+        return CRSDLoss()
     raise ValueError(f"Unsupported loss type: {loss_type}")
 
 
@@ -118,5 +121,6 @@ __all__ = [
     "SupportWeightedBFANetLoss",
     "DualSupervisionSupportWeightedBFANetLoss",
     "SoftWeightedSemanticLoss",
+    "CRSDLoss",
     "build_loss",
 ]

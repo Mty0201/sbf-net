@@ -5,7 +5,6 @@ import torch.nn as nn
 
 import pointcept.models  # noqa: F401 — triggers registry population
 from pointcept.models.builder import MODELS, build_model
-from pointcept.models.losses import LovaszLoss
 from pointcept.models.utils.structure import Point
 
 from .subtractive_decoupling import SubtractiveDecoupling
@@ -15,13 +14,11 @@ from .subtractive_decoupling import SubtractiveDecoupling
 class DecoupledBFANetSegmentorV1(nn.Module):
     """PT-v3m1 backbone + SubtractiveDecoupling + seg/marg heads.
 
-    Loss is computed inside the segmentor and returned under ``loss``:
-      - semantics: CE + multiclass Lovasz on seg_logits vs segment
-      - margin:    BCE + binary Lovasz on marg_logits vs boundary_mask
-
-    Only the segment-valid mask (``segment != -1``) is applied before loss
-    reduction. ``boundary_mask`` is already voxel-aligned by
-    ``InjectIndexValidKeys``.
+    Returns the two logit tensors; loss is computed externally by
+    ``CRSDLoss`` so the trainer's loss dispatch stays the single source of
+    truth for backprop. ``boundary_mask`` is already voxel-aligned by
+    ``InjectIndexValidKeys`` and is consumed by the loss directly from the
+    batch.
     """
 
     def __init__(self, num_classes=8, backbone_out_channels=64, backbone=None):
@@ -35,13 +32,6 @@ class DecoupledBFANetSegmentorV1(nn.Module):
         )
         self.seg_head = nn.Linear(backbone_out_channels, num_classes)
         self.marg_head = nn.Linear(backbone_out_channels, 1)
-
-        self.ce_loss = nn.CrossEntropyLoss(ignore_index=-1)
-        self.lovasz_multi = LovaszLoss(
-            mode="multiclass", loss_weight=1.0, ignore_index=-1
-        )
-        self.margin_bce = nn.BCEWithLogitsLoss(reduction="none")
-        self.margin_lovasz = LovaszLoss(mode="binary", loss_weight=1.0)
 
     @staticmethod
     def _extract_feat(backbone_output):
@@ -73,20 +63,19 @@ class DecoupledBFANetSegmentorV1(nn.Module):
         seg_logits = self.seg_head(seg_feat)
         marg_logits = self.marg_head(marg_feat)
 
-        if "segment" in input_dict:
-            segment = input_dict["segment"]
-            valid_mask = segment != -1
-            boundary_mask = input_dict["boundary_mask"].float().view(-1)
-            boundary_valid = boundary_mask[valid_mask]
-            marg_valid = marg_logits.view(-1)[valid_mask]
+        with torch.no_grad():
+            alpha = self.decoupling.alpha.detach()
+            w = self.decoupling.proj_to_semantic.weight.detach()
+            alpha_mean = alpha.mean()
+            alpha_std = alpha.std()
+            alpha_abs_max = alpha.abs().max()
+            w_fro = w.norm(p="fro")
 
-            loss = self.ce_loss(seg_logits, segment)
-            loss = loss + self.lovasz_multi(seg_logits, segment)
-            loss = loss + self.margin_bce(marg_valid, boundary_valid).mean()
-            loss = loss + self.margin_lovasz(marg_valid, boundary_valid)
-
-            if self.training:
-                return dict(loss=loss)
-            return dict(loss=loss, seg_logits=seg_logits)
-
-        return dict(seg_logits=seg_logits)
+        return dict(
+            seg_logits=seg_logits,
+            marg_logits=marg_logits,
+            alpha_mean=alpha_mean,
+            alpha_std=alpha_std,
+            alpha_abs_max=alpha_abs_max,
+            w_fro=w_fro,
+        )

@@ -1,15 +1,18 @@
-"""CR-SD: Subtractive Decoupling segmentor on CR-A hyperparams (grid=0.04).
+"""CR-SD (grid=0.06): Subtractive Decoupling segmentor on g06 hyperparams.
 
-DecoupledBFANetSegmentorV1 = PT-v3m1 backbone + SubtractiveDecoupling module
-+ seg_head (8 classes) + marg_head (binary boundary). Loss is computed inside
-the segmentor: CE + multiclass Lovasz on semantics, BCE + binary Lovasz on the
-margin head supervised by boundary_mask. V1 supervision only — no V2 branch.
+Mirror of clean_reset_g04_s38873367/cr_sd_train.py, re-based onto the g06
+workstream so the cheaper grid=0.06 pipeline can also run CR-SD. Model is
+identical: DecoupledBFANetSegmentorV1 = PT-v3m1 backbone + SubtractiveDecoupling
+module + seg_head (8 classes) + marg_head (binary boundary). Loss is computed
+inside the segmentor — CE + multiclass Lovasz on semantics, BCE + binary Lovasz
+on the margin head supervised by boundary_mask. V1 supervision only.
 
-All training hyperparameters (optimiser, scheduler, seed, batch, grad_accum,
-total_epoch, mix_prob, AMP) are byte-identical to CR-A
-(semantic_only_g04_train.py). Only `model`, `work_dir`, and docstring differ.
-Data pipeline unchanged — clean_reset_data_g04.py already injects
-boundary_mask via InjectIndexValidKeys and carries it through Collect.
+Training hyperparameters (optimiser, scheduler, seed, batch, grad_accum,
+total_epoch, mix_prob, AMP) are byte-identical to the g06 semantic-only
+baseline (semantic_only_train.py). Only `model`, `work_dir`, and docstring
+differ from that baseline. Data pipeline is clean_reset_data.py (grid=0.06);
+it already injects boundary_mask via InjectIndexValidKeys and carries it
+through Collect. The `edge` key it also carries is unused by CR-SD and harmless.
 """
 
 from __future__ import annotations
@@ -60,8 +63,8 @@ model = dict(
     ),
 )
 
-data = runpy.run_path(str(_dir / "clean_reset_data_g04.py"))["data"]
-data["train_batch_size"] = 2
+data = runpy.run_path(str(_dir / "clean_reset_data.py"))["data"]
+data["train_batch_size"] = 4
 data["val_batch_size"] = 1
 
 loss = dict(type="CRSDLoss")
@@ -87,13 +90,13 @@ scheduler = dict(
 seed = 38873367
 weight = None
 resume = False
-work_dir = str(repo_root / "outputs" / "clean_reset_g04_s38873367" / "cr_sd")
+work_dir = str(repo_root / "outputs" / "clean_reset_s38873367" / "cr_sd")
 
 runtime = dict(
     log_freq=1,
     val_log_freq=1,
     save_freq=100,
-    grad_accum_steps=12,
+    grad_accum_steps=3,
     mix_prob=0.8,
     enable_amp=True,
 )
