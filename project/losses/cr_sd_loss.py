@@ -39,6 +39,11 @@ class CRSDLoss(nn.Module):
         alpha_std: torch.Tensor | None = None,
         alpha_abs_max: torch.Tensor | None = None,
         w_fro: torch.Tensor | None = None,
+        g_alpha_mean: torch.Tensor | None = None,
+        g_alpha_absmax: torch.Tensor | None = None,
+        g_gate_mean: torch.Tensor | None = None,
+        g_gate_std: torch.Tensor | None = None,
+        g_delta_norm: torch.Tensor | None = None,
     ) -> dict[str, torch.Tensor]:
         segment = segment.reshape(-1).long()
         valid_mask = segment != -1
@@ -66,4 +71,14 @@ class CRSDLoss(nn.Module):
             out["alpha_abs_max"] = alpha_abs_max
         if w_fro is not None:
             out["w_fro"] = w_fro
+        if g_alpha_mean is not None:
+            out["g_alpha_mean"] = g_alpha_mean
+        if g_alpha_absmax is not None:
+            out["g_alpha_absmax"] = g_alpha_absmax
+        if g_gate_mean is not None:
+            out["g_gate_mean"] = g_gate_mean
+        if g_gate_std is not None:
+            out["g_gate_std"] = g_gate_std
+        if g_delta_norm is not None:
+            out["g_delta_norm"] = g_delta_norm
         return out

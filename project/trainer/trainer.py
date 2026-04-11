@@ -311,7 +311,12 @@ class SemanticBoundaryTrainer:
         if "marg_logits" in output:
             kwargs["marg_logits"] = output["marg_logits"]
         # CR-SD diagnostics: forward alpha/W scalars so they land in train.log.
-        for _diag in ("alpha_mean", "alpha_std", "alpha_abs_max", "w_fro"):
+        # CR-SDE diagnostics: g_refiner alpha / gate / delta scalars.
+        for _diag in (
+            "alpha_mean", "alpha_std", "alpha_abs_max", "w_fro",
+            "g_alpha_mean", "g_alpha_absmax",
+            "g_gate_mean", "g_gate_std", "g_delta_norm",
+        ):
             if _diag in output:
                 kwargs[_diag] = output[_diag]
         if "boundary_mask" in batch:
