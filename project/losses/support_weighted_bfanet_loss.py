@@ -69,20 +69,24 @@ class SupportWeightedBFANetLoss(nn.Module):
         seg_logits: torch.Tensor,
         support_pred: torch.Tensor,
         segment: torch.Tensor,
-        edge: torch.Tensor,
+        edge: torch.Tensor | None = None,
         boundary_mask: torch.Tensor | None = None,
         s_weight: torch.Tensor | None = None,
         **_extra,
     ) -> dict[str, torch.Tensor]:
         segment = segment.reshape(-1).long()
-        edge = edge.float()
 
         # Hard boundary mask for the binary aux branch (BCE + Dice).
         if boundary_mask is not None:
             boundary_mask = boundary_mask.reshape(-1).float()
-        else:
-            support_gt = edge[:, 3].float().clamp(0.0, 1.0)
+        elif edge is not None:
+            support_gt = edge.float()[:, 3].clamp(0.0, 1.0)
             boundary_mask = (support_gt > self.boundary_threshold).float()
+        else:
+            raise RuntimeError(
+                "SupportWeightedBFANetLoss requires either boundary_mask "
+                "or edge to derive the binary boundary target."
+            )
 
         # Continuous weight for the semantic CE branch. Falls back to the
         # hard boundary mask (reproducing PureBFANetLoss exactly) when the

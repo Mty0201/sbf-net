@@ -260,9 +260,10 @@ class SemanticBoundaryTrainer:
                 kwargs["offset"] = batch["offset"]
             if "support_id" in batch:
                 kwargs["support_id"] = batch["support_id"]
-        elif "support_pred" in output and "edge" in batch:
+        elif "support_pred" in output:
             kwargs["support_pred"] = output["support_pred"]
-            kwargs["edge"] = batch["edge"]
+            if "edge" in batch:
+                kwargs["edge"] = batch["edge"]
             if "offset_pred" in output:
                 kwargs["offset_pred"] = output["offset_pred"]
         elif "offset_pred" in output and "edge" in batch:

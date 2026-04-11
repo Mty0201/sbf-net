@@ -50,7 +50,7 @@ class DualSupervisionSupportWeightedBFANetLoss(nn.Module):
         seg_logits: torch.Tensor,
         support_pred: torch.Tensor,
         segment: torch.Tensor,
-        edge: torch.Tensor,
+        edge: torch.Tensor | None = None,
         seg_logits_v2: torch.Tensor | None = None,
         support_pred_v2: torch.Tensor | None = None,
         boundary_mask: torch.Tensor | None = None,

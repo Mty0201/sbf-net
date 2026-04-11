@@ -104,7 +104,7 @@ def main() -> None:
     np.random.seed(cfg["seed"])
     sample = train_dataset[0]
     print(f"    keys: {sorted(sample.keys())}")
-    for k in ("coord", "grid_coord", "segment", "edge", "boundary_mask", "feat"):
+    for k in ("coord", "grid_coord", "segment", "boundary_mask", "feat"):
         assert k in sample, f"missing key {k}"
     n_pts = sample["coord"].shape[0]
     print(f"    N after transform: {n_pts}")
@@ -179,7 +179,7 @@ def main() -> None:
     kwargs = SemanticBoundaryTrainer._build_loss_inputs(output, batch)
     # Must forward boundary_mask and all dual-stream keys to the loss
     for k in ("seg_logits", "support_pred", "seg_logits_v2", "support_pred_v2",
-              "segment", "edge", "boundary_mask"):
+              "segment", "boundary_mask"):
         assert k in kwargs, f"trainer _build_loss_inputs did not forward {k}"
     loss_dict = loss_fn(**kwargs)
     loss_val = float(loss_dict["loss"].detach().float().cpu())
