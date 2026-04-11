@@ -200,3 +200,62 @@ Pure semantic training produces better semantic results than the current support
 - Log parser: `scripts/analysis/parse_train_log.py` (extended with `semantic_only` run type for this analysis)
 - Comparison methodology: v1.1 Phase 9 (`.planning/milestones/v1.1-phases/09-phase-7-full-training-results-analysis-and-tuning/09-ANALYSIS.md`)
 - Experiment configs: `configs/semantic_boundary/clean_reset_s38873367/`
+
+---
+
+## 8. Phase 5 Update — CR-L Single-Stream Aux Route Verdict (2026-04-11)
+
+After the initial CR-A vs CR-B comparison, the route redesign produced a new experiment family (CR-C through CR-P) testing boundary-proximity cue supervision. The first member of that family to complete a full 100-epoch run on the real environment is **CR-L** (BFANet-style binary BCE + local Dice + GT-weighted CE). Its results settle the single-stream aux-head question.
+
+### CR-L final numbers (same seed 38873367, 100 epochs)
+
+| Metric | CR-A (semantic-only) | CR-B (support-only) | **CR-L** | CR-L − CR-A | CR-L − CR-B |
+|---|---|---|---|---|---|
+| **Best val_mIoU** | **0.7336** (ep70) | 0.7184 (ep57) | **0.7251** (ep68) | **−0.0085** | +0.0067 |
+| Best mAcc | — | — | 0.8380 | — | — |
+| Best allAcc | — | — | 0.8614 | — | — |
+| Ep100 val_mIoU | — | — | 0.6994 | — | — |
+
+### Per-class IoU at best epoch
+
+| Class | CR-A best | CR-L best (ep68) | Δ |
+|---|---|---|---|
+| balustrade | — | 0.7792 | — |
+| balcony | — | 0.4415 | — |
+| advboard | — | 0.7803 | — |
+| wall | — | 0.7489 | — |
+| eave | — | 0.6372 | — |
+| column | — | 0.7921 | — |
+| window | — | 0.7900 | — |
+| clutter | — | 0.6177 | — |
+
+### Noise floor and significance
+
+Log-level analysis of CR-A ep1–100 and CR-L ep1–72 (`.planning/phases/05-boundary-proximity-cue-experiment/cr_l_vs_cr_a_diagnosis.png`) shows **single-seed val_mIoU oscillates with amplitude 0.05–0.07** for both runs from ep15 onward. CR-L's best is 0.0085 below CR-A — **5–8× smaller than the single-seed oscillation envelope**. This means the −0.0085 gap is statistically indistinguishable from seed noise in a single-seed comparison. The same caveat applies retroactively to the earlier CR-B result: the ordering CR-B 0.7184 / CR-L 0.7251 / CR-G 0.7240 / CR-A 0.7336 is substantially noise-limited.
+
+### Verdict for the single-stream aux route
+
+**CR-L does not meaningfully beat CR-A, and does not meaningfully underperform it either.** After 100 epochs of the BFANet-style binary threshold approach with the physical voxel-radius lower bound, a single-stream architecture with a boundary-aux head settles near CR-B level, not CR-A level. The aux head's contribution to boundary-region semantic quality is below the single-seed noise floor.
+
+### What this closes, what remains open
+
+**Closed:**
+- Single-stream CR-L family — CR-L / CR-K / CR-I as the aux-head single-stream answer. The route has been thoroughly tried with binary and continuous targets, with and without semantic CE upweighting, and does not produce a reliable CR-A improvement.
+- The hypothesis that "just fixing the loss" (CR-G → CR-H → CR-L) is sufficient. The gradient-competition story holds; continuous targets fail (CR-G/H) and even the binary-target fix stays within noise (CR-L).
+
+**Still open:**
+- **Architecture-side fix (CR-M, CR-P):** dual-stream g v4 cross-stream fusion attention may couple aux gradient back into semantic gradient in a way the additive single-stream loss cannot.
+- **No-aux-head soft-weighting (CR-O):** continuous CE · (1 + s·9) without any boundary head, testing whether soft-weighted semantic alone moves the needle.
+- **Faithful BFANet (CR-N, CR-P):** with the corrected r = 0.06 m absolute radius and precomputed boundary mask, testing whether BFANet's published recipe works on 7% positive-ratio building-facade data.
+
+### Phase 5 preprocessing correction
+
+Before CR-N and CR-P could run, the BFANet boundary-radius framing was corrected. Earlier notes treated ScanNet's boundary radius as "3× voxel size", but reading `train.py:82-87` in weiguangzhao/BFANet@master shows it is a **radius search at absolute r = 0.06 m**. The 3× voxel identity is a coincidence of the mink-path voxel size on ScanNet (0.06 = 3 × 0.02); octformer uses r = 0.006 because coordinates are pre-scaled by /10.25. The absolute radius is what ports to other datasets. A pilot sweep over r ∈ {0.03, 0.06, 0.09, 0.12} on 10 training chunks landed r = 0.06 m in 7/10 chunks inside the [5,15]% positive-ratio window. Full generation on 264 chunks produced `boundary_mask_r060.npy` with min 1.65%, mean 7.19%, median 6.76%, max 14.11%, 202/264 (76.5%) in [5,15]%, all ≤15%. CR-N and CR-P consume this precomputed mask; CR-M deliberately does not (kept on the legacy `edge[:,3] > 0.5` threshold to preserve its role as the pure architectural ablation against CR-L).
+
+### Phase 5 data sources
+
+- CR-L training log: `outputs/clean_reset_s38873367/boundary_binary/train.log` (120,960 lines, 100 epochs complete, post-training test phase separately broken and deferred — blocks test-split numbers but not the training verdict)
+- Loss-curve comparison plot: `.planning/phases/05-boundary-proximity-cue-experiment/cr_l_vs_cr_a_diagnosis.png`
+- Parsed CR-L / CR-A epoch summaries: `/tmp/cr_l_epochs.csv`, `/tmp/cr_a_epochs.csv` (transient — regenerate from logs if needed)
+- Boundary mask preprocessing: `scripts/data/probe_boundary_radius.py`, `scripts/data/generate_boundary_mask.py`
+- BFANet reference: `train.py:82-87, 147-188` and `network/BFANet.py:131-221` in weiguangzhao/BFANet@master
