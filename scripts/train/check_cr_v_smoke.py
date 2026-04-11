@@ -73,7 +73,7 @@ def main() -> None:
         repo_root
         / "configs"
         / "semantic_boundary"
-        / "clean_reset_s38873367"
+        / "clean_reset_g04_s38873367"
         / "support_weighted_v4_g04_train.py"
     )
     print(f"Config: {cfg_path}")
