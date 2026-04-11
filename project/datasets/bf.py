@@ -30,6 +30,11 @@ class BFDataset(DefaultDataset):
             data_dict["boundary_mask"] = (
                 np.load(boundary_mask_path).reshape(-1).astype(np.float32)
             )
+        s_weight_path = data_path / "s_weight_r060_r120.npy"
+        if s_weight_path.is_file():
+            data_dict["s_weight"] = (
+                np.load(s_weight_path).reshape(-1).astype(np.float32)
+            )
         return data_dict
 
     def get_data_name(self, idx):
