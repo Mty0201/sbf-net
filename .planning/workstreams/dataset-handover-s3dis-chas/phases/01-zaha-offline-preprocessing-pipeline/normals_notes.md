@@ -3,7 +3,7 @@ phase: 01-zaha-offline-preprocessing-pipeline
 plan: 03
 task: 3
 created: 2026-04-11
-status: draft
+status: approved
 ---
 
 # Normals Visual Sanity Log — 3 Sample Chunks, DEBY_LOD2_4907179
