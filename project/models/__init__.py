@@ -13,6 +13,7 @@ from .semantic_support_model import SharedBackboneSemanticSupportModel
 from .serial_derivation_model import SerialDerivationModel
 from .boundary_gated_model import BoundaryGatedSemanticModel
 from .boundary_gated_v4_model import BoundaryGatedSemanticModelV4
+from .decoupled_bfanet_model import DecoupledBFANetSegmentorV1
 from .gv4 import CrossStreamFusionAttention
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     "SerialDerivationModel",
     "BoundaryGatedSemanticModel",
     "BoundaryGatedSemanticModelV4",
+    "DecoupledBFANetSegmentorV1",
 ]
