@@ -1,0 +1,64 @@
+# Requirements: ZAHA + s3dis Handover v1.0
+
+**Main line:** ZAHA (raw PCD at `/home/mty0201/data/ZAHA_pcd/`). s3dis deferred behind ZAHA.
+
+**Route (2026-04-11):** Option C — a dedicated offline preprocessing phase produces `/home/mty0201/data/ZAHA_chunked/`, then **two parallel tracks** consume it: (a) a pure-semantic PTv3 baseline via stock `DefaultDataset`, and (b) the existing edge-enabled `BFDataset` path. BFDataset stays unchanged; it is simply not used by the pure-semantic track.
+
+**Authoritative reference files at the dataset root:**
+- `readme.txt` — official 19/4/3 split manifest, coordinate shift back to UTM32 (`[690826, 5335877, 500]`), author contact (`olaf.wysocki@tum.de`)
+- `settings_labeling.xml` — authoritative class schema: 17 entries total, ID 0 = VOID (ignore), IDs 1–16 = real classes. This supersedes paper Table 2, which is incomplete (the paper's "15 classes" is wrong — `OuterCeilingSurface` (ID 14) is missing from the paper and `Interior`/`Other` are shifted to IDs 15/16).
+
+**Retired requirement IDs (2026-04-11):** `DS-ZAHA-01..08` are retired and replaced by the phase-scoped IDs below. Any downstream reference to `DS-ZAHA-0N` should be treated as superseded by `DS-ZAHA-P{1,1B,2,3,4}-NN`.
+
+## ZAHA Phase 1 — Offline Preprocessing Pipeline
+
+- [ ] **DS-ZAHA-P1-01**: Implement a deterministic raw-PCD parser for `/home/mty0201/data/ZAHA_pcd/{training,validation,test}/*.pcd` under `data_pre/zaha/`. Parser must handle the ASCII PCD header (`FIELDS x y z classification rgb`, `SIZE 4 4 4 1 4`, `TYPE F F F U U`), emit float32 coord and uint8-or-int32 segment arrays, drop the `rgb` field unconditionally (paper §3: not spectral), and process the largest sample (`DEBY_LOD2_4959458.pcd`, 136.8 M points, 6.9 GB ASCII, validation split) and the 86M-point sample (`DEBY_LOD2_4906965.pcd`, 4.4 GB ASCII, training split) without OOM — chunked line reads if necessary. Coordinates stay in local CRS (do NOT apply the UTM32 shift). Every file listed in `readme.txt` must be parseable; the readme manifest is the ground truth for sample coverage.
+
+- [ ] **DS-ZAHA-P1-02**: Apply grid=0.02 voxel downsampling to every parsed raw sample BEFORE any other preprocessing step. Downsampling is the first transformation after parse and turns raw PCD into the "authoritative input" for everything downstream. Implementation must be deterministic (hash-stable voxel centroids, fixed rounding) and must cap memory at a level WSL can sustain. Segment labels are aggregated per voxel by majority vote; ties broken deterministically. Emit a per-sample downsampling ratio in the pipeline manifest for sanity checking. After this step, raw PCD is no longer touched by any downstream step.
+
+- [ ] **DS-ZAHA-P1-03**: Denoising method selection — **RESEARCH-GATED requirement**. Must produce a short research note under `phases/<Phase 1 dir>/denoising_notes.md` documenting: (a) at least three candidate methods evaluated against the ZAHA density gradient + scan stripe signature + thick-wall pathology, (b) the chosen method with parameters, (c) a sanity visualization on 2–3 sample chunks showing before/after. Candidates must include at minimum: statistical outlier removal (SOR), radius outlier removal, and one of {bilateral filter, MLS smoothing, RANSAC plane residual filter}. The chosen method is applied to the 0.02-downsampled cloud, not to raw PCD, and its parameters are recorded in the pipeline manifest. Deliverable bar: the method must not delete more than 10% of points on any sample, and must visibly reduce scan-stripe banding on at least one inspected chunk.
+
+- [ ] **DS-ZAHA-P1-04**: Building-level chunking strategy. Each ZAHA sample is one building and is the natural top-level chunking unit; within each building, partition the denoised 0.02-downsampled cloud into sub-chunks sized so that no chunk exceeds a trainable point budget (target ≤1.0M pts/chunk post-0.02). Partitioning method is a Phase 1 planner decision — candidates: axis-aligned box grid with ≥2 m overlap, octree-based recursive subdivision with leaf size capped by point count, facade-plane-aware partitioning that honors the dominant facade normal. Chunking must be deterministic — rerunning Phase 1 with the same inputs must produce the exact same chunk IDs and bboxes. Each chunk is a sample directory under `ZAHA_chunked/<split>/<sample>__c<idx>/`. `_A/_B/_C` building suffixes from the raw release are preserved in the parent sample name.
+
+- [ ] **DS-ZAHA-P1-05**: Robust normal estimation per chunk. Method must be documented in a short note under `phases/<Phase 1 dir>/normals_notes.md` and must explicitly address: (a) 10–30 cm wall thickness, (b) the density gradient between ground and high facade, (c) scan-stripe banding. Candidate methods: adaptive-radius PCA (radius auto-scales to hold k≈30 neighbors), facade-plane RANSAC per neighborhood, robust-weighted PCA with stripe-aware outlier rejection. The method is applied to the denoised 0.02-downsampled chunks — NOT to raw PCD and NOT before denoising. Write `normal.npy` as float32 `(N, 3)` with unit length. Deterministic; same input → same normals. The user has explicitly set the bar: "thinning the wall" is aspirational, not blocking — if normals remain noisy after a best-effort method, Phase 1 still ships, and the failure mode is recorded in the normals note.
+
+- [ ] **DS-ZAHA-P1-06**: Final NPY output layout `/home/mty0201/data/ZAHA_chunked/{training,validation,test}/<sample>__c<idx>/{coord,segment,normal}.npy`, all float32 except `segment.npy` (int32 or uint8). `segment.npy` is written with **remapped LoFG3 class indices in [0, 15]** (int32), per CONTEXT.md D-01/D-02/D-03: VOID (raw ID 0) is dropped in Phase 1 after voxel majority vote, remaining raw IDs 1..16 are shifted to 0..15. Runtime remapping to LoFG2 training indices happens at config time via `lofg3_to_lofg2.yaml`, not during preprocessing. Also author a workstream-local `lofg3_to_lofg2.yaml` at `phases/<Phase 1 dir>/lofg3_to_lofg2.yaml`, transcribed from paper Figure 3 and explicitly documenting the `OuterCeilingSurface` (ID 14) LoFG2 bucket assignment with rationale (default candidate: "structural" or "other el.", decided by the planner after reading Figure 3).
+
+- [ ] **DS-ZAHA-P1-07**: Pipeline orchestration — single entry-point script under `data_pre/zaha/` that runs parse → downsample → denoise → chunk → normals → write, emits a JSON manifest at `ZAHA_chunked/manifest.json` with per-chunk metadata (source building, chunk index, bbox, post-0.02 point count, denoising method + params, normal method + params, commit hash), and passes three sanity checks: (a) total per-class point histogram across chunks roughly matches raw-PCD class histogram within downsampling variance, (b) no chunk exceeds the declared point budget, (c) every chunk has coord/segment/normal with matching `(N,)`/`(N,3)` shapes. Hard failure on any sample — if even one raw PCD breaks the pipeline, Phase 1 does not complete.
+
+## ZAHA Phase 1b — Pure-Semantic PTv3 Baseline (DefaultDataset Track)
+
+- [ ] **DS-ZAHA-P1B-01**: Author a pure-semantic ZAHA training config at `configs/zaha/pure_semantic_ptv3_lofg2.py` (or equivalent location matching the existing BF config layout). Dataset class is Pointcept's stock `DefaultDataset` — NOT `BFDataset`, NOT a new subclass. `num_classes=5` (LoFG2), `ignore_index` chosen to match Pointcept semantic-seg convention and consistent with the runtime LoFG3→LoFG2 remap, split roots at `/home/mty0201/data/ZAHA_chunked/{training,validation}/`, `feat_keys` = `coord/normal` (NO color), LoFG3→LoFG2 remap applied at config runtime via the Phase 1 YAML. Config is a minimal clone of `configs/bf/semseg-pt-v3m1-0-base-bf.py` with dataset/loss surfaces stripped of all edge-related hooks. No edge.npy, no boundary_mask, no BFDataset touches. Training budget ≤100 epochs.
+
+- [ ] **DS-ZAHA-P1B-02**: Smoke-validate the pure-semantic config. Must run one complete forward + backward + optimizer step on both the training and validation dataloaders, and must include at least one large-building chunk to verify memory behavior at post-0.02 ZAHA scale. Sanity gates: `data_dict` contains coord + normal + segment, no NaN in loss, no OOM, optimizer state updates, validator dataloader loads without error.
+
+- [ ] **DS-ZAHA-P1B-03**: Run a short training under the Phase 1b config and record a baseline validation mIoU on LoFG2. Deliverables: `outputs/zaha_pure_semantic_ptv3_lofg2/` training log, best val mIoU with epoch number, per-class IoU table across 5 LoFG2 classes, and a short canonical note under `docs/canonical/` comparing against paper Table 4 LoFG2 baselines (PT 63.9 µIoU, DGCNN 68.5 µIoU). The sbf-net pure-semantic baseline is not required to match or beat the paper — goal is a reproducible PTv3 reference on facade data.
+
+## ZAHA Phase 2 — Edge Generation (Edge-Enabled Track)
+
+- [ ] **DS-ZAHA-P2-01**: Run `data_pre/bf_edge_v3/scripts/rebuild_edge_dataset_inplace.py` against `/home/mty0201/data/ZAHA_chunked/{training,validation}/` (test split excluded — BFDataset does not load it). Every chunk must contain a valid `edge.npy` with shape `(N, 5)` matching its `coord.npy` point count. The rebuild script is consumed unchanged; only input path + Stage 4 parameters are retuned.
+
+- [ ] **DS-ZAHA-P2-02**: Stage 4 absolute-distance parameter retuning for the post-0.02 ZAHA chunked scale. Current BF defaults (`support_radius=0.08 m`, `support_sigma=0.02 m`) are tuned for BF indoor-millimeter scale and will not transfer directly. Sanity pass first: 3 training + 1 validation chunk + the `DEBY_LOD2_4907207_*` chunks. Measure `edge_valid` ratio distribution. Hard gate: if median `edge_valid` ratio < 5%, halt and retune before the full pass. Retuning is a config change only — no edits to `data_pre/bf_edge_v3/` source.
+
+- [ ] **DS-ZAHA-P2-03**: Generate `boundary_mask_r060.npy` per chunk using the BFANet absolute r=0.06 m truth. This is the optional file BFDataset reads at `project/datasets/bf.py:28`; without it the BF track falls back silently but the intended behavior needs it present. Must be computed on the 0.02-downsampled chunks directly, NOT derived from voxel ratios. Output shape `(N,)`, float32, values in `{0.0, 1.0}` (or soft values if the boundary definition in use is soft — defer to the existing BFANet convention documented in prior memory).
+
+## ZAHA Phase 3 — BF-Style Config and Smoke Validation
+
+- [ ] **DS-ZAHA-P3-01**: Author a BF-style ZAHA training config at `configs/zaha/bf_ptv3_lofg2.py` (or mirroring the existing BF config location). Dataset class = `BFDataset`, split roots at `/home/mty0201/data/ZAHA_chunked/{training,validation}/`, `num_classes=5`, `ignore_index` consistent with Phase 1b, `feat_keys` = `coord/normal` (NO color), LoFG3→LoFG2 remap applied via the Phase 1 YAML. Minimal clone of the existing BF config — no loss, trainer, or evaluator customizations beyond the defaults. The point is to prove the data plumbing, not tune anything.
+
+- [ ] **DS-ZAHA-P3-02**: Smoke-validate the BF config. Must run one complete forward + backward + optimizer step on both training and validation dataloaders, confirm `BFDataset.get_data()` successfully loads a chunk with edge.npy present, correct shapes, and boundary_mask loaded, and must include at least one large-building chunk. The goal is to catch ZAHA-scale memory issues or missing-file failures before the Phase 4 short-training run.
+
+## ZAHA Phase 4 — Short-Training LoFG2 Baseline (Edge-Enabled BF Track)
+
+- [ ] **DS-ZAHA-P4-01**: Run a short ZAHA training under the Phase 3 BF config (≤100 epochs per global epoch limit) and record a baseline mIoU on the validation split. Deliverables: `outputs/zaha_bf_ptv3_lofg2/` training log, best val mIoU, per-class IoU at best epoch, and a short note under `docs/canonical/` comparing against (a) paper Table 4 LoFG2 baselines (PT 63.9 µIoU, DGCNN 68.5 µIoU) and (b) the Phase 1b pure-semantic sbf-net reference. The sbf-net BF-track baseline is not required to beat the pure-semantic reference or the paper — goal is a reproducible paired reference on facade data.
+
+## s3dis Handover (Deferred — behind ZAHA)
+
+After ZAHA lands, s3dis phases will be authored. Prior scope (captured here for reference, not yet re-numbered):
+
+- **s3dis reorg**: `/home/mty0201/data/s3dis/` `Area_{1..6}/<room>/` → `training/Area_{N}_{room}/` + `validation/Area_5_{room}/`. Room-name collisions handled via `Area_{N}_` prefix.
+- **s3dis edge generation**: same `rebuild_edge_dataset_inplace.py` tool, hard-failure policy, sanity-pass threshold.
+- **s3dis config**: BF-style with `num_classes=13`, `feat_keys` = `coord/color/normal`.
+- **s3dis smoke + baseline**: same shape as ZAHA Phase 3/4.
+
+The prior `DS-S3D-01..05` requirement IDs are retired. New s3dis requirement IDs will be assigned when the s3dis phases are authored post-ZAHA.
