@@ -45,6 +45,6 @@ runtime = dict(
     grad_accum_steps=6, mix_prob=0.8, enable_amp=True,
 )
 trainer = dict(
-    total_epoch=4000, eval_epoch=40,
+    total_epoch=4000, eval_epoch=100,
     num_workers=8, max_train_batches=None, max_val_batches=None,
 )
