@@ -481,7 +481,7 @@ class SemanticBoundaryTrainer:
                     or processed_iter == self.steps_per_epoch
                 ):
                     info = (
-                        f"Train: [{epoch}/{self.max_epoch}]"
+                        f"Train: [{loop_idx + 1}/{self.train_loop}]"
                         f"[{processed_iter}/{self.steps_per_epoch}] "
                         f"Data {data_time_meter.val:.3f} ({data_time_meter.avg:.3f}) "
                         f"Batch {batch_time_meter.val:.3f} ({batch_time_meter.avg:.3f}) "
