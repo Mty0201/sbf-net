@@ -21,14 +21,18 @@ data_pre/zaha/
 ## Pipeline stages (per CONTEXT.md)
 
 1. **Parse** — streaming ASCII PCD line reader, drops `rgb` field unconditionally.
-2. **grid=0.02 voxel downsample** — deterministic hash-partitioned external sort
-   (plain Python dict ruled out on the 86 M / 136.8 M-point files — see Plan 02).
+2. **grid=0.04 voxel downsample** — deterministic hash-partitioned external sort
+   aligned with main-line training (CONTEXT D-14 supersession 2026-04-12; the
+   plain Python dict was already ruled out on the 86 M / 136.8 M-point files in
+   Plan 02).
 3. **VOID drop** — any voxel whose majority-vote label is raw class 0 (VOID)
    is removed after downsample. Remaining raw classes 1..16 are remapped to 0..15.
 4. **Denoise** — research-gated method (Plan 03). Runs pre-chunking on the
-   whole-building 0.02-downsampled cloud.
-5. **Chunk** — axis-aligned box grid, fixed XY tile size, ≥ 2 m overlap, full Z.
-   Row-major chunk ordering, deterministic bboxes. Budget ≤ 0.6 M pts/chunk.
+   whole-building 0.04-downsampled cloud.
+5. **Chunk** — **facade-aware occupancy chunking** (D-08 supersession 2026-04-12
+   — see PIPELINE.md Stage 4). Projects facade-class points onto a 1 m XY grid,
+   labels connected components, assigns non-facade points by proximity, bisects
+   oversized components. Drops components < 10k pts. Budget ≤ 1M pts/chunk.
 6. **Normals** — per chunk (not whole building), adaptive-radius PCA best-effort.
    Unit-length float32 (N, 3), no NaN.
 7. **Write** — `<split>/<sample>__c<idx>/{coord,segment,normal}.npy` +

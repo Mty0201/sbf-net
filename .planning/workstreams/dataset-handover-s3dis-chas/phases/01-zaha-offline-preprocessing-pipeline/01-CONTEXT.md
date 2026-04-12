@@ -9,7 +9,7 @@
 Produce `/home/mty0201/data/ZAHA_chunked/{training,validation,test}/<sample>__c<idx>/{coord,segment,normal}.npy` from raw PCD via a deterministic offline pipeline:
 
 1. Parse raw PCD (ASCII, fields `x y z classification rgb`, drop `rgb`)
-2. grid=0.02 voxel downsample (centroid + majority-vote segment)
+2. grid=0.04 voxel downsample (centroid + majority-vote segment) — D-14 supersession 2026-04-12
 3. Drop VOID points (raw ID 0)
 4. Denoise (method RESEARCH-GATED)
 5. Building-level chunking into sub-chunks ≤ 0.6 M pts, axis-aligned box grid + ≥2 m overlap
@@ -68,6 +68,40 @@ Hard rule: raw PCD is touched only in step 1 of Phase 1 and becomes provenance-o
   memory budgets key off BOTH files. D-14's intent (streaming,
   deterministic, memory-bounded, hash-stable voxel centroids) remains
   locked; only the concrete data structure changes.
+
+- **D-14 grid supersession (2026-04-12, Plan 01-04 Task 3):** **Grid switched
+  from 0.02 m to 0.04 m for the whole dataset.** Driver was the full-26-sample
+  end-to-end run (attempts 1–4 in Plan 01-04 Task 3): at grid=0.02 the
+  D-08 fixed-tile chunker produced 1500–2000+ chunks per mega-building
+  (`DEBY_LOD2_60042`, `DEBY_LOD2_4906966`) with median chunk utilization
+  of 4–6% of the 600k-point budget — severe over-fragmentation, and
+  multiple D-10 / D-22 failures. Grid=0.04 reduces total point count
+  ~8× and aligns the workstream with the main-line training regime
+  (which already runs at 0.04). The hash-partitioned external sort
+  (D-14 supersession 2026-04-11) still applies — only the GRID constant
+  in `data_pre/zaha/utils/voxel_agg.py` changes (0.02 → 0.04). The
+  voxel ID space stays at 21 bits per axis, which now spans ±40 km
+  instead of ±20 km — still ample for ZAHA local coords.
+
+- **D-08 supersession (2026-04-12, Plan 01-04 Task 3):** **Adaptive XY tile
+  size by per-sample density bucket** replaces the original "single fixed
+  tile size across the dataset" rule. The empirical density spread on
+  ZAHA at grid=0.02 was 1.4% – 25% budget utilization across samples — too
+  wide for a single tile size to be both safe on dense buildings and
+  non-fragmenting on sparse ones. The new rule: after voxel aggregate,
+  compute `density = n_voxels / bbox_xy_area`, then select one of four
+  buckets: <700 vox/m² → tile=12 m; 700–2500 → 8 m; 2500–6000 → 6 m;
+  ≥6000 → 4 m (z-band = tile size, overlap = tile/2 keeping the D-06
+  50% rule). Thresholds derived from attempt 1–4 max-chunk measurements
+  on the existing 0.02 cache: worst-case `local_max_density / mean_density`
+  ratio is ≤ 9 across all 26 ZAHA samples; bound is
+  `tile_xy ≤ sqrt(600000 / (density × 9))` with a 50% safety margin.
+  Bucket selection is recorded into `manifest.json` per-sample
+  `chunking.tile_bucket` for traceability. The CLI flags `--tile-xy /
+  --overlap-xy / --z-mode` still override the bucket for ablations,
+  preserving the original D-08 fixed-mode path. Determinism (D-16) is
+  preserved because density is a pure function of the post-voxel-agg
+  state, which is itself deterministic.
 
 ### Normal estimation
 - **D-17:** **Best-effort + visual sanity + short note** (not a multi-method bake-off). Planner picks ONE method — default strong candidate: **adaptive-radius PCA** with radius auto-scaling to hold roughly k ≈ 30 neighbors — and the researcher visualizes normals on 2–3 sample chunks (small / medium / one chunk from the 86M-point building), writing `normals_notes.md` documenting the method + params + observed failure modes.

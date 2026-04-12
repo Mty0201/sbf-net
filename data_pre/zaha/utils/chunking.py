@@ -1,51 +1,65 @@
-"""Deterministic axis-aligned box-grid chunking for ZAHA.
+"""Chunking for ZAHA — facade-aware occupancy-based splitting.
 
-CONTEXT geometry (D-06):
-    axis-aligned box grid, fixed XY tile size, fixed XY overlap >= 2 m,
-    full Z extent by default (``z_mode='full'``) or an explicit
-    ``'band:{depth}'`` Z-band fallback when a single tile would exceed the
-    per-chunk point budget.
+Two chunking strategies are provided:
 
-CONTEXT budget (D-07):
-    no chunk exceeds 0.6 M points post-denoise. This module does NOT drop
-    points to hit the budget — the field is exposed on ``ChunkingConfig`` so
-    Plan 04's per-sample loop can detect over-budget tiles and fall back to
-    Z-banding (or refuse the sample and flag it).
+1. ``compute_chunks()`` — the legacy axis-aligned grid (D-06/D-08/D-10).
+   Kept for CLI ``--tile-xy`` override and test compatibility.
+2. ``compute_chunks_by_facade()`` — occupancy-based connected-component
+   splitting driven by facade-class points only. This is the default
+   path in ``build_zaha_chunks.py`` from Plan 01-04 Task 3 v3 onwards.
 
-CONTEXT origin + ordering (D-08/D-10):
-    grid origin = bbox_min of the post-denoise cloud (deterministic);
-    iteration is row-major with x as the outer index and y as the inner
-    index (matches numpy C-order); chunk indices are zero-padded to 3 digits
-    (``cXXX``), enforced by ``chunk_name``.
+The facade chunker projects facade-class points (Wall, Window, Door,
+Balcony, Molding, Deco, Column, Arch, Blinds — remapped IDs {0..7, 12})
+onto a coarse XY occupancy grid, runs connected-component labelling, and
+recursively bisects oversized components along their principal axis until
+every component falls within the point budget.  Non-facade points (floor,
+terrain, roof, interior, …) are assigned to the nearest facade component
+by XY proximity so nothing is lost.
 
 Import order (RESEARCH §I.5):
     this module is open3d-free and pandas-free. It imports only ``numpy``
-    plus stdlib ``math`` / ``dataclasses``, so it can be imported at any
-    point in the pipeline without triggering the GLIBCXX ptv3 trap.
+    plus stdlib ``math`` / ``dataclasses`` / ``typing``, so it can be
+    imported at any point in the pipeline without triggering the GLIBCXX
+    ptv3 trap.
 
 Exports
 -------
-ChunkingConfig      — frozen dataclass with tile_xy/overlap_xy/z_mode/budget
-ChunkSpec           — frozen dataclass describing a single chunk box
-compute_chunks()    — deterministic row-major tile enumeration
-chunk_name()        — ``{basename}__c{idx:03d}`` naming per RESEARCH §F.6
-iter_chunk_points() — extract the (xyz, segment) subset falling in a chunk
-MAX_CHUNK_INDEX     — 999 (bumped by widening MAX_CHUNK_DIGITS if needed)
+ChunkingConfig         — frozen dataclass with tile_xy/overlap_xy/z_mode/budget
+ChunkSpec              — frozen dataclass describing a single chunk box
+compute_chunks()       — legacy deterministic row-major tile enumeration
+compute_chunks_by_facade() — facade-aware occupancy chunking (default)
+chunk_name()           — ``{basename}__c{idx:04d}`` naming per RESEARCH §F.6
+iter_chunk_points()    — extract the (xyz, segment) subset falling in a chunk
+MAX_CHUNK_INDEX        — 9999 (bumped by widening MAX_CHUNK_DIGITS if needed)
+FACADE_CLASS_IDS       — remapped LoFG3 IDs used for footprint extraction
 """
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import Sequence
 
 import numpy as np
+from scipy import ndimage
 
 
 # ---------------------------------------------------------------------------
 # Naming constants (RESEARCH §F.2 / F.6)
 # ---------------------------------------------------------------------------
 
-MAX_CHUNK_DIGITS: int = 3
-MAX_CHUNK_INDEX: int = 10 ** MAX_CHUNK_DIGITS - 1  # 999
+MAX_CHUNK_DIGITS: int = 4
+MAX_CHUNK_INDEX: int = 10 ** MAX_CHUNK_DIGITS - 1  # 9999
+
+# Remapped LoFG3 class IDs that define the building facade.
+# Wall(0), Window(1), Door(2), Balcony(3), Molding(4),
+# Deco(5), Column(6), Arch(7), Blinds(12).
+# These classes drive the XY footprint extraction in the facade chunker.
+# Floor/Terrain/Roof/Interior are excluded so the footprint reflects
+# the vertical-surface outline rather than the ground plane.
+FACADE_CLASS_IDS: frozenset[int] = frozenset({0, 1, 2, 3, 4, 5, 6, 7, 12})
+
+# Default occupancy grid cell size for facade footprint extraction.
+OCCUPANCY_GRID_M: float = 1.0
 
 
 # ---------------------------------------------------------------------------
@@ -73,13 +87,18 @@ class ChunkingConfig:
     budget_per_chunk : int
         Maximum points per chunk post-denoise (D-07). The chunker does NOT
         enforce this — Plan 04 detects over-budget tiles and falls back to
-        ``z_mode='band:{depth}'``. Default 600_000.
+        ``z_mode='band:{depth}'``. Default 1_000_000 (D-07 supersession
+        2026-04-12, Plan 01-04 Task 3): the original 600k cap was set against
+        the grid=0.02 + fixed-4m-tile regime; under grid=0.04 + adaptive
+        continuous sizing with TARGET_PTS=400k, chunks land in the 200k-700k
+        range and the 1M cap is the true "fail only if something is wrong"
+        bound rather than a routine squeeze point.
     """
 
     tile_xy: float = 4.0
     overlap_xy: float = 2.0
     z_mode: str = "full"
-    budget_per_chunk: int = 600_000
+    budget_per_chunk: int = 1_000_000
 
     def __post_init__(self) -> None:
         if self.tile_xy <= 0:
@@ -146,16 +165,18 @@ class ChunkSpec:
 # ---------------------------------------------------------------------------
 
 def chunk_name(sample_basename: str, chunk_idx: int) -> str:
-    """Build the ``{basename}__c{idx:03d}`` chunk directory name.
+    """Build the ``{basename}__c{idx:04d}`` chunk directory name.
 
-    The 3-digit zero-pad is locked per D-10 and §F.6 — widening requires
-    bumping ``MAX_CHUNK_DIGITS`` together with any downstream manifest
-    parsers.
+    The 4-digit zero-pad is locked per D-10 and §F.6 — bumped from 3→4 in
+    Plan 01-04 Task 3 (2026-04-12) after ``--z-mode band:6.0`` multiplied
+    chunk counts beyond the old 999 ceiling on large footprint samples.
+    Widening further requires bumping ``MAX_CHUNK_DIGITS`` together with
+    any downstream manifest parsers.
     """
     if chunk_idx < 0 or chunk_idx > MAX_CHUNK_INDEX:
         raise ValueError(
             f"chunk_idx {chunk_idx} out of range [0, {MAX_CHUNK_INDEX}] — "
-            f"bump MAX_CHUNK_DIGITS if ZAHA grows beyond 1000 chunks/sample"
+            f"bump MAX_CHUNK_DIGITS if ZAHA grows beyond 10000 chunks/sample"
         )
     return f"{sample_basename}__c{chunk_idx:0{MAX_CHUNK_DIGITS}d}"
 
@@ -343,3 +364,143 @@ def iter_chunk_points(
         xyz[mask].astype(np.float32, copy=False),
         segment[mask].astype(np.int32, copy=False),
     )
+
+
+# ---------------------------------------------------------------------------
+# Facade-aware occupancy-based chunking
+# ---------------------------------------------------------------------------
+
+
+def _xy_to_grid(
+    xy: np.ndarray, origin: np.ndarray, cell: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Convert XY coords to integer grid indices."""
+    gx = ((xy[:, 0] - origin[0]) / cell).astype(np.int32)
+    gy = ((xy[:, 1] - origin[1]) / cell).astype(np.int32)
+    return gx, gy
+
+
+def _bisect_indices(
+    xy: np.ndarray, indices: np.ndarray, budget: int, min_pts: int,
+) -> list[np.ndarray]:
+    """Recursively bisect a point set along its longest XY axis until
+    each piece has <= ``budget`` points. Pieces smaller than ``min_pts``
+    are kept as-is (never split further)."""
+    if len(indices) <= budget:
+        return [indices]
+    pts = xy[indices]
+    spans = pts.max(axis=0) - pts.min(axis=0)
+    axis = int(np.argmax(spans))
+    med = float(np.median(pts[:, axis]))
+    left_mask = pts[:, axis] <= med
+    left_idx = indices[left_mask]
+    right_idx = indices[~left_mask]
+    if len(left_idx) < min_pts or len(right_idx) < min_pts:
+        return [indices]
+    return _bisect_indices(xy, left_idx, budget, min_pts) + \
+           _bisect_indices(xy, right_idx, budget, min_pts)
+
+
+def compute_chunks_by_facade(
+    xyz: np.ndarray,
+    segment: np.ndarray,
+    budget: int = 1_000_000,
+    min_pts: int = 10_000,
+    cell: float = OCCUPANCY_GRID_M,
+    facade_ids: frozenset[int] = FACADE_CLASS_IDS,
+) -> list[np.ndarray]:
+    """Split a point cloud into chunks guided by facade-class XY footprint.
+
+    Algorithm
+    ---------
+    1. Extract facade-class points and project onto a coarse XY grid.
+    2. Build a binary occupancy image and label connected components.
+    3. Assign ALL points (including non-facade) to the nearest component
+       by XY cell proximity.
+    4. Recursively bisect oversized components along their longest XY axis
+       until every piece has <= ``budget`` points.
+    5. Drop pieces with < ``min_pts`` points.
+
+    Parameters
+    ----------
+    xyz : (N, 3) float32
+    segment : (N,) int32 — remapped LoFG3 class IDs
+    budget : max points per chunk
+    min_pts : minimum points to keep a chunk
+    cell : occupancy grid resolution in metres
+    facade_ids : set of remapped class IDs considered facade
+
+    Returns
+    -------
+    list[np.ndarray]
+        Each entry is an index array into xyz/segment for one chunk.
+        Chunks are sorted by the X coordinate of their centroid.
+    """
+    xyz = np.asarray(xyz, dtype=np.float64)
+    segment = np.asarray(segment, dtype=np.int32)
+    N = len(xyz)
+    xy = xyz[:, :2]
+
+    # --- Step 1: facade mask + occupancy grid ---
+    facade_mask = np.isin(segment, list(facade_ids))
+    origin = xy.min(axis=0)
+
+    # Grid dimensions
+    extent = xy.max(axis=0) - origin
+    nx = max(1, int(np.ceil(extent[0] / cell)) + 1)
+    ny = max(1, int(np.ceil(extent[1] / cell)) + 1)
+
+    # Facade occupancy image
+    occ = np.zeros((nx, ny), dtype=np.int32)
+    if facade_mask.any():
+        fxy = xy[facade_mask]
+        fgx, fgy = _xy_to_grid(fxy, origin, cell)
+        fgx = np.clip(fgx, 0, nx - 1)
+        fgy = np.clip(fgy, 0, ny - 1)
+        occ[fgx, fgy] = 1
+
+    # --- Step 2: connected components ---
+    labeled, n_components = ndimage.label(occ)
+
+    if n_components == 0:
+        # No facade points at all — single chunk with everything.
+        return [np.arange(N)]
+
+    # --- Step 3: assign ALL points to nearest component ---
+    all_gx, all_gy = _xy_to_grid(xy, origin, cell)
+    all_gx = np.clip(all_gx, 0, nx - 1)
+    all_gy = np.clip(all_gy, 0, ny - 1)
+
+    point_labels = labeled[all_gx, all_gy]  # 0 = unassigned (no facade cell)
+
+    # Points landing on unoccupied cells: assign to nearest occupied cell.
+    unassigned = point_labels == 0
+    if unassigned.any():
+        # Distance transform gives the distance to nearest occupied cell;
+        # we need the label of that nearest cell.
+        # Use scipy distance_transform_edt with return_indices.
+        _, nearest_idx = ndimage.distance_transform_edt(
+            labeled == 0, return_distances=True, return_indices=True,
+        )
+        near_gx = nearest_idx[0][all_gx[unassigned], all_gy[unassigned]]
+        near_gy = nearest_idx[1][all_gx[unassigned], all_gy[unassigned]]
+        point_labels[unassigned] = labeled[near_gx, near_gy]
+
+    # Any still at 0 (whole image is empty — shouldn't happen) gets label 1.
+    point_labels[point_labels == 0] = 1
+
+    # --- Step 4: collect per-component indices, bisect if over budget ---
+    result: list[np.ndarray] = []
+    for comp_id in range(1, n_components + 1):
+        comp_indices = np.where(point_labels == comp_id)[0]
+        if len(comp_indices) < min_pts:
+            continue
+        pieces = _bisect_indices(xy, comp_indices, budget, min_pts)
+        for piece in pieces:
+            if len(piece) >= min_pts:
+                result.append(piece)
+
+    # --- Step 5: sort by centroid X for deterministic ordering ---
+    result.sort(key=lambda idx: float(xy[idx, 0].mean()))
+
+    return result

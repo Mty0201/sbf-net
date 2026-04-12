@@ -13,11 +13,11 @@ training configs and the verifier depend on.
 ├── training/
 │   ├── .state/
 │   │   └── <sample>.json                 # per-sample idempotence sidecar
-│   ├── DEBY_LOD2_4907173__c000/
+│   ├── DEBY_LOD2_4907173__c0000/
 │   │   ├── coord.npy      # float32 (N, 3) — post-denoise XYZ centroids
 │   │   ├── segment.npy    # int32   (N,)   — remapped LoFG3 class [0, 15]
 │   │   └── normal.npy     # float32 (N, 3) — unit-length PCA normals
-│   ├── DEBY_LOD2_4907173__c001/
+│   ├── DEBY_LOD2_4907173__c0001/
 │   │   └── ...
 │   └── ...
 ├── validation/
@@ -33,7 +33,7 @@ training, 4 validation, 3 test (26 samples total per CONTEXT.md §A).
 
 | File          | dtype    | shape    | range / invariants                                      |
 | ------------- | -------- | -------- | ------------------------------------------------------- |
-| `coord.npy`   | float32  | (N, 3)   | finite; post-denoise grid-0.02 centroids                |
+| `coord.npy`   | float32  | (N, 3)   | finite; post-denoise grid-0.04 centroids                |
 | `segment.npy` | int32    | (N,)     | values in [0, 15]; remapped LoFG3 (D-02), VOID dropped  |
 | `normal.npy`  | float32  | (N, 3)   | unit-length `0.99 <= ||n|| <= 1.01`; finite             |
 
@@ -84,7 +84,7 @@ layout. Top-level keys (RESEARCH §H.2):
   "ran_at": "<iso-8601-utc>",
   "ran_by": "<getpass.getuser()>",
   "host": "<platform.node()>",
-  "grid_size": 0.02,
+  "grid_size": 0.04,
   "void_drop_rule": "winner_eq_0_drops_voxel",
   "denoising": { ... },
   "normal_estimation": { ... },

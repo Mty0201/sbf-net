@@ -4,39 +4,39 @@ milestone: v1.0
 milestone_name: — ZAHA + s3dis Handover
 current_phase: 01
 current_plan: 4
-status: executing
-stopped_at: Plan 01-03 Wave 2 complete (denoise + chunking + normals). Merged to main as 3aee88f..9d1ddfa (7 commits). Next step is Plan 01-04 (orchestrator + NPY layout).
-last_updated: "2026-04-11T14:45:00Z"
-last_activity: 2026-04-11
+status: phase_complete
+stopped_at: "Phase 01 complete. Plan 01-04 landed: full 26-sample pipeline ran (facade-aware chunking, grid=0.04, 140 chunks, 0 errors). Output at /tmp/zaha_chunked/ pending move to /home/mty0201/data/ZAHA_chunked."
+last_updated: "2026-04-12T18:00:00Z"
+last_activity: 2026-04-12
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 3
-  percent: 75
+  completed_plans: 4
+  percent: 100
 ---
 
 # Project State
 
 ## Current Position
 
-Phase: 01 (zaha-offline-preprocessing-pipeline) — EXECUTING
-Plan: 4 of 4
-**Status:** Executing Phase 01
-**Current Phase:** 01
-**Last Activity:** 2026-04-11
-**Last Activity Description:** Plan 01-03 Wave 2 complete (denoise + chunking + normals, SOR winner approved, normals D-18 bar met)
+Phase: 01 (zaha-offline-preprocessing-pipeline) — COMPLETE
+Plan: 4 of 4 (all complete)
+**Status:** Phase 01 complete
+**Current Phase:** 01 ✅
+**Last Activity:** 2026-04-12
+**Last Activity Description:** Plan 01-04 Task 3 finalized — facade-aware chunking, golden snapshot, 26/26 pytest green, docs updated
 
 ## Progress
 
-**Phases Complete:** 0
-**Current Plan:** 4
+**Phases Complete:** 1
+**Plans Complete:** 4/4
 **s3dis status:** still deferred behind ZAHA. Prior s3dis Phase 1 CONTEXT.md is now at `archive/01-s3dis-data-layout-and-edge-generation-SUPERSEDED-2026-04-11/`. It will be re-authored as Phase 5+ after ZAHA Phase 4 lands.
 
 ## Session Continuity
 
-**Stopped At:** Plan 01-03 Wave 2 complete — denoise/chunking/normals modules landed, 7 commits merged to main (3aee88f..9d1ddfa). Next step is Plan 01-04 (pipeline orchestrator + NPY manifest + per-sample loop).
-**Resume File:** `.planning/workstreams/dataset-handover-s3dis-chas/phases/01-zaha-offline-preprocessing-pipeline/01-04-PLAN.md`
+**Stopped At:** Phase 01 complete. All 4 plans executed. Pipeline output at `/tmp/zaha_chunked/` (26 samples, 140 chunks). Pending: move output to `/home/mty0201/data/ZAHA_chunked`, then proceed to Phase 02+ (s3dis or ZAHA training config).
+**Resume File:** `.planning/workstreams/dataset-handover-s3dis-chas/ROADMAP.md`
 
 ## Open Questions for ZAHA Phase 1 discuss-phase
 

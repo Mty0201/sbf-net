@@ -18,8 +18,9 @@ turns `/home/mty0201/data/ZAHA_pcd/` into `/home/mty0201/data/ZAHA_chunked/`.
 ## Stage 2 — Voxel aggregate (DS-ZAHA-P1-02)
 
 - `data_pre/zaha/utils/voxel_agg.py::stream_voxel_aggregate(pcd, tmp_dir, K=16)`
-- Grid = 0.02 m locked module constant (CONTEXT.md D-14 supersession — see
-  `01-02-SUMMARY.md`).
+- Grid = 0.04 m locked module constant — aligned with main-line training
+  regime (CONTEXT.md D-14 supersession 2026-04-12 — see `01-02-SUMMARY.md`
+  for the original 0.02 design and Plan 01-04 Task 3 notes for the switch).
 - Pass 1: streaming partition into K disk bins via `key % K`.
 - Pass 2: in-RAM majority-vote aggregate per bin (stable sort + `np.unique` +
   `np.add.reduceat`).
@@ -46,14 +47,24 @@ turns `/home/mty0201/data/ZAHA_pcd/` into `/home/mty0201/data/ZAHA_chunked/`.
 
 ## Stage 4 — Chunk (DS-ZAHA-P1-04)
 
-- `data_pre/zaha/utils/chunking.py::compute_chunks(bbox_min, bbox_max, cfg)`
-- Deterministic row-major (x-outer, y-inner) axis-aligned box-grid (D-10).
-- Default XY tile: 4.0 m × 4.0 m with 2.0 m XY overlap (D-06 minimum).
-- Z mode: `full` (single Z tile spanning the whole building) by default.
-  `band:{depth}` fallback for oversized tiles on the largest samples.
-- Budget: 600 000 points per chunk (D-07). Over-budget tiles trigger a
-  hard-fail at build time — the operator re-runs with `--z-mode band:X`.
-- Naming: `<sample>__c<idx:03d>` (D-10 / RESEARCH §F.6), 3-digit zero-pad
+- `data_pre/zaha/utils/chunking.py::compute_chunks_by_facade(xyz, segment, ...)`
+- **Facade-aware occupancy chunking** (D-06/D-08/D-10 supersession 2026-04-12
+  — Plan 01-04 Task 3 v3): the default path projects facade-class points
+  (Wall, Window, Door, Balcony, Molding, Deco, Column, Arch, Blinds —
+  remapped IDs {0..7, 12}) onto a 1 m XY occupancy grid, runs
+  `scipy.ndimage.label` connected-component labelling, assigns all non-facade
+  points to the nearest component by XY distance transform, then recursively
+  bisects oversized components along their longest XY axis until every piece
+  falls within the point budget.
+- Components with < 10 000 points are dropped (small appendages that would
+  produce fragments too small for meaningful training).
+- Budget: 1 000 000 points per chunk (D-07 supersession 2026-04-12). Under
+  grid=0.04 + facade chunking the realised distribution is p25=644k,
+  median=666k, p75=909k, max=999k across all 26 samples.
+- The legacy axis-aligned grid path (`compute_chunks()`) is preserved and
+  activated by CLI `--tile-xy` / `--overlap-xy` / `--z-mode` flags for
+  ablations.
+- Naming: `<sample>__c<idx:04d>` (D-10 / RESEARCH §F.6), 4-digit zero-pad
   enforced by `chunking.chunk_name`.
 
 ## Stage 5 — Normals (DS-ZAHA-P1-05, per-chunk per D-19)
@@ -84,11 +95,11 @@ turns `/home/mty0201/data/ZAHA_pcd/` into `/home/mty0201/data/ZAHA_chunked/`.
 - Provenance fields: `schema_version`, `pipeline_version`, `commit_hash`
   (via `git rev-parse HEAD`, with `-dirty` suffix on uncommitted trees),
   `ran_at` (UTC ISO-8601), `ran_by` (`getpass.getuser()`), `host`
-  (`platform.node()`), `grid_size` (locked 0.02), `void_drop_rule`
+  (`platform.node()`), `grid_size` (locked 0.04), `void_drop_rule`
   (`winner_eq_0_drops_voxel`).
 - `run_sanity_checks(manifest, expected_samples)` — three D-21 gates:
   (a) per-class histogram drift (> 15 pp → HARD FAIL),
-  (b) chunk budget (any `point_count > 600_000` → HARD FAIL),
+  (b) chunk budget (any `point_count > 1_000_000` → HARD FAIL),
   (c) readme coverage (missing or extra samples → HARD FAIL).
 - Hard-failure policy (D-22): any `HARD FAIL` string from `run_sanity_checks`
   triggers exit code 2 with partial output preserved for forensics.

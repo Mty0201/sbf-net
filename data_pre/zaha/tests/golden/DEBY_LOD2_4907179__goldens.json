@@ -1,0 +1,12 @@
+{
+  "sample": "DEBY_LOD2_4907179",
+  "note": "golden snapshot from facade-aware chunking (grid=0.04, min_pts=10000)",
+  "chunks": {
+    "DEBY_LOD2_4907179__c0000": {
+      "coord_sha256": "44fe91c3cb881e3ae3c706382c5ed43d5edeaf4f837db073b1cd7e0397d596a3",
+      "segment_sha256": "dc3553ffe16ea8c15b67210b58504f9e204e579f23aee8090bb5de708d7b6ff2",
+      "normal_sha256": "bf0ce0312870013988802eb5c6fcbc1125fe7602800c1829f3f2b42540a96617",
+      "point_count": 656099
+    }
+  }
+}

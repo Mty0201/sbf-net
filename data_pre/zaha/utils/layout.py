@@ -2,7 +2,7 @@
 
 Writes the three NPY files the ZAHA dataset contract promises:
 
-    <output>/<split>/<sample>__c<idx:03d>/
+    <output>/<split>/<sample>__c<idx:04d>/
         coord.npy     # float32 (N, 3)    — post-denoise XYZ centroids
         segment.npy   # int32   (N,)      — remapped LoFG3 class in [0, 15]
         normal.npy    # float32 (N, 3)    — unit-length PCA normals

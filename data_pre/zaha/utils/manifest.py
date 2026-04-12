@@ -23,8 +23,8 @@ Gates implemented
     VOID included) against the final histogram (0..15, post-remap) after
     shifting the raw one-index-down to the remapped space. Drift > 15 pp
     on any class is a HARD FAIL.
-(b) chunk budget — any chunk with ``point_count > 600_000`` (D-07) is a
-    HARD FAIL.
+(b) chunk budget — any chunk with ``point_count > 1_000_000`` (D-07
+    supersession 2026-04-12) is a HARD FAIL.
 (c) readme coverage — the manifest must contain exactly the samples the
     caller expected (via the ZAHA readme.txt split assignments). Missing
     or extra samples are HARD FAILs.
@@ -53,8 +53,11 @@ SCHEMA_VERSION: int = 1
 #: Pipeline version recorded into manifest.json alongside the git commit hash.
 PIPELINE_VERSION: str = "1.0.0"
 
-#: D-07 per-chunk point budget.
-_BUDGET_PER_CHUNK: int = 600_000
+#: D-07 per-chunk point budget (supersession 2026-04-12 — Plan 01-04 Task 3):
+#: the original 600k cap sat on top of grid=0.02 + fixed-4m-tile; under
+#: grid=0.04 + adaptive continuous sizing (TARGET_PTS=400k) typical chunks
+#: land in 200k-700k and the 1M cap is the genuine overflow bound.
+_BUDGET_PER_CHUNK: int = 1_000_000
 
 #: Per-class histogram drift thresholds (fractions, not percentages).
 _DRIFT_WARN: float = 0.05  # 5 pp warning
@@ -162,7 +165,7 @@ def build_manifest_shell(
         ran_at=datetime.now(timezone.utc).isoformat(),
         ran_by=getpass.getuser(),
         host=platform.node(),
-        grid_size=0.02,
+        grid_size=0.04,
         void_drop_rule="winner_eq_0_drops_voxel",
         denoising=denoising,
         normal_estimation=normal_estimation,

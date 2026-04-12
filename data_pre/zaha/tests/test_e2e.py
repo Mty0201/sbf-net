@@ -116,7 +116,7 @@ def test_manifest_schema(smallest_run: Path) -> None:
         "samples",
     ):
         assert key in m, f"manifest missing required top-level key {key!r}"
-    assert m["grid_size"] == 0.02
+    assert m["grid_size"] == 0.04
     assert len(m["samples"]) == 1
     s = m["samples"][0]
     assert s["sample"] == SMALLEST

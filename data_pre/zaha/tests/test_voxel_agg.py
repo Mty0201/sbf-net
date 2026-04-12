@@ -111,7 +111,7 @@ def test_tie_break() -> None:
     ``{3: 1, 5: 1}``. ``np.argmax`` returns the first max → index 3 → winner 3.
     This check runs on raw-space ids before the D-02 remap.
     """
-    # Two points at the same voxel (both in voxel (0,0,0) at GRID=0.02).
+    # Two points at the same voxel (both in voxel (0,0,0) at GRID=0.04).
     xyz = np.array(
         [
             [0.005, 0.005, 0.005],
@@ -240,4 +240,4 @@ def test_void_drop_order(tmp_path: Path) -> None:
     assert not (tmp_path / "bins").exists()
 
     # GRID constant is preserved.
-    assert GRID == 0.02
+    assert GRID == 0.04

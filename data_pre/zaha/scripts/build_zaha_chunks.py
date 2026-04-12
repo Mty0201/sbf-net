@@ -42,6 +42,7 @@ import open3d as o3d  # noqa: F401
 import argparse
 import json
 import logging
+import multiprocessing as _mp
 import os
 import resource
 import sys
@@ -72,6 +73,7 @@ from data_pre.zaha.utils.chunking import (  # noqa: E402
     ChunkingConfig,
     chunk_name,
     compute_chunks,
+    compute_chunks_by_facade,
     iter_chunk_points,
 )
 from data_pre.zaha.utils.normals import NormalConfig, estimate_normals  # noqa: E402
@@ -89,15 +91,95 @@ from data_pre.zaha.utils.manifest import (  # noqa: E402
 
 
 #: Samples whose raw point count is large enough that running them in
-#: parallel with four workers would exceed WSL's 4 GB free RAM budget.
-#: These are forced to serial execution after the small-sample parallel
-#: pool drains.
+#: parallel with two or more workers would exceed WSL's ~6 GB free RAM
+#: budget. These are forced to serial execution after the small-sample
+#: parallel pool drains. Size thresholds (Plan 01-04 Task 3 measurements,
+#: 2026-04-11):
+#:
+#:   - DEBY_LOD2_4906965  — 4.4 GB PCD / ~86 M pts
+#:   - DEBY_LOD2_4959457  — 3.9 GB PCD / ~77 M pts (added Task 3, Rule 2)
+#:   - DEBY_LOD2_4959458  — 6.9 GB PCD / ~136 M pts (validation split)
 LARGE_SAMPLES: frozenset[str] = frozenset(
     {
         "DEBY_LOD2_4906965",
+        "DEBY_LOD2_4959457",
         "DEBY_LOD2_4959458",
     }
 )
+
+
+#: Target post-denoise points per chunk (Plan 01-04 Task 3 re-derivation,
+#: 2026-04-12). The continuous adaptive formula picks
+#: ``tile_xy = sqrt(TARGET_PTS_PER_CHUNK / density_pt_per_m2)`` per sample
+#: and snaps the result to the nearest entry in ``TILE_SNAP_GRID``. 400k is
+#: the target median; with the 2× planar-surface correction applied to the
+#: raw bbox-projected density the realised max chunk typically lands in
+#: 600k-800k and always stays below the 1M D-07 cap.
+TARGET_PTS_PER_CHUNK: int = 400_000
+
+#: Discrete snap grid for the continuous adaptive tile. Keeping the set
+#: small makes manifest inspection and ablation easier. Overlap is always
+#: tile/2 per D-06.
+TILE_SNAP_GRID: tuple[float, ...] = (
+    8.0,
+    10.0,
+    12.0,
+    16.0,
+    20.0,
+    24.0,
+    32.0,
+)
+
+
+#: Planar-surface correction factor on the raw density estimate.
+#:
+#: The raw density is ``post_denoise_count / (bbox_x * bbox_y)`` which
+#: treats the whole-building point cloud as if it were a floor plan. ZAHA
+#: buildings are thin-walled façade scans, so the *surface* area is roughly
+#: ``perimeter * height + roof_area ≈ 2 × bbox_x * bbox_y`` on a typical
+#: two-storey building — meaning the true point density per m² of
+#: cuttable-surface is about half the raw number. Dividing the raw density
+#: by this factor before the tile formula compensates for the bias, so the
+#: computed ``tile_xy`` targets the real surface density rather than the
+#: inflated projected one. Empirically validated on the attempt-5 cache
+#: against the per-sample "reverse density" computation (Plan 01-04 Task 3
+#: diagnostics, 2026-04-12).
+PLANAR_SURFACE_FACTOR: float = 2.0
+
+
+def compute_adaptive_tile_xy(
+    density_pt_per_m2: float,
+    target_pts: int = TARGET_PTS_PER_CHUNK,
+) -> tuple[float, float, str, float]:
+    """Compute ``(tile_xy, overlap_xy, z_mode, tile_xy_raw)`` from density.
+
+    Parameters
+    ----------
+    density_pt_per_m2
+        ``post_denoise_count / (bbox_x * bbox_y)``, after the planar-surface
+        correction has already been applied by the caller. Higher density ⇒
+        smaller tile.
+    target_pts
+        Target median points per chunk. Defaults to ``TARGET_PTS_PER_CHUNK``.
+
+    Returns
+    -------
+    tuple
+        ``(tile_xy_m, overlap_xy_m, z_mode_str, tile_xy_raw_m)``. The first
+        three are the snapped config values; ``tile_xy_raw`` is the
+        continuous pre-snap value, logged into the manifest so downstream
+        inspection can verify the formula without re-running the pipeline.
+    """
+    if density_pt_per_m2 <= 0:
+        raise ValueError(
+            f"density must be > 0 for tile selection, got {density_pt_per_m2}"
+        )
+    tile_raw = float(np.sqrt(target_pts / density_pt_per_m2))
+    tile_snap = min(TILE_SNAP_GRID, key=lambda t: abs(t - tile_raw))
+    if tile_raw > TILE_SNAP_GRID[-1]:
+        tile_snap = TILE_SNAP_GRID[-1]
+    overlap = tile_snap / 2.0
+    return float(tile_snap), float(overlap), f"band:{float(tile_snap)}", tile_raw
 
 
 # ---------------------------------------------------------------------------
@@ -128,10 +210,18 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="parse + voxel aggregate only; do not write NPYs",
     )
-    p.add_argument("--tile-xy", type=float, default=4.0)
-    p.add_argument("--overlap-xy", type=float, default=2.0)
-    p.add_argument("--z-mode", type=str, default="full")
-    p.add_argument("--budget-per-chunk", type=int, default=600_000)
+    p.add_argument(
+        "--tile-xy",
+        type=float,
+        default=None,
+        help="XY tile size in metres; default = adaptive density bucket "
+        "(D-08 supersession). When supplied, all three of --tile-xy / "
+        "--overlap-xy / --z-mode must be supplied together to override the "
+        "adaptive bucket selector with a fixed-mode CLI config.",
+    )
+    p.add_argument("--overlap-xy", type=float, default=None)
+    p.add_argument("--z-mode", type=str, default=None)
+    p.add_argument("--budget-per-chunk", type=int, default=1_000_000)
     p.add_argument("--normals-knn", type=int, default=30)
     p.add_argument(
         "--denoise-notes",
@@ -317,11 +407,22 @@ def process_sample(
     tmp_root: Path,
     denoise_cfgs: list[DenoiseConfig],
     aggregate_drop_cap: float,
-    chunking_cfg: ChunkingConfig,
+    chunking_cfg_override: ChunkingConfig | None,
+    budget_per_chunk: int,
     normal_cfg: NormalConfig,
     force: bool,
 ) -> dict:
     """Per-sample worker — runs parse -> voxel agg -> denoise -> chunk -> write.
+
+    ``chunking_cfg_override`` is the CLI-supplied fixed-mode config (used when
+    the operator passes ``--tile-xy`` etc. on the command line). When it is
+    ``None`` the worker computes the per-sample point density from the
+    voxel-agg + denoise output, applies the ``PLANAR_SURFACE_FACTOR``
+    correction, runs ``compute_adaptive_tile_xy`` targeting
+    ``TARGET_PTS_PER_CHUNK`` points per chunk, and snaps the result to
+    ``TILE_SNAP_GRID`` — D-08 supersession v2 (Plan 01-04 Task 3, 2026-04-12
+    re-derivation after the first adaptive_density bucket attempt produced
+    over-fragmented chunks with medians of 20-30 k points).
 
     Returns a plain dict (not a dataclass) so the result can be pickled back
     through the ProcessPoolExecutor without importing manifest.py in the
@@ -391,50 +492,81 @@ def process_sample(
         )
     bbox_min = xyz.min(axis=0)
     bbox_max = xyz.max(axis=0)
-    chunks = compute_chunks(bbox_min, bbox_max, chunking_cfg)
-    logger.info(
-        f"{sample}: {len(chunks)} chunks planned over "
-        f"{bbox_min.tolist()} to {bbox_max.tolist()}"
-    )
+
+    # Facade-aware chunking (default) or legacy grid (CLI override).
+    if chunking_cfg_override is not None:
+        # Legacy axis-aligned grid path (--tile-xy CLI override).
+        chunks = compute_chunks(bbox_min, bbox_max, chunking_cfg_override)
+        tile_bucket_record = {
+            "mode": "fixed_cli",
+            "tile_xy": float(chunking_cfg_override.tile_xy),
+            "overlap_xy": float(chunking_cfg_override.overlap_xy),
+            "z_mode": chunking_cfg_override.z_mode,
+        }
+        logger.info(
+            f"{sample}: legacy grid {len(chunks)} chunks "
+            f"(CLI override tile={chunking_cfg_override.tile_xy}m)"
+        )
+        # Build index arrays from ChunkSpec for unified loop below.
+        chunk_index_arrays: list[np.ndarray] = []
+        for cspec in chunks:
+            c_xyz_tmp, _ = iter_chunk_points(xyz, seg, cspec)
+            if len(c_xyz_tmp) < 1:
+                continue
+            mn = cspec.bbox_min
+            mx = cspec.bbox_max
+            mask = (
+                (xyz[:, 0] >= mn[0]) & (xyz[:, 0] <= mx[0])
+                & (xyz[:, 1] >= mn[1]) & (xyz[:, 1] <= mx[1])
+                & (xyz[:, 2] >= mn[2]) & (xyz[:, 2] <= mx[2])
+            )
+            chunk_index_arrays.append(np.where(mask)[0])
+    else:
+        # Facade-aware occupancy chunking.
+        chunk_index_arrays = compute_chunks_by_facade(
+            xyz, seg, budget=budget_per_chunk, min_pts=10_000,
+        )
+        tile_bucket_record = {
+            "mode": "facade_occupancy",
+            "n_components_raw": len(chunk_index_arrays),
+            "budget_per_chunk": budget_per_chunk,
+            "min_pts": 10_000,
+            "occupancy_cell_m": 1.0,
+        }
+        logger.info(
+            f"{sample}: facade chunking -> {len(chunk_index_arrays)} chunks"
+        )
 
     # Stage 5+6: per-chunk normals + write ---------------------------------
     chunk_entries: list[dict] = []
-    for cspec in chunks:
-        c_xyz, c_seg = iter_chunk_points(xyz, seg, cspec)
-        if len(c_xyz) < 1:
-            logger.warning(
-                f"{sample} c{cspec.chunk_idx:03d}: empty, dropping"
-            )
-            continue
-        if len(c_xyz) > chunking_cfg.budget_per_chunk:
-            raise RuntimeError(
-                f"{sample} c{cspec.chunk_idx:03d}: "
-                f"{len(c_xyz)} > budget {chunking_cfg.budget_per_chunk} — "
-                f"re-run with --z-mode band:X"
-            )
+    for ci, idx_arr in enumerate(chunk_index_arrays):
+        c_xyz = xyz[idx_arr].astype(np.float32, copy=False)
+        c_seg = seg[idx_arr].astype(np.int32, copy=False)
         if len(c_xyz) < normal_cfg.knn:
             logger.warning(
-                f"{sample} c{cspec.chunk_idx:03d}: "
+                f"{sample} c{ci:04d}: "
                 f"{len(c_xyz)} pts < knn={normal_cfg.knn}, dropping"
             )
             continue
         # Normals (D-19 per-chunk).
         c_normals = estimate_normals(c_xyz, normal_cfg)
         # Write NPYs (D-22 hard-fail on any invariant violation).
-        dir_name = chunk_name(sample, cspec.chunk_idx)
+        dir_name = chunk_name(sample, ci)
         out_dir = output_root / split / dir_name
         stats = write_chunk_npys(out_dir, c_xyz, c_seg, c_normals)
         # Per-chunk class histogram in remapped 0..15 space.
         bc = np.bincount(c_seg, minlength=16)
         ch_hist = {str(int(k)): int(v) for k, v in enumerate(bc[:16])}
+        c_bbox_min = c_xyz.min(axis=0).tolist()
+        c_bbox_max = c_xyz.max(axis=0).tolist()
         chunk_entries.append(
             {
-                "chunk_idx": int(cspec.chunk_idx),
+                "chunk_idx": ci,
                 "dir_name": dir_name,
-                "x_tile": int(cspec.x_tile),
-                "y_tile": int(cspec.y_tile),
-                "bbox_min": [float(v) for v in cspec.bbox_min],
-                "bbox_max": [float(v) for v in cspec.bbox_max],
+                "x_tile": 0,
+                "y_tile": 0,
+                "bbox_min": [float(v) for v in c_bbox_min],
+                "bbox_max": [float(v) for v in c_bbox_max],
                 "point_count": int(stats["point_count"]),
                 "class_histogram": ch_hist,
                 "coord_sha256": stats["coord_sha256"],
@@ -479,6 +611,7 @@ def process_sample(
         "bbox_min": [float(v) for v in bbox_min],
         "bbox_max": [float(v) for v in bbox_max],
         "chunks": chunk_entries,
+        "tile_bucket": tile_bucket_record,
         "elapsed_s": float(elapsed),
         "peak_rss_mb": float(peak_rss_mb),
         "class_histogram_raw": {
@@ -505,7 +638,8 @@ def _worker_entry(task: dict) -> dict:
         tmp_root=Path(task["tmp_root"]),
         denoise_cfgs=task["denoise_cfgs"],
         aggregate_drop_cap=task["aggregate_drop_cap"],
-        chunking_cfg=task["chunking_cfg"],
+        chunking_cfg_override=task["chunking_cfg_override"],
+        budget_per_chunk=task["budget_per_chunk"],
         normal_cfg=task["normal_cfg"],
         force=task["force"],
     )
@@ -539,12 +673,34 @@ def main() -> int:
         f"aggregate_drop_cap={drop_cap}"
     )
 
-    chunking_cfg = ChunkingConfig(
-        tile_xy=args.tile_xy,
-        overlap_xy=args.overlap_xy,
-        z_mode=args.z_mode,
-        budget_per_chunk=args.budget_per_chunk,
-    )
+    cli_tile_flags = (args.tile_xy, args.overlap_xy, args.z_mode)
+    cli_tile_supplied = [v is not None for v in cli_tile_flags]
+    if any(cli_tile_supplied) and not all(cli_tile_supplied):
+        logger.error(
+            "CLI override requires all three of --tile-xy / --overlap-xy / "
+            "--z-mode together; got "
+            f"tile_xy={args.tile_xy} overlap_xy={args.overlap_xy} "
+            f"z_mode={args.z_mode}"
+        )
+        return 1
+    if all(cli_tile_supplied):
+        chunking_cfg_override: ChunkingConfig | None = ChunkingConfig(
+            tile_xy=args.tile_xy,
+            overlap_xy=args.overlap_xy,
+            z_mode=args.z_mode,
+            budget_per_chunk=args.budget_per_chunk,
+        )
+        logger.info(
+            f"chunking: CLI override tile={args.tile_xy} "
+            f"overlap={args.overlap_xy} z_mode={args.z_mode}"
+        )
+    else:
+        chunking_cfg_override = None
+        logger.info(
+            f"chunking: adaptive continuous (D-08 supersession v2): "
+            f"tile_xy = round_to_grid(sqrt({TARGET_PTS_PER_CHUNK} / "
+            f"(raw_density / {PLANAR_SURFACE_FACTOR})), grid={TILE_SNAP_GRID})"
+        )
     normal_cfg = NormalConfig(knn=args.normals_knn, orient=False, fast=False)
 
     samples = discover_samples(args.input, args.samples)
@@ -571,13 +727,20 @@ def main() -> int:
             "tmp_root": str(args.tmp),
             "denoise_cfgs": denoise_cfgs,
             "aggregate_drop_cap": drop_cap,
-            "chunking_cfg": chunking_cfg,
+            "chunking_cfg_override": chunking_cfg_override,
+            "budget_per_chunk": int(args.budget_per_chunk),
             "normal_cfg": normal_cfg,
             "force": bool(args.force),
         }
 
     if workers > 1 and len(small) > 1:
-        with ProcessPoolExecutor(max_workers=workers) as pool:
+        # Force 'spawn' to avoid open3d/OMP futex deadlock under fork.
+        # Parent imports open3d at module top (GLIBCXX load-order trap),
+        # which initialises an OMP thread pool; fork inherits those locks
+        # in a broken state and workers deadlock on first open3d call.
+        # (Plan 01-04 Task 3 Rule-3 fix, 2026-04-12.)
+        _ctx = _mp.get_context("spawn")
+        with ProcessPoolExecutor(max_workers=workers, mp_context=_ctx) as pool:
             futures = {
                 pool.submit(_worker_entry, _task(split, p)): (split, p)
                 for split, p in small
@@ -635,13 +798,29 @@ def main() -> int:
             },
             "decision_source": str(phase_dir / "normals_notes.md"),
         },
-        chunking={
-            "tile_xy": chunking_cfg.tile_xy,
-            "overlap_xy": chunking_cfg.overlap_xy,
-            "stride_xy": chunking_cfg.stride_xy,
-            "z_mode": chunking_cfg.z_mode,
-            "budget_per_chunk": chunking_cfg.budget_per_chunk,
-        },
+        chunking=(
+            {
+                "mode": "fixed_cli",
+                "tile_xy": chunking_cfg_override.tile_xy,
+                "overlap_xy": chunking_cfg_override.overlap_xy,
+                "stride_xy": chunking_cfg_override.stride_xy,
+                "z_mode": chunking_cfg_override.z_mode,
+                "budget_per_chunk": chunking_cfg_override.budget_per_chunk,
+            }
+            if chunking_cfg_override is not None
+            else {
+                "mode": "adaptive_continuous",
+                "target_pts_per_chunk": int(TARGET_PTS_PER_CHUNK),
+                "planar_surface_factor": float(PLANAR_SURFACE_FACTOR),
+                "snap_grid_m": [float(t) for t in TILE_SNAP_GRID],
+                "budget_per_chunk": int(args.budget_per_chunk),
+                "per_sample": {
+                    d["sample"]: d["tile_bucket"]
+                    for d in sample_payloads
+                    if d.get("status") == "done" and "tile_bucket" in d
+                },
+            }
+        ),
     )
     manifest.samples = sample_entries
     manifest.dataset_stats = aggregate_dataset_stats(sample_entries)

@@ -27,7 +27,7 @@ def _fake_chunk(n: int = 100):
 
 
 def test_file_structure(tmp_path) -> None:
-    """P01-layout-01 — ``<root>/<split>/<sample>__c000/{coord,segment,normal}.npy``.
+    """P01-layout-01 — ``<root>/<split>/<sample>__c0000/{coord,segment,normal}.npy``.
 
     After a write on a synthetic 100-point chunk, all three NPY files exist,
     reload with the expected ``(N,3)/(N,)/(N,3)`` shapes and
@@ -35,7 +35,7 @@ def test_file_structure(tmp_path) -> None:
     """
     layout = _load_layout()
     coord, segment, normal = _fake_chunk(100)
-    out_dir = tmp_path / "DEBY_LOD2_TEST__c000"
+    out_dir = tmp_path / "DEBY_LOD2_TEST__c0000"
     stats = layout.write_chunk_npys(out_dir, coord, segment, normal)
     for fn in ("coord.npy", "segment.npy", "normal.npy"):
         assert (out_dir / fn).exists(), f"{fn} missing from {out_dir}"
@@ -61,12 +61,12 @@ def test_segment_range(tmp_path) -> None:
     layout = _load_layout()
     coord, _, normal = _fake_chunk(4)
     good_seg = np.array([0, 7, 15, 3], dtype=np.int32)
-    stats = layout.write_chunk_npys(tmp_path / "good__c000", coord, good_seg, normal)
+    stats = layout.write_chunk_npys(tmp_path / "good__c0000", coord, good_seg, normal)
     assert stats["segment_min"] == 0 and stats["segment_max"] == 15
     # Reload and double-check the invariant persists on disk.
-    s = np.load(tmp_path / "good__c000" / "segment.npy")
+    s = np.load(tmp_path / "good__c0000" / "segment.npy")
     assert int(s.min()) >= 0 and int(s.max()) <= 15
     # Bad value 16 must hard-fail.
     bad_seg = np.array([0, 7, 16, 3], dtype=np.int32)
     with pytest.raises(ValueError, match=r"(?i)segment"):
-        layout.write_chunk_npys(tmp_path / "bad__c000", coord, bad_seg, normal)
+        layout.write_chunk_npys(tmp_path / "bad__c0000", coord, bad_seg, normal)

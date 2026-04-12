@@ -1,8 +1,8 @@
-"""Deterministic grid=0.02 voxel aggregator for the ZAHA offline pipeline.
+"""Deterministic grid=0.04 voxel aggregator for the ZAHA offline pipeline.
 
 Exports
 -------
-GRID : float = 0.02                  (module constant — NOT a parameter)
+GRID : float = 0.04                  (module constant — NOT a parameter)
 VoxelBatch (dataclass)               per-bin aggregate result
 VoxelAggregateResult (dataclass)     whole-file aggregate result
 pack_voxel_keys(ix, iy, iz)          pack int64 voxel coords to uint64 key
@@ -11,10 +11,15 @@ stream_voxel_aggregate(path, ...)    hash-partitioned external sort aggregate
 
 Design (RESEARCH §B.1 / §B.2)
 -----------------------------
-CONTEXT D-14 supersession: the plain Python-dict aggregate in the original
-D-14 wording does not fit WSL's 4 GB free RAM for the 136.8 M-point sample
-(would need 17-34 GB of dict state). This module implements the hash-
-partitioned external sort of RESEARCH §B.2 instead. Peak RAM ~1.5 GB.
+CONTEXT D-14 supersession (2026-04-12): grid was originally 0.02 in the
+D-14 wording. The whole-dataset run revealed (a) the plain Python-dict
+aggregate did not fit WSL's 4 GB free RAM for the 136.8 M-point sample
+(would have needed 17-34 GB), and (b) at grid=0.02 the chunk-budget
+math forced impractical tile sizes (1500+ chunks per mega-building).
+This module now uses grid=0.04 — aligned with the main-line training
+regime — and implements the hash-partitioned external sort of RESEARCH
+§B.2 (peak RAM ~1.5 GB) so the same code path serves both the original
+sizing constraint and the new alignment goal.
 
 Pass 1 (partition):
     stream_pcd → per-chunk numpy voxel keys → partition into K disk bins via
@@ -52,9 +57,9 @@ from data_pre.zaha.utils.pcd_parser import stream_pcd
 # Constants
 # ---------------------------------------------------------------------------
 
-GRID: float = 0.02  # locked — NOT a parameter
+GRID: float = 0.04  # locked — NOT a parameter (aligned with main-line training)
 _INV: float = 1.0 / GRID
-_SHIFT: int = 1 << 20   # ±1 M voxels per axis = ±20 km at grid=0.02
+_SHIFT: int = 1 << 20   # ±1 M voxels per axis = ±40 km at grid=0.04
 _NUM_RAW_CLASSES: int = 17  # classes 0..16 in the raw schema
 
 
@@ -98,7 +103,7 @@ def pack_voxel_keys(
     """Pack (ix, iy, iz) int64 voxel coordinates into a single uint64 key.
 
     Shifts each axis by ``+_SHIFT = +2**20`` so negative voxel coords work;
-    uses 21 bits per axis = ±1 M voxels per direction = ±20 km at grid=0.02.
+    uses 21 bits per axis = ±1 M voxels per direction = ±40 km at grid=0.04.
     """
     x = (ix.astype(np.int64) + _SHIFT).astype(np.uint64)
     y = (iy.astype(np.int64) + _SHIFT).astype(np.uint64)
