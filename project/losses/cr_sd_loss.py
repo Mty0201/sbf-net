@@ -35,6 +35,29 @@ class CRSDLoss(nn.Module):
             mode="multiclass", loss_weight=1.0, ignore_index=-1
         )
 
+    def _compute_sem_loss(self, seg_logits, segment, sw):
+        ce_per_point = F.cross_entropy(
+            seg_logits, segment, ignore_index=-1, reduction="none"
+        )
+        ce_point_weight = 1.0 + sw * (self.boundary_ce_weight - 1.0)
+        loss_ce = (ce_per_point * ce_point_weight).mean()
+        loss_lovasz = self.lovasz_multi(seg_logits, segment)
+        return loss_ce, loss_lovasz
+
+    def _compute_marg_loss(self, marg_logits, binary_target, valid_mask):
+        marg_valid = marg_logits.view(-1)[valid_mask]
+        loss_bce = F.binary_cross_entropy_with_logits(
+            marg_valid, binary_target, reduction="none"
+        ).mean()
+        marg_prob = torch.sigmoid(marg_valid)
+        smooth = self.dice_smooth
+        intersection = (marg_prob * binary_target).sum()
+        dice_score = (2.0 * intersection + smooth) / (
+            marg_prob.sum() + binary_target.sum() + smooth
+        )
+        loss_dice = 1.0 - dice_score
+        return loss_bce, loss_dice, dice_score, marg_prob
+
     def forward(
         self,
         seg_logits: torch.Tensor,
@@ -42,54 +65,47 @@ class CRSDLoss(nn.Module):
         marg_logits: torch.Tensor,
         boundary_mask: torch.Tensor,
         s_weight: torch.Tensor | None = None,
+        seg_logits_v1: torch.Tensor | None = None,
+        marg_logits_v1: torch.Tensor | None = None,
         alpha_mean: torch.Tensor | None = None,
         alpha_std: torch.Tensor | None = None,
         alpha_abs_max: torch.Tensor | None = None,
         w_fro: torch.Tensor | None = None,
-        g_alpha_mean: torch.Tensor | None = None,
-        g_alpha_absmax: torch.Tensor | None = None,
-        g_gate_mean: torch.Tensor | None = None,
-        g_gate_std: torch.Tensor | None = None,
-        g_delta_norm: torch.Tensor | None = None,
     ) -> dict[str, torch.Tensor]:
         segment = segment.reshape(-1).long()
         valid_mask = segment != -1
 
-        # === Semantic branch: s_weight continuous CE upweight + Lovász ===
         if s_weight is not None:
             sw = s_weight.reshape(-1).float().clamp(0.0, 1.0)
         else:
             sw = boundary_mask.float().view(-1)
-        ce_per_point = F.cross_entropy(
-            seg_logits, segment, ignore_index=-1, reduction="none"
-        )
-        ce_point_weight = 1.0 + sw * (self.boundary_ce_weight - 1.0)
-        loss_ce_weighted = (ce_per_point * ce_point_weight).mean()
-        loss_lovasz = self.lovasz_multi(seg_logits, segment)
 
-        # === Margin branch: BCE + global Dice on boundary_mask ===
         binary_target = boundary_mask.float().view(-1)[valid_mask]
-        marg_valid = marg_logits.view(-1)[valid_mask]
 
-        bce_per_point = F.binary_cross_entropy_with_logits(
-            marg_valid, binary_target, reduction="none"
+        # === v2 (post-fusion) losses ===
+        loss_ce, loss_lovasz = self._compute_sem_loss(seg_logits, segment, sw)
+        loss_marg_bce, loss_marg_dice, dice_score, marg_prob = (
+            self._compute_marg_loss(marg_logits, binary_target, valid_mask)
         )
-        loss_marg_bce = bce_per_point.mean()
-
-        marg_prob = torch.sigmoid(marg_valid)
-        smooth = self.dice_smooth
-        intersection = (marg_prob * binary_target).sum()
-        dice_score = (2.0 * intersection + smooth) / (
-            marg_prob.sum() + binary_target.sum() + smooth
-        )
-        loss_marg_dice = 1.0 - dice_score
-
         loss_marg = loss_marg_bce + self.dice_weight * loss_marg_dice
-        loss_marg_weighted = self.aux_weight * loss_marg
 
-        total = loss_ce_weighted + loss_lovasz + loss_marg_weighted
+        total = loss_ce + loss_lovasz + self.aux_weight * loss_marg
 
-        # Monitoring metrics
+        # === v1 (pre-fusion) losses ===
+        if seg_logits_v1 is not None:
+            loss_ce_v1, loss_lovasz_v1 = self._compute_sem_loss(
+                seg_logits_v1, segment, sw,
+            )
+            total = total + loss_ce_v1 + loss_lovasz_v1
+
+        if marg_logits_v1 is not None:
+            loss_marg_bce_v1, loss_marg_dice_v1, _, _ = (
+                self._compute_marg_loss(marg_logits_v1, binary_target, valid_mask)
+            )
+            loss_marg_v1 = loss_marg_bce_v1 + self.dice_weight * loss_marg_dice_v1
+            total = total + self.aux_weight * loss_marg_v1
+
+        # Monitoring metrics (v2 only)
         with torch.no_grad():
             positive = binary_target > 0.5
             negative = ~positive
@@ -100,11 +116,10 @@ class CRSDLoss(nn.Module):
 
         out = dict(
             loss=total,
-            loss_ce_weighted=loss_ce_weighted,
+            loss_ce_weighted=loss_ce,
             loss_lovasz=loss_lovasz,
             loss_marg_bce=loss_marg_bce,
             loss_marg_dice=loss_marg_dice,
-            loss_marg_weighted=loss_marg_weighted,
             dice_score=dice_score,
             prob_pos_mean=prob_pos_mean,
             prob_neg_mean=prob_neg_mean,
@@ -118,14 +133,4 @@ class CRSDLoss(nn.Module):
             out["alpha_abs_max"] = alpha_abs_max
         if w_fro is not None:
             out["w_fro"] = w_fro
-        if g_alpha_mean is not None:
-            out["g_alpha_mean"] = g_alpha_mean
-        if g_alpha_absmax is not None:
-            out["g_alpha_absmax"] = g_alpha_absmax
-        if g_gate_mean is not None:
-            out["g_gate_mean"] = g_gate_mean
-        if g_gate_std is not None:
-            out["g_gate_std"] = g_gate_std
-        if g_delta_norm is not None:
-            out["g_delta_norm"] = g_delta_norm
         return out

@@ -1,11 +1,12 @@
-"""CR-SDE (grid=0.06): Decoupled segmentor + GatedSegRefiner on CR-SD hyperparams.
+"""CR-SDE (grid=0.06): Decoupled segmentor + CrossStreamFusion on CR-SD hyperparams.
 
 Mirror of ``cr_sd_train.py``. The only structural change is
-``model.type = DecoupledBFANetSegmentorGRef``: a ``GatedSegRefiner`` block is
-inserted between the subtractive decoupling module and the segmentation head.
-The refiner reads the margin stream to build a sigmoid gate and writes a
-three-times-zero-initialised residual back onto the seg stream. Step-0 is
-strictly equivalent to CR-SD.
+``model.type = DecoupledBFANetSegmentorGRef``: a BFANet-style cross-stream
+fusion attention (g v4) is inserted between subtractive decoupling and the
+logit heads. The fusion module lets the diverged seg/marg streams exchange
+information via a shared fused query before prediction, preventing late-stage
+gradient conflict. Zero-init output projections guarantee step-0 equivalence
+to CR-SD.
 
 Training hyperparameters (optimiser, scheduler, seed, batch, grad_accum,
 total_epoch, mix_prob, AMP) are byte-identical to ``cr_sd_train.py``. Only
@@ -25,8 +26,8 @@ model = dict(
     type="DecoupledBFANetSegmentorGRef",
     num_classes=8,
     backbone_out_channels=64,
-    refiner_num_heads=4,
-    refiner_patch_size=1024,
+    fusion_num_heads=4,
+    fusion_patch_size=1024,
     backbone=dict(
         type="PT-v3m1",
         in_channels=6,

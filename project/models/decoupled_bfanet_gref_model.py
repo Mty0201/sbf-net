@@ -1,9 +1,10 @@
-"""CR-SDE segmentor: PTv3 backbone + SubtractiveDecoupling + GatedSegRefiner + dual heads.
+"""CR-SDE segmentor: PTv3 backbone + SubtractiveDecoupling + CrossStreamFusion + dual heads.
 
-Same skeleton as ``DecoupledBFANetSegmentorV1`` (CR-SD). The only difference is
-the ``GatedSegRefiner`` block inserted between the decoupling module and the
-segmentation head. The refiner reads the margin stream to build a gate and
-writes a zero-initialised residual back onto the seg stream.
+Same skeleton as ``DecoupledBFANetSegmentorV1`` (CR-SD). After subtractive
+decoupling produces two divergent streams, a BFANet-style cross-stream
+fusion attention (g v4) lets them exchange information before the logit
+heads. This prevents late-stage gradient conflict between the two branches
+by re-aligning their representations through a shared fused query.
 
 ``DecoupledBFANetSegmentorV1`` is unchanged — CR-SDE is a physically separate
 segmentor so the CR-SD baseline stays clean.
@@ -16,7 +17,7 @@ import pointcept.models  # noqa: F401 — triggers registry population
 from pointcept.models.builder import MODELS, build_model
 from pointcept.models.utils.structure import Point
 
-from .g_refiner import GatedSegRefiner
+from .gv4 import CrossStreamFusionAttention
 from .subtractive_decoupling import SubtractiveDecoupling
 
 
@@ -27,8 +28,8 @@ class DecoupledBFANetSegmentorGRef(nn.Module):
         num_classes: int = 8,
         backbone_out_channels: int = 64,
         backbone: dict | None = None,
-        refiner_num_heads: int = 4,
-        refiner_patch_size: int = 1024,
+        fusion_num_heads: int = 4,
+        fusion_patch_size: int = 1024,
     ) -> None:
         super().__init__()
         self.backbone = build_model(backbone)
@@ -38,14 +39,16 @@ class DecoupledBFANetSegmentorGRef(nn.Module):
             norm_layer=nn.LayerNorm,
             act_layer=nn.GELU,
         )
-        self.refiner = GatedSegRefiner(
+        self.fusion = CrossStreamFusionAttention(
             channels=backbone_out_channels,
-            num_heads=refiner_num_heads,
-            patch_size=refiner_patch_size,
+            num_heads=fusion_num_heads,
+            patch_size=fusion_patch_size,
             enable_flash=True,
         )
-        self.seg_head = nn.Linear(backbone_out_channels, num_classes)
-        self.marg_head = nn.Linear(backbone_out_channels, 1)
+        self.seg_head_v1 = nn.Linear(backbone_out_channels, num_classes)
+        self.marg_head_v1 = nn.Linear(backbone_out_channels, 1)
+        self.seg_head_v2 = nn.Linear(backbone_out_channels, num_classes)
+        self.marg_head_v2 = nn.Linear(backbone_out_channels, 1)
 
     @staticmethod
     def _extract_feat(backbone_output):
@@ -72,10 +75,15 @@ class DecoupledBFANetSegmentorGRef(nn.Module):
         point_marg = self.decoupling(point)
         point_seg = point_marg.point_seg
 
-        point_seg, g_diag = self.refiner(point_seg, point_marg)
+        seg_logits_v1 = self.seg_head_v1(point_seg.feat)
+        marg_logits_v1 = self.marg_head_v1(point_marg.feat)
 
-        seg_logits = self.seg_head(point_seg.feat)
-        marg_logits = self.marg_head(point_marg.feat)
+        seg_feat_v2, marg_feat_v2 = self.fusion(
+            point_seg.feat, point_marg.feat, point_seg,
+        )
+
+        seg_logits = self.seg_head_v2(seg_feat_v2)
+        marg_logits = self.marg_head_v2(marg_feat_v2)
 
         with torch.no_grad():
             alpha = self.decoupling.alpha.detach()
@@ -88,9 +96,10 @@ class DecoupledBFANetSegmentorGRef(nn.Module):
         return dict(
             seg_logits=seg_logits,
             marg_logits=marg_logits,
+            seg_logits_v1=seg_logits_v1,
+            marg_logits_v1=marg_logits_v1,
             alpha_mean=alpha_mean,
             alpha_std=alpha_std,
             alpha_abs_max=alpha_abs_max,
             w_fro=w_fro,
-            **g_diag,
         )
