@@ -94,7 +94,8 @@ def build_loss(cfg: dict | None):
         kwargs = {key: value for key, value in cfg.items() if key != "type"}
         return SoftWeightedSemanticLoss(**kwargs)
     if loss_type == "CRSDLoss":
-        return CRSDLoss()
+        kwargs = {key: value for key, value in cfg.items() if key != "type"}
+        return CRSDLoss(**kwargs)
     raise ValueError(f"Unsupported loss type: {loss_type}")
 
 

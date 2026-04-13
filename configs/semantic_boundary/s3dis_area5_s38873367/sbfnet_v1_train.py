@@ -1,7 +1,9 @@
-"""S3DIS exp 3: SBF-net v1 — CE+Lovasz + BCE+Dice, s_weight CE weighting, v1 only.
+"""S3DIS exp 3: SBF-net v1 — decoupler + s_weight CE weighting, v1 only.
 
-Single-stream (SharedBackboneSemanticSupportModel).
-BoundaryBinaryLoss: s_weight-weighted semantic CE + BCE + local Dice on boundary head.
+DecoupledBFANetSegmentorV1 (PTv3 backbone + SubtractiveDecoupling + seg/marg heads).
+CRSDLoss: s_weight continuous 10x CE upweight + multiclass Lovasz on semantics,
+BCE + global Dice on the margin head supervised by boundary_mask.
+No post-fusion v2 branch — this is the single-supervision decoupled model.
 """
 
 from __future__ import annotations
@@ -11,20 +13,19 @@ from pathlib import Path
 _dir = Path(__file__).resolve().parent
 repo_root = _dir.parents[2]
 
-model = runpy.run_path(str(_dir / "s3dis_support_model.py"))["model"]
+model = runpy.run_path(str(_dir / "s3dis_decoupled_v1_model.py"))["model"]
 data = runpy.run_path(str(_dir / "s3dis_data.py"))["data"]
 data["train_batch_size"] = 2
 data["val_batch_size"] = 1
 
 loss = dict(
-    type="BoundaryBinaryLoss",
-    aux_weight=0.3,
+    type="CRSDLoss",
+    aux_weight=1.0,
     boundary_ce_weight=10.0,
-    sample_weight_scale=9.0,
-    boundary_threshold=0.5,
-    pos_weight=1.0,
+    dice_weight=1.0,
+    dice_smooth=1.0,
 )
-evaluator = dict(type="RedesignedSupportFocusEvaluator")
+evaluator = dict(type="SemanticEvaluator")
 
 optimizer = dict(type="AdamW", lr=0.006, weight_decay=0.05)
 param_dicts = [dict(keyword="block", lr=0.0006)]
@@ -44,6 +45,6 @@ runtime = dict(
     grad_accum_steps=12, mix_prob=0.8, enable_amp=True,
 )
 trainer = dict(
-    total_epoch=100, eval_epoch=10,
+    total_epoch=100, eval_epoch=100,
     num_workers=8, max_train_batches=None, max_val_batches=None,
 )

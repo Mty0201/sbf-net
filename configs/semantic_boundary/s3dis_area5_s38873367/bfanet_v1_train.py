@@ -25,7 +25,7 @@ loss = dict(
     dice_weight=1.0,
     dice_smooth=1.0,
 )
-evaluator = dict(type="RedesignedSupportFocusEvaluator")
+evaluator = dict(type="SemanticEvaluator")
 
 optimizer = dict(type="AdamW", lr=0.006, weight_decay=0.05)
 param_dicts = [dict(keyword="block", lr=0.0006)]
@@ -45,6 +45,6 @@ runtime = dict(
     grad_accum_steps=12, mix_prob=0.8, enable_amp=True,
 )
 trainer = dict(
-    total_epoch=100, eval_epoch=10,
+    total_epoch=100, eval_epoch=100,
     num_workers=8, max_train_batches=None, max_val_batches=None,
 )

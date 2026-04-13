@@ -1,4 +1,9 @@
-"""S3DIS exp 1: pure semantic PTv3 (CE + Lovasz). Baseline anchor."""
+"""S3DIS exp 5: pure PTv3 + s_weight-weighted semantic CE (no aux head).
+
+SharedBackboneSemanticModel + SoftWeightedSemanticLoss.
+Every point's CE weight = 1 + s_weight * 9 (core boundary -> 10, background -> 1).
+No boundary/support head, no aux loss — minimal smooth extension of semantic_only.
+"""
 
 from __future__ import annotations
 import runpy
@@ -12,7 +17,7 @@ data = runpy.run_path(str(_dir / "s3dis_data.py"))["data"]
 data["train_batch_size"] = 2
 data["val_batch_size"] = 1
 
-loss = dict(type="SemanticOnlyLoss")
+loss = dict(type="SoftWeightedSemanticLoss", boundary_ce_weight=10.0)
 evaluator = dict(type="SemanticEvaluator")
 
 optimizer = dict(type="AdamW", lr=0.006, weight_decay=0.05)
@@ -26,7 +31,7 @@ scheduler = dict(
 seed = 38873367
 weight = None
 resume = False
-work_dir = str(repo_root / "outputs" / "s3dis_area5_s38873367" / "semantic_only")
+work_dir = str(repo_root / "outputs" / "s3dis_area5_s38873367" / "ptv3_sweighted")
 
 runtime = dict(
     log_freq=1, val_log_freq=1, save_freq=100,

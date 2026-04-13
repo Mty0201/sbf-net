@@ -1,8 +1,10 @@
-"""S3DIS exp 4: SBF-net v2 — v1 + dual-stream g v4 supervision.
+"""S3DIS exp 4: SBF-net v2 — full CR-SDE (decoupler + g v4 fusion + dual supervision).
 
-BoundaryGatedSemanticModelV4 + DualSupervisionSupportWeightedBFANetLoss.
-v1 heads (pre-fusion) + g v4 CrossStreamFusionAttention + v2 heads (post-fusion).
-s_weight continuous CE weighting on both streams.
+DecoupledBFANetSegmentorGRef: PTv3 backbone + SubtractiveDecoupling +
+CrossStreamFusionAttention (g v4) + v1 (pre-fusion) / v2 (post-fusion) dual heads.
+CRSDLoss: s_weight continuous 10x CE upweight + multiclass Lovasz on semantics,
+BCE + global Dice on margin heads. Loss is applied to BOTH v1 and v2 branches
+when seg_logits_v1 / marg_logits_v1 are present.
 """
 
 from __future__ import annotations
@@ -12,23 +14,19 @@ from pathlib import Path
 _dir = Path(__file__).resolve().parent
 repo_root = _dir.parents[2]
 
-model = runpy.run_path(str(_dir / "s3dis_gated_v4_model.py"))["model"]
+model = runpy.run_path(str(_dir / "s3dis_decoupled_gref_model.py"))["model"]
 data = runpy.run_path(str(_dir / "s3dis_data.py"))["data"]
 data["train_batch_size"] = 2
 data["val_batch_size"] = 1
 
 loss = dict(
-    type="DualSupervisionSupportWeightedBFANetLoss",
+    type="CRSDLoss",
     aux_weight=1.0,
     boundary_ce_weight=10.0,
-    boundary_threshold=0.5,
-    pos_weight=1.0,
     dice_weight=1.0,
     dice_smooth=1.0,
-    v1_weight=1.0,
-    v2_weight=1.0,
 )
-evaluator = dict(type="RedesignedSupportFocusEvaluator")
+evaluator = dict(type="SemanticEvaluator")
 
 optimizer = dict(type="AdamW", lr=0.006, weight_decay=0.05)
 param_dicts = [dict(keyword="block", lr=0.0006)]
@@ -48,6 +46,6 @@ runtime = dict(
     grad_accum_steps=12, mix_prob=0.8, enable_amp=True,
 )
 trainer = dict(
-    total_epoch=100, eval_epoch=10,
+    total_epoch=100, eval_epoch=100,
     num_workers=8, max_train_batches=None, max_val_batches=None,
 )
