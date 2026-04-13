@@ -1,7 +1,12 @@
-"""S3DIS Area-5 data config: grid=0.02, coord+color+normal features.
+"""S3DIS Area-5 data config: grid=0.04, coord+color+normal features.
 
 13 classes, Area 5 as validation, Areas 1/2/3/4/6 as training.
-Follows upstream Pointcept S3DIS recipe with boundary_mask + s_weight injection.
+Upstream Pointcept S3DIS recipe with boundary_mask + s_weight injection,
+tuned to our hardware budget:
+  - grid_size 0.02 -> 0.04 (halves voxel resolution on each axis; ~1/8 count)
+  - SphereCrop point_max 204800 -> 40960 (covers ~p70 of train-side voxel
+    count at grid=0.04; see s3dis_grid_crop_stats scan on 272 samples)
+SphereCrop(sample_rate=0.6) is unchanged.
 """
 
 import os
@@ -49,13 +54,13 @@ data = dict(
             dict(type="ChromaticJitter", p=0.95, std=0.05),
             dict(
                 type="GridSample",
-                grid_size=0.02,
+                grid_size=0.04,
                 hash_type="fnv",
                 mode="train",
                 return_grid_coord=True,
             ),
             dict(type="SphereCrop", sample_rate=0.6, mode="random"),
-            dict(type="SphereCrop", point_max=204800, mode="random"),
+            dict(type="SphereCrop", point_max=40960, mode="random"),
             dict(type="CenterShift", apply_z=False),
             dict(type="NormalizeColor"),
             dict(type="ToTensor"),
@@ -77,7 +82,7 @@ data = dict(
             dict(type="Copy", keys_dict={"segment": "origin_segment"}),
             dict(
                 type="GridSample",
-                grid_size=0.02,
+                grid_size=0.04,
                 hash_type="fnv",
                 mode="train",
                 return_grid_coord=True,
@@ -106,7 +111,7 @@ data = dict(
         test_cfg=dict(
             voxelize=dict(
                 type="GridSample",
-                grid_size=0.02,
+                grid_size=0.04,
                 hash_type="fnv",
                 mode="test",
                 return_grid_coord=True,
