@@ -46,13 +46,24 @@ class SoftWeightedSemanticLoss(nn.Module):
         self,
         seg_logits: torch.Tensor,
         segment: torch.Tensor,
-        edge: torch.Tensor,
+        edge: torch.Tensor | None = None,
+        s_weight: torch.Tensor | None = None,
+        boundary_mask: torch.Tensor | None = None,
         **_extra,
     ) -> dict[str, torch.Tensor]:
         segment = segment.reshape(-1).long()
-        edge = edge.float()
 
-        support_gt = edge[:, 3].float().clamp(0.0, 1.0)
+        if s_weight is not None:
+            support_gt = s_weight.reshape(-1).float().clamp(0.0, 1.0)
+        elif edge is not None:
+            support_gt = edge.float()[:, 3].clamp(0.0, 1.0)
+        elif boundary_mask is not None:
+            support_gt = boundary_mask.reshape(-1).float().clamp(0.0, 1.0)
+        else:
+            raise RuntimeError(
+                "SoftWeightedSemanticLoss requires s_weight, edge, or "
+                "boundary_mask in the batch."
+            )
 
         ce_per_point = F.cross_entropy(
             seg_logits, segment, ignore_index=-1, reduction="none"
