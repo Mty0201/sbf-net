@@ -30,7 +30,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-06)
 Phase: 8 — Grid=0.04 range-shift validation sweep (CR-R / CR-S / CR-T / CR-Q / CR-U / CR-V). Phase 5 closed and gated on grid=0.06. Phase 7 deferred until Phase 8 produces its verdict.
 Plan: `.planning/phases/08-grid04-range-shift-validation/08-CONTEXT.md` (scaffolding); `/gsd-plan-phase 8` pending to flesh out 08-01-PLAN..08-05-PLAN. Infra ready: quick task 260411-tqv completed 2026-04-11 — g04 configs live under isolated `clean_reset_g04_s38873367/` directory, CR-R `semantic_only_g04_train.py` committed, trainer + losses unblocked for edgeless dispatch.
 Status: Phase 8 container opened 2026-04-11 after direct measurement identified grid=0.06 as the root cause of the aux-head 0.725 ceiling. CR-Q adopted as the Phase 8 sentinel (committed 338c0ce + smoke-validated). CR-R/S/T to be planned; CR-U reserved TBD (non-blocking). All Phase 5 verdicts preserved and gated on grid=0.06 via retrospective banners on canonical docs, 05-CONTEXT.md, and 3 memory files. CR-Q, CR-V, CR-R smoke gates all green on real BF_edge_chunk_npy data as of 2026-04-11 22:00 (quick task 260411-tqv).
-Last activity: 2026-04-13 - CR-SDE ported to BF grid=0.04 (commit 14df6f5): `configs/semantic_boundary/clean_reset_g04_s38873367/cr_sde_train.py` = DecoupledBFANetSegmentorGRef + CRSDLoss, hyperparams byte-identical to CR-SD. Full-configuration variant for BF dataset now exists alongside CR-Q/CR-V/CR-R/CR-SD.
+Last activity: 2026-04-17 - Completed quick task 260418-0fp: Validation-set semantic GT visualization script (BF/S3DIS/ZAHA → xyz+RGB + legend). Commit 113e10b.
 
 ### CR-SD Training Analysis & Loss Redesign (2026-04-12)
 
@@ -230,6 +230,8 @@ CR-SD (SubtractiveDecoupling, grid=0.06) ran 54/100 epochs. **Decoupling works**
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260412-2e7 | CR-SD: Subtractive Decoupling module + DecoupledBFANet segmentor + cr_sd_train config (implementation only, no training) | 2026-04-11 | d25b42d | [260412-2e7-cr-sd-subtractive-decoupling-module-deco](./quick/260412-2e7-cr-sd-subtractive-decoupling-module-deco/) |
+| 260417-wdr | Fix ZAHADataset missing 'name' key → val/post-train-test KeyError (sbfnet_v2) | 2026-04-17 | 3906720 | [260417-wdr-fix-edge-name-issue-during-val-phase-whe](./quick/260417-wdr-fix-edge-name-issue-during-val-phase-whe/) |
+| 260418-0fp | Validation-set semantic GT visualization: scripts/viz/gt_color_export.py for BF / S3DIS / ZAHA (xyz+RGB + legend) | 2026-04-17 | 113e10b | [260418-0fp-semantic-gt-visualization-xyz-validation](./quick/260418-0fp-semantic-gt-visualization-xyz-validation/) |
 
 ## Workstream Archival
 
