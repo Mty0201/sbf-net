@@ -26,6 +26,8 @@ class ZAHADataset(DefaultDataset):
         data_path = Path(self.data_list[idx % len(self.data_list)])
 
         data_dict = {}
+        data_dict["name"] = self.get_data_name(idx)
+        data_dict["split"] = self.get_split_name(idx)
         data_dict["coord"] = np.load(data_path / "coord.npy").astype(np.float32)
         data_dict["normal"] = np.load(data_path / "normal.npy").astype(np.float32)
 
