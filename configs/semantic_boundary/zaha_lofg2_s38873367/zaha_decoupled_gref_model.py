@@ -1,16 +1,15 @@
-"""Dual-stream g v4 model for ZAHA (5 classes, normal-only features).
+"""SBF-net v2 model for ZAHA: DecoupledBFANetSegmentorGRef (5 classes, normal-only).
 
-BoundaryGatedSemanticModelV4: backbone + semantic/boundary adapters + v1 heads
-+ CrossStreamFusionAttention (g v4) + v2 heads. Used by SBF-net v2 config.
+PTv3 backbone + SubtractiveDecoupling + CrossStreamFusionAttention (g v4) +
+v1/v2 dual heads. Used by sbfnet_v2 config with CRSDLoss (dual supervision).
 """
 
 model = dict(
-    type="BoundaryGatedSemanticModelV4",
+    type="DecoupledBFANetSegmentorGRef",
     num_classes=5,
     backbone_out_channels=64,
-    gate_patch_size=48,
-    gate_num_heads=4,
-    enable_flash=True,
+    fusion_num_heads=4,
+    fusion_patch_size=1024,
     backbone=dict(
         type="PT-v3m1",
         in_channels=3,

@@ -307,6 +307,12 @@ class SemanticBoundaryTrainer:
         # CR-SD: forward marg_logits when the segmentor emits it.
         if "marg_logits" in output:
             kwargs["marg_logits"] = output["marg_logits"]
+        # CR-SDE dual supervision: forward pre-fusion v1 logits so CRSDLoss
+        # can add the v1 branch loss terms.
+        if "seg_logits_v1" in output:
+            kwargs["seg_logits_v1"] = output["seg_logits_v1"]
+        if "marg_logits_v1" in output:
+            kwargs["marg_logits_v1"] = output["marg_logits_v1"]
         # CR-SD diagnostics: forward alpha/W scalars so they land in train.log.
         # CR-SDE diagnostics: g_refiner alpha / gate / delta scalars.
         for _diag in (
@@ -343,6 +349,9 @@ class SemanticBoundaryTrainer:
             kwargs["seg_logits_v2"] = output["seg_logits_v2"]
         if "support_pred_v2" in output:
             kwargs["support_pred_v2"] = output["support_pred_v2"]
+        # CR-SD/SDE margin head: forward marg_logits for support-focused evaluators.
+        if "marg_logits" in output:
+            kwargs["marg_logits"] = output["marg_logits"]
         if "boundary_mask" in batch:
             kwargs["boundary_mask"] = batch["boundary_mask"]
         if "s_weight" in batch:

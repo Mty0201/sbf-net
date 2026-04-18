@@ -3,6 +3,7 @@ from .semantic_evaluator import SemanticEvaluator
 from .axis_side_evaluator import AxisSideEvaluator
 from .support_guided_semantic_focus_evaluator import SupportGuidedSemanticFocusEvaluator
 from .redesigned_support_focus_evaluator import RedesignedSupportFocusEvaluator
+from .zaha_support_focus_evaluator import ZAHASupportFocusEvaluator
 
 
 def build_evaluator(cfg: dict | None):
@@ -25,6 +26,9 @@ def build_evaluator(cfg: dict | None):
     if evaluator_type == "RedesignedSupportFocusEvaluator":
         kwargs = {key: value for key, value in cfg.items() if key != "type"}
         return RedesignedSupportFocusEvaluator(**kwargs)
+    if evaluator_type == "ZAHASupportFocusEvaluator":
+        kwargs = {key: value for key, value in cfg.items() if key != "type"}
+        return ZAHASupportFocusEvaluator(**kwargs)
     raise ValueError(f"Unsupported evaluator type: {evaluator_type}")
 
 
@@ -34,5 +38,6 @@ __all__ = [
     "AxisSideEvaluator",
     "SupportGuidedSemanticFocusEvaluator",
     "RedesignedSupportFocusEvaluator",
+    "ZAHASupportFocusEvaluator",
     "build_evaluator",
 ]
